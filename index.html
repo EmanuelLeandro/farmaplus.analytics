@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farmaplus Analytics</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231D4ED8'/><text x='50' y='74' font-size='68' font-family='sans-serif' font-weight='bold' fill='white' text-anchor='middle'>F</text></svg>">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: { 
+                            bg: '#F8FAFC', 
+                            text: '#0F172A', 
+                            textSec: '#64748B', 
+                            primary: '#1D4ED8', // Azul corporativo
+                            primaryHover: '#1e40af',
+                            card: '#FFFFFF',
+                            border: '#E2E8F0'
+                        }
+                    },
+                    borderRadius: { '2xl': '16px' },
+                    boxShadow: { 'soft': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)' }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #F8FAFC; color: #0F172A; }
+        
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+        
+        /* Estilos de tabla Enterprise */
+        .erp-table th { border-bottom: 1px solid #E2E8F0; padding: 14px 16px; font-weight: 600; color: #64748B; font-size: 12px; background-color: #F8FAFC; }
+        .erp-table td { padding: 14px 16px; border-bottom: 1px solid #F1F5F9; font-size: 13px; color: #0F172A; }
+        .erp-table tr:hover td { background-color: #F8FAFC; }
+        
+        /* Tabla Resumen Motivos */
+        .motivos-table th { background-color: #0F172A; color: #FFFFFF; border-bottom: none; }
+        .motivos-table tr:hover td { background-color: #F1F5F9; }
+        .motivos-table .total-row td { background-color: #E2E8F0; font-weight: 700; color: #0F172A; border-top: 2px solid #CBD5E1; }
+        .smooth-transition { transition: all 0.2s ease-in-out; }
+        
+        /* Lógica PDF Gerencial */
+        .print-only { display: none; }
+        
+        @media print { 
+            body { background: white !important; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .no-print { display: none !important; }
+            .print-only { display: block; width: 100%; }
+            .page-break { page-break-before: always; }
+            .avoid-break { page-break-inside: avoid; }
+            @page { margin: 15mm; size: A4 portrait; }
+        }
+        #hidden-chart-container {
+            position: absolute; top: -9999px; left: -9999px; width: 1200px; height: 800px; visibility: hidden;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <header class="bg-white border-b border-slate-200 px-8 py-5 flex justify-between items-center no-print shadow-sm sticky top-0 z-50">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 bg-brand-primary rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-soft">F</div>
+            <div>
+                <h1 class="text-xl font-bold text-brand-text leading-tight tracking-tight">Farmaplus Analytics</h1>
+                <p id="headerSubtitle" class="text-xs text-brand-textSec font-medium mt-0.5">Plataforma de Business Intelligence </p>
+            </div>
+        </div>
+        <div class="flex items-center gap-6">
+            <div id="headerDateContainer" class="text-right hidden sm:block">
+                <p id="headerMainLabel" class="text-sm font-semibold text-brand-text"></p>
+                <p id="headerSubLabel" class="text-xs text-brand-textSec"></p>
+            </div>
+            <div class="flex gap-3">
+                <button id="btnPdf" class="hidden px-5 py-2.5 bg-white border border-slate-200 text-brand-text font-medium rounded-xl text-sm hover:bg-slate-50 smooth-transition shadow-sm">Exportar Informe PDF</button>
+                <button id="btnDelete" class="hidden px-5 py-2.5 bg-white border border-slate-200 text-red-600 font-medium rounded-xl text-sm hover:bg-red-50 smooth-transition shadow-sm">Eliminar datos</button>
+                <label id="btnUploadLabel" class="px-5 py-2.5 bg-brand-primary text-white font-semibold rounded-xl text-sm hover:bg-brand-primaryHover smooth-transition shadow-soft cursor-pointer flex items-center gap-2">
+                    <span id="btnUploadText">📄 Importar archivo Excel</span>
+                    <input type="file" id="input" class="hidden" accept=".xlsx, .xls">
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-[1400px] mx-auto p-8" id="capture">
+        <div id="errorBanner" class="hidden mb-8 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm no-print">
+            <strong class="font-bold">Error al procesar: </strong>
+            <span id="errorText">Revisa que el archivo sea un Excel válido.</span>
+        </div>
+
+        <div id="controls" class="hidden mb-3 grid grid-cols-1 md:grid-cols-3 gap-6 no-print relative z-40">
+            <div class="relative w-full">
+                <div id="sucursalBtn" class="px-5 py-3.5 bg-white border border-slate-200 rounded-xl shadow-sm w-full flex justify-between items-center cursor-pointer text-sm hover:border-brand-primary smooth-transition">
+                    <span id="sucursalBtnText" class="truncate font-medium text-brand-text">Todas las sucursales</span>
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+                <div id="sucursalDropdown" class="hidden absolute top-full left-0 w-full bg-white border border-slate-200 rounded-xl shadow-lg mt-2 overflow-hidden z-50">
+                    <div class="p-3 border-b border-slate-100 bg-slate-50">
+                        <input type="text" id="branchSearch" placeholder="Buscar sucursal..." class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary">
+                    </div>
+                    <label class="flex items-center gap-3 p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100">
+                        <input type="checkbox" id="selectAllSucursales" class="w-4 h-4 text-brand-primary rounded border-slate-300" checked> 
+                        <span class="font-semibold text-sm text-brand-text">Seleccionar todas</span>
+                    </label>
+                    <div id="sucursalCheckboxes" class="max-h-60 overflow-y-auto custom-scrollbar p-1"></div>
+                </div>
+            </div>
+            <select id="motivoFilter" class="px-5 py-3.5 bg-white border border-slate-200 rounded-xl shadow-sm w-full outline-none text-sm font-medium text-brand-text hover:border-brand-primary smooth-transition appearance-none">
+                <option value="TODOS" class="text-slate-400">Todos los motivos</option>
+            </select>
+            
+            <select id="observacionFilter" class="px-5 py-3.5 bg-white border border-slate-200 rounded-xl shadow-sm w-full outline-none text-sm font-medium text-brand-text hover:border-brand-primary smooth-transition appearance-none">
+                <option value="TODAS" class="text-slate-400">Todas las observaciones</option>
+            </select>
+        </div>
+
+        <div id="resetFilterWrapper" class="hidden flex justify-end mb-8 no-print">
+            <button id="btnResetFilters" disabled
+                class="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-brand-textSec border border-slate-200 rounded-lg hover:text-brand-primary hover:border-brand-primary smooth-transition disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-brand-textSec disabled:hover:border-slate-200">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                Restablecer filtros
+            </button>
+        </div>
+
+        <div id="dashboard" class="hidden space-y-8">
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 no-print">
+                <div class="bg-white p-5 rounded-2xl shadow-soft border border-slate-100 flex flex-col justify-between">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-lg">📈</span>
+                        <h3 class="text-sm font-semibold text-brand-textSec">Valor Total de Altas</h3>
+                    </div>
+                    <p class="font-bold text-brand-text tracking-tight kpi-value" id="kpiAltas">$0</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-soft border border-slate-100 flex flex-col justify-between">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-lg">📉</span>
+                        <h3 class="text-sm font-semibold text-brand-textSec">Valor Total de Bajas</h3>
+                    </div>
+                    <p class="font-bold text-brand-text tracking-tight kpi-value" id="kpiBajas">$0</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-soft border border-slate-100 flex flex-col justify-between">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-lg">💊</span>
+                        <h3 class="text-sm font-semibold text-brand-textSec">Valor Mov. Trazables</h3>
+                    </div>
+                    <p class="font-bold text-brand-text tracking-tight kpi-value" id="kpiTrazables">$0</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-soft border border-slate-100 flex flex-col justify-between">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-lg">⚖️</span>
+                        <h3 class="text-sm font-semibold text-brand-textSec">Balance Neto de Inventario</h3>
+                    </div>
+                    <p class="font-bold tracking-tight kpi-value" id="kpiBalance">$0</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden no-print">
+                <div class="px-6 py-5 bg-white border-b border-slate-100">
+                    <h2 class="text-base font-bold text-brand-text tracking-tight">Resumen por Motivo de Ajuste</h2>
+                </div>
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left erp-table motivos-table">
+                        <thead>
+                            <tr>
+                                <th>Motivo</th>
+                                <th class="text-right">Unidades</th>
+                                <th class="text-right">Movimientos</th>
+                                <th class="text-right">Impacto Económico</th>
+                                <th class="text-right">% del Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="motivosContainer"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="anomaliasSection" class="bg-white rounded-2xl shadow-soft border border-red-200 overflow-hidden no-print">
+                <div class="px-6 py-5 bg-red-50/50 border-b border-red-100">
+                    <h2 class="text-base font-bold text-red-700 flex items-center gap-2 tracking-tight">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        Anomalías Detectadas (Mayor Cantidad e Impacto)
+                    </h2>
+                </div>
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left erp-table">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th>Fecha</th>
+                                <th>N°</th>
+                                <th>Sucursal</th>
+                                <th>Producto</th>
+                                <th class="text-right">Cantidad</th>
+                                <th>Motivo</th>
+                                <th class="text-right">Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody id="anomaliasContainer"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden no-print">
+                <div class="px-6 py-4 bg-white border-b border-slate-100 flex flex-wrap justify-between items-center gap-4">
+                    <h2 class="text-base font-bold text-brand-text tracking-tight">Movimientos Generales</h2>
+                    <div class="flex items-center gap-4">
+                        <div class="relative">
+                            <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            <input type="text" id="searchTableInput" placeholder="Buscar por N° o producto..." class="pl-9 pr-8 py-2 w-64 text-sm border border-slate-200 rounded-xl outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary smooth-transition bg-slate-50 focus:bg-white placeholder-slate-400">
+                            <button id="clearSearchBtn" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 smooth-transition p-1 rounded-md hover:bg-slate-100">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                        <button id="toggleViewBtn" class="text-xs font-semibold text-brand-primary hover:text-brand-primaryHover transition whitespace-nowrap">Ver todos los movimientos</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto custom-scrollbar max-h-[600px]">
+                    <table class="w-full text-left erp-table relative">
+                        <thead class="bg-slate-50 sticky top-0 z-10 shadow-sm">
+                            <tr>
+                                <th class="cursor-pointer hover:text-brand-primary whitespace-nowrap" onclick="setSort('Fecha')">Fecha ↕</th>
+                                <th class="cursor-pointer hover:text-brand-primary whitespace-nowrap" onclick="setSort('NroBaja')">N° ↕</th>
+                                <th class="cursor-pointer hover:text-brand-primary whitespace-nowrap" onclick="setSort('sucursal')">Sucursal ↕</th>
+                                <th>Producto y Código</th>
+                                <th class="text-right cursor-pointer hover:text-brand-primary whitespace-nowrap" onclick="setSort('Unidades')">Cantidad ↕</th>
+                                <th>Motivo</th>
+                                <th class="text-right cursor-pointer hover:text-brand-primary whitespace-nowrap" onclick="setSort('CostoNum')">Monto ↕</th>
+                            </tr>
+                        </thead>
+                        <tbody id="movimientosContainer"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="hidden-chart-container">
+        <canvas id="hcImpacto"></canvas>
+        <canvas id="hcVolumen"></canvas>
+        <canvas id="hcDist"></canvas>
+        <canvas id="hcPareto"></canvas>
+    </div>
+
+    <div id="pdf-report" class="print-only">
+        <div style="height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background-color: #F8FAFC; padding: 40px; border: 1px solid #E2E8F0;">
+            <div style="margin-bottom: 40px;">
+                <div style="width: 80px; height: 80px; background-color: #1D4ED8; border-radius: 20px; color: white; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: bold; margin: 0 auto 20px auto;">F</div>
+                <h1 style="font-size: 32px; font-weight: 800; color: #0F172A; margin: 0;">Farmaplus Analytics</h1>
+                <p style="font-size: 16px; color: #64748B; font-weight: 500; margin-top: 8px;">Plataforma de Business Intelligence</p>
+            </div>
+            
+            <div style="background: white; padding: 60px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); width: 100%; max-width: 700px; text-align: left;">
+                <h2 style="font-size: 48px; font-weight: 800; color: #0F172A; line-height: 1.1; margin: 0 0 16px 0; border-bottom: 4px solid #1D4ED8; padding-bottom: 24px;">INFORME<br>GERENCIAL</h2>
+                <p style="font-size: 20px; color: #64748B; font-weight: 500; margin-bottom: 40px;">Análisis de Movimientos de Inventario</p>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                    <div>
+                        <p style="font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase; margin-bottom: 4px;">Período Analizado</p>
+                        <p style="font-size: 18px; font-weight: 700; color: #0F172A;" id="pdfCoverPeriodo"></p>
+                    </div>
+                    <div>
+                        <p style="font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase; margin-bottom: 4px;">Generado el</p>
+                        <p style="font-size: 18px; font-weight: 700; color: #0F172A;" id="pdfCoverGenerated"></p>
+                    </div>
+                    <div>
+                        <p style="font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase; margin-bottom: 4px;">Total Movimientos</p>
+                        <p style="font-size: 18px; font-weight: 700; color: #0F172A;" id="pdfCoverMovimientos"></p>
+                    </div>
+                    <div>
+                        <p style="font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase; margin-bottom: 4px;">Impacto Económico Total</p>
+                        <p style="font-size: 18px; font-weight: 700; color: #0F172A;" id="pdfCoverImpacto"></p>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 60px; font-size: 12px; color: #94A3B8;">
+                Generado automáticamente por Farmaplus Analytics BI
+            </div>
+        </div>
+        <div class="page-break" style="padding-top: 20px;">
+            <div style="border-bottom: 2px solid #E2E8F0; padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end;">
+                <div>
+                    <h2 style="font-size: 24px; font-weight: 800; color: #0F172A; margin: 0;">Resumen Ejecutivo</h2>
+                    <p style="font-size: 12px; color: #64748B; margin-top: 4px;" class="pdfHeaderPeriod"></p>
+                </div>
+                <div style="font-weight: bold; color: #1D4ED8;">Farmaplus Analytics</div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px;">
+                <div style="padding: 16px; border: 1px solid #E2E8F0; border-radius: 12px;"><p style="font-size: 11px; font-weight: 600; color: #64748B; margin-bottom: 8px; text-transform: uppercase;">📈 Altas</p><p style="font-size: 20px; font-weight: 800; color: #0F172A;" id="pdfKpiAltas"></p></div>
+                <div style="padding: 16px; border: 1px solid #E2E8F0; border-radius: 12px;"><p style="font-size: 11px; font-weight: 600; color: #64748B; margin-bottom: 8px; text-transform: uppercase;">📉 Bajas</p><p style="font-size: 20px; font-weight: 800; color: #0F172A;" id="pdfKpiBajas"></p></div>
+                <div style="padding: 16px; border: 1px solid #E2E8F0; border-radius: 12px;"><p style="font-size: 11px; font-weight: 600; color: #64748B; margin-bottom: 8px; text-transform: uppercase;">💊 Trazables</p><p style="font-size: 20px; font-weight: 800; color: #0F172A;" id="pdfKpiTrazables"></p></div>
+                <div style="padding: 16px; background-color: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 12px;"><p style="font-size: 11px; font-weight: 700; color: #0F172A; margin-bottom: 8px; text-transform: uppercase;">⚖️ Balance Neto</p><p style="font-size: 22px; font-weight: 800;" id="pdfKpiBalance"></p></div>
+            </div>
+            <div class="avoid-break" style="background-color: #F8FAFC; border: 1px solid #E2E8F0; padding: 24px; border-radius: 12px; margin-bottom: 32px;">
+                <h3 style="font-size: 16px; font-weight: 700; color: #0F172A; margin-top: 0; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 20px;">💡</span> Conclusiones y Hallazgos Principales
+                </h3>
+                <ul id="pdfInsights" style="margin: 0; padding-left: 20px; color: #334155; font-size: 13px; line-height: 1.6; font-weight: 500;"></ul>
+            </div>
+            <div class="avoid-break" style="margin-bottom: 32px;">
+                <h3 style="font-size: 14px; font-weight: 700; color: #0F172A; margin-bottom: 16px; text-transform: uppercase;">Impacto Económico por Motivo</h3>
+                <div style="border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px; background: white; text-align: center;">
+                    <img id="imgImpacto" style="max-width: 100%; height: auto; max-height: 280px; object-fit: contain;">
+                </div>
+            </div>
+            
+            <div class="avoid-break" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                <div>
+                    <h3 style="font-size: 14px; font-weight: 700; color: #0F172A; margin-bottom: 16px; text-transform: uppercase;">Volumen Operativo (Movimientos)</h3>
+                    <div style="border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px; background: white; text-align: center;">
+                        <img id="imgVolumen" style="max-width: 100%; height: auto; max-height: 250px; object-fit: contain;">
+                    </div>
+                </div>
+                <div>
+                    <h3 style="font-size: 14px; font-weight: 700; color: #0F172A; margin-bottom: 16px; text-transform: uppercase;">Distribución del Impacto</h3>
+                    <div style="border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px; background: white; text-align: center;">
+                        <img id="imgDist" style="max-width: 100%; height: auto; max-height: 250px; object-fit: contain;">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="page-break" style="padding-top: 20px;">
+            <div style="border-bottom: 2px solid #E2E8F0; padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end;">
+                <div>
+                    <h2 style="font-size: 24px; font-weight: 800; color: #0F172A; margin: 0;">Análisis Detallado</h2>
+                    <p style="font-size: 12px; color: #64748B; margin-top: 4px;" class="pdfHeaderPeriod"></p>
+                </div>
+                <div style="font-weight: bold; color: #1D4ED8;">Farmaplus Analytics</div>
+            </div>
+            <div class="avoid-break" style="margin-bottom: 40px;">
+                <h3 style="font-size: 16px; font-weight: 700; color: #0F172A; margin-bottom: 16px;">Resumen por Motivo de Ajuste</h3>
+                <table class="w-full text-left erp-table motivos-table" style="border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden;">
+                    <thead><tr><th>Motivo</th><th class="text-right">Unidades</th><th class="text-right">Movimientos</th><th class="text-right">Impacto Económico</th><th class="text-right">% del Total</th></tr></thead>
+                    <tbody id="pdfMotivosContainer"></tbody>
+                </table>
+            </div>
+            <div id="pdfAnomaliasSection" class="avoid-break" style="margin-bottom: 40px;">
+                <h3 style="font-size: 16px; font-weight: 700; color: #DC2626; margin-bottom: 16px;">Anomalías Detectadas (Mayor Cantidad e Impacto)</h3>
+                <table class="w-full text-left erp-table" style="border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden;">
+                    <thead style="background-color: #FEF2F2;"><tr><th>Fecha</th><th>N°</th><th>Sucursal</th><th>Producto</th><th class="text-right">Cant.</th><th>Motivo</th><th class="text-right">Monto</th></tr></thead>
+                    <tbody id="pdfAnomaliasContainer"></tbody>
+                </table>
+            </div>
+            <div class="avoid-break" style="margin-bottom: 20px;">
+                <h3 style="font-size: 16px; font-weight: 700; color: #0F172A; margin-bottom: 16px;">Top 10 Movimientos Relevantes</h3>
+                <table class="w-full text-left erp-table" style="border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden;">
+                    <thead style="background-color: #F8FAFC;"><tr><th>Fecha</th><th>N°</th><th>Sucursal</th><th>Producto</th><th class="text-right">Cant.</th><th>Motivo</th><th class="text-right">Monto</th></tr></thead>
+                    <tbody id="pdfMovimientosContainer"></tbody>
+                </table>
+            </div>
+            
+            <div style="text-align: center; color: #94A3B8; font-size: 10px; margin-top: 40px;">
+                Fin del reporte gerencial.
+            </div>
+        </div>
+    </div>
+
+    <div id="modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 no-print bg-slate-900/50 backdrop-blur-sm" onclick="if(event.target === this) closeModal()">
+        <div id="modalInner" class="bg-white rounded-2xl shadow-xl border border-slate-100 w-full max-w-md max-h-[85vh] overflow-y-auto custom-scrollbar" style="scrollbar-gutter: stable;" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center px-6 py-5 border-b border-slate-100 sticky top-0 bg-white rounded-t-2xl">
+                <h3 class="text-base font-bold text-brand-text tracking-tight">Detalle del Movimiento</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-700 smooth-transition rounded-lg p-1 hover:bg-slate-50 outline-none">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="px-6 py-5 space-y-3 text-sm" id="modalDynamicContent"></div>
+            <div class="px-6 pb-6">
+                <p class="text-xs font-semibold text-brand-textSec uppercase tracking-wider mb-2">Observación</p>
+                <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 text-sm text-slate-700" id="modalContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Animaciones del modal corregidas
+        const modalStyleTag = document.createElement('style');
+        modalStyleTag.innerHTML = `
+            #modal.fade-in { display: flex !important; animation: modalBgFadeIn 0.2s ease-out forwards; }
+            #modal.fade-out { display: flex !important; animation: modalBgFadeOut 0.15s ease-in forwards; }
+            
+            #modal.fade-in > #modalInner { animation: modalScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+            #modal.fade-out > #modalInner { animation: modalScaleOut 0.15s ease-in forwards; }
+
+            @keyframes modalBgFadeIn { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes modalBgFadeOut { from { opacity: 1; } to { opacity: 0; } }
+            
+            @keyframes modalScaleIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+            @keyframes modalScaleOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.96); } }
+        `;
+        document.head.appendChild(modalStyleTag);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('modal');
+                if (modal.classList.contains('fade-in')) closeModal();
+            }
+        });
+
+        // CONFIGURACIÓN CONSTANTES
+        const ALTAS = new Set(['ajuste por bonificación de proveedores', 'ajuste por fraccionados', 'ajuste por ingreso de mercadería', 'ajuste por inventario', 'ajuste por trazabilidad', 'ajuste por vale no retirado']);
+        const BAJAS = new Set(['ajuste por error de ingreso', 'ajuste por fraccionador', 'ajuste por robo/hurto', 'devolucion a proveedores', 'devolucion ace', 'devolucion comercial', 'faltante', 'roto/mal estado', 'uso interno', 'vencido']);
+        
+        let fullData = [], selectedSucursales = [], viewAll = false, currentSort = { col: 'CostoNum', asc: false };
+        let minDateGlobal = null, maxDateGlobal = null;
+        let hiddenCharts = {}; 
+        
+        // Variables para la tabla interactiva
+        let globalTableData = []; 
+        let searchTableTerm = '';
+
+        // FORMATOS Y UTILIDADES
+        const formatCurrency = (val) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0);
+        const formatNumber = (val) => new Intl.NumberFormat('es-AR').format(val || 0);
+        const capitalize = (s) => s ? String(s).charAt(0).toUpperCase() + String(s).slice(1).toLowerCase() : '';
+        
+        // Inicializar Fecha por defecto
+        const defaultDateStr = new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        document.getElementById('headerMainLabel').innerText = capitalize(defaultDateStr);
+        
+        function formatDate(val) { 
+            if (!val || val === '-') return '-';
+            const d = new Date(val); 
+            if (isNaN(d.getTime())) {
+                if (typeof val === 'number') {
+                    const excelDate = new Date(Math.round((val - 25569) * 86400 * 1000));
+                    return `${String(excelDate.getDate()).padStart(2,'0')}/${String(excelDate.getMonth()+1).padStart(2,'0')}/${excelDate.getFullYear()}`;
+                }
+                return val;
+            }
+            return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; 
+        }
+
+        // --- LÓGICA DE FUENTES DINÁMICAS PARA KPIs ---
+        function applyDynamicFontSize(elementId, textValue) {
+            const el = document.getElementById(elementId);
+            el.innerText = textValue;
+            el.classList.remove('text-3xl', 'text-2xl', 'text-xl', 'text-lg');
+            const len = textValue.length;
+            if (len > 22) el.classList.add('text-lg');
+            else if (len > 16) el.classList.add('text-xl');
+            else if (len > 12) el.classList.add('text-2xl');
+            else el.classList.add('text-3xl');
+        }
+
+        // --- LÓGICA SELECTOR SUCURSALES ---
+        const btnSucursal = document.getElementById('sucursalBtn');
+        const dropSucursal = document.getElementById('sucursalDropdown');
+        const searchSucursal = document.getElementById('branchSearch');
+        const chkAllSucursales = document.getElementById('selectAllSucursales');
+        
+        btnSucursal.addEventListener('click', (e) => { e.stopPropagation(); dropSucursal.classList.toggle('hidden'); });
+        document.addEventListener('click', () => dropSucursal.classList.add('hidden'));
+        dropSucursal.addEventListener('click', (e) => e.stopPropagation());
+        
+        function updateSelectAllState(allUnique) {
+            const btnText = document.getElementById('sucursalBtnText');
+            const checkedCount = selectedSucursales.length;
+            const totalCount = allUnique.length;
+            if (checkedCount === totalCount && totalCount > 0) {
+                btnText.innerText = 'Todas las sucursales';
+                chkAllSucursales.checked = true;
+                chkAllSucursales.indeterminate = false;
+            } else if (checkedCount === 0) {
+                btnText.innerText = 'Ninguna seleccionada';
+                chkAllSucursales.checked = false;
+                chkAllSucursales.indeterminate = false;
+            } else {
+                btnText.innerText = checkedCount === 1 ? selectedSucursales[0] : `${checkedCount} sucursales seleccionadas`;
+                chkAllSucursales.checked = false;
+                chkAllSucursales.indeterminate = true;
+            }
+        }
+        function buildMultiSelect() {
+            const allUnique = [...new Set(fullData.map(r => r.sucursal).filter(Boolean))].sort();
+            selectedSucursales = [...allUnique]; 
+            
+            searchSucursal.value = '';
+            renderBranchCheckboxes(allUnique, allUnique);
+            
+            chkAllSucursales.onchange = (e) => {
+                const isChecked = e.target.checked;
+                selectedSucursales = isChecked ? [...allUnique] : [];
+                document.querySelectorAll('.suc-chk').forEach(chk => chk.checked = isChecked);
+                updateSelectAllState(allUnique); 
+                updateObservationFilter(); 
+                renderDashboard();
+                updateResetButtonState();
+            };
+            
+            searchSucursal.oninput = (e) => {
+                const term = e.target.value.toLowerCase();
+                const filtered = allUnique.filter(s => String(s).toLowerCase().includes(term));
+                renderBranchCheckboxes(filtered, allUnique);
+            };
+            
+            updateSelectAllState(allUnique);
+            updateResetButtonState();
+        }
+        
+        function renderBranchCheckboxes(listToShow, allUnique) {
+            const container = document.getElementById('sucursalCheckboxes');
+            container.innerHTML = listToShow.map(s => `
+                <label class="flex items-center gap-3 p-2 hover:bg-slate-50 cursor-pointer rounded">
+                    <input type="checkbox" value="${s}" class="suc-chk w-4 h-4 text-brand-primary rounded border-slate-300" ${selectedSucursales.includes(s) ? 'checked' : ''}> 
+                    <span class="text-sm text-brand-text">${s}</span>
+                </label>
+            `).join('');
+            document.querySelectorAll('.suc-chk').forEach(chk => {
+                chk.addEventListener('change', (e) => {
+                    const val = e.target.value;
+                    if(e.target.checked && !selectedSucursales.includes(val)) selectedSucursales.push(val);
+                    else if(!e.target.checked) selectedSucursales = selectedSucursales.filter(v => v !== val);
+                    
+                    updateSelectAllState(allUnique); 
+                    updateObservationFilter(); 
+                    renderDashboard();
+                    updateResetButtonState();
+                });
+            });
+        }
+
+        function updateObservationFilter() {
+            let baseData = fullData.filter(r => selectedSucursales.includes(r.sucursal));
+            const obs = [...new Set(baseData.map(r => r.observacion).filter(Boolean))].sort();
+            const el = document.getElementById('observacionFilter');
+            const current = el.value;
+            el.innerHTML = `<option value="TODAS" class="text-slate-400">Todas las observaciones</option>` + obs.map(o => `<option value="${o}">${o}</option>`).join('');
+            if(obs.includes(current)) el.value = current; else el.value = 'TODAS';
+        }
+
+        const findProductValue = (rowRaw) => {
+            const possibleKeys = ['producto', 'descripción', 'descripcion', 'articulo', 'artículo', 'nombre', 'descripción del producto', 'material'];
+            for(let k of possibleKeys) {
+                if(rowRaw[k] !== undefined && rowRaw[k] !== null && rowRaw[k] !== '') return String(rowRaw[k]).trim();
+            }
+            return '-';
+        };
+
+        // --- PROCESAMIENTO DE EXCEL ---
+        function handleFile(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    document.getElementById('errorBanner').classList.add('hidden');
+                    const data = XLSX.read(evt.target.result, {type: 'binary', cellDates: true});
+                    const rawJson = XLSX.utils.sheet_to_json(data.Sheets[data.SheetNames[0]]);
+                    
+                    let minDate = new Date(8640000000000000);
+                    let maxDate = new Date(-8640000000000000);
+                    
+                    fullData = rawJson.map((rawRow, i) => {
+                        const row = {};
+                        for (let key in rawRow) {
+                            if(Object.prototype.hasOwnProperty.call(rawRow, key)) {
+                                row[key.toLowerCase().trim()] = rawRow[key];
+                            }
+                        }
+                        const motivoRaw = String(row.motivo || row.motivos || 'Sin motivo').trim();
+                        const sucursal = String(row.sucursal || row.sucursales || 'Sin Sucursal').trim();
+                        const costo = parseFloat(row.totalcosto || row['total costo'] || row.monto || row.costo || 0) || 0;
+                        const unidades = parseInt(row.cantidad || row.cant || row.unidades || 0) || 0;
+                        
+                        let dVal = row.fecha || row.date;
+                        let dObj = null;
+                        if(dVal instanceof Date) dObj = dVal;
+                        else if(typeof dVal === 'number') dObj = new Date(Math.round((dVal - 25569) * 86400 * 1000));
+                        else if(dVal) dObj = new Date(dVal);
+                        
+                        if(dObj && !isNaN(dObj.getTime())) {
+                            if(dObj < minDate) minDate = dObj;
+                            if(dObj > maxDate) maxDate = dObj;
+                        } else {
+                            dObj = new Date();
+                        }
+                        
+                        return {
+                            id: i,
+                            CostoNum: costo,
+                            Unidades: unidades,
+                            motivoRaw: motivoRaw, 
+                            sucursal: sucursal,
+                            producto: findProductValue(row),
+                            observacion: String(row.observacion || row.observaciones || ''),
+                            codebar: String(row.codebar || row.ean || row.codigo || '-'),
+                            IDProducto: String(row.idproducto || row['id producto'] || row.id || '-'),
+                            NroBaja: String(row.nrobaja || row['nro baja'] || row['nº baja'] || row.id || i || '-'),
+                            usuario: String(row.usuario || row.user || '-'),
+                            proveedor: String(row.proveedor || row.proveedores || '-'),
+                            NroLote: String(row.nrolote || row.lote || '-'),
+                            FechaVencimiento: row.fechavencimiento || row.vencimiento || '-',
+                            Serie: String(row.serie || row.nroserie || '-'),
+                            isTrazable: motivoRaw.toLowerCase().includes('trazabilidad'),
+                            Fecha: dObj
+                        };
+                    });
+                    
+                    minDateGlobal = minDate;
+                    maxDateGlobal = maxDate;
+                    
+                    let periodStr = '';
+                    if(minDate.getTime() !== new Date(8640000000000000).getTime()) {
+                        periodStr = `${formatDate(minDate)} → ${formatDate(maxDate)}`;
+                        document.getElementById('headerMainLabel').innerText = `Período analizado: ${periodStr}`;
+                    } else {
+                        document.getElementById('headerMainLabel').innerText = `Período analizado: N/A`;
+                    }
+                    
+                    const now = new Date();
+                    document.getElementById('headerSubLabel').innerText = `Última actualización: ${now.toLocaleDateString()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+                    document.getElementById('btnUploadText').innerText = "📄 Cambiar archivo";
+                    document.getElementById('btnUploadLabel').classList.replace('bg-brand-primary', 'bg-slate-700');
+                    
+                    buildMultiSelect();
+                    
+                    const todosLosMotivos = Array.from(new Set([...ALTAS, ...BAJAS, ...fullData.map(r => String(r.motivoRaw).toLowerCase())])).sort();
+                    document.getElementById('motivoFilter').innerHTML = `<option value="TODOS" class="text-slate-400">Todos los motivos</option>` + todosLosMotivos.map(m => `<option value="${m}">${capitalize(m)}</option>`).join('');
+                    
+                    updateObservationFilter();
+                    
+                    ['dashboard', 'controls', 'btnPdf', 'btnDelete', 'resetFilterWrapper'].forEach(id => document.getElementById(id).classList.remove('hidden'));
+                    renderDashboard();
+                    updateResetButtonState();
+                    
+                } catch (error) {
+                    console.error("Error leyendo Excel:", error);
+                    document.getElementById('errorBanner').classList.remove('hidden');
+                }
+            };
+            reader.readAsBinaryString(file);
+            e.target.value = '';
+        }
+
+        // Lógica de ordenamiento rápida (Solo re-renderiza la tabla)
+        function setSort(colName) { 
+            if (currentSort.col === colName) currentSort.asc = !currentSort.asc;
+            else { currentSort.col = colName; currentSort.asc = false; }
+            renderTableOnly(); 
+        }
+
+        const getRowColor = (r) => {
+            const mLow = (r.motivoRaw || '').toLowerCase().trim();
+            if (r.isTrazable || mLow.includes('trazabilidad')) return 'text-orange-600 bg-orange-50/50'; 
+            if (ALTAS.has(mLow)) return 'text-emerald-700 bg-emerald-50/50'; 
+            return 'text-red-700 bg-red-50/50'; 
+        };
+
+        const generateRowHtml = (r) => `
+            <tr>
+                <td class="whitespace-nowrap">${formatDate(r.Fecha)}</td>
+                <td class="group">
+                    <div class="flex items-center gap-1.5">
+                        <span class="font-mono text-slate-500 font-semibold cursor-pointer hover:text-brand-primary smooth-transition" onclick="showModal(${r.id})">${r.NroBaja}</span>
+                        <button onclick="copyToClipboard('${r.NroBaja}', this)" class="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-slate-400 hover:text-brand-primary hover:bg-slate-100 rounded outline-none" title="Copiar N°">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        </button>
+                    </div>
+                </td>
+                <td class="font-medium text-slate-700">${r.sucursal || ''}</td>
+                <td class="truncate max-w-[250px]" title="${r.producto || ''}">
+                    <div class="font-medium text-slate-800">${r.producto}</div>
+                    <div class="text-xs text-slate-400 font-mono mt-0.5">${r.codebar}</div>
+                </td>
+                <td class="text-right font-medium text-slate-700">${formatNumber(r.Unidades)}</td>
+                <td><span class="px-2.5 py-1 rounded border border-slate-200 font-medium text-xs whitespace-nowrap ${getRowColor(r)}">${capitalize(r.motivoRaw)}</span></td>
+                <td class="text-right font-bold text-slate-900">${formatCurrency(r.CostoNum)}</td>
+            </tr>`;
+
+        // --- DASHBOARD RENDER (Calcula KPIs y Totales) ---
+        function renderDashboard() {
+            const mF = document.getElementById('motivoFilter').value;
+            const oF = document.getElementById('observacionFilter').value;
+            const allUnique = [...new Set(fullData.map(r => r.sucursal).filter(Boolean))];
+            
+            let data = fullData.filter(r => selectedSucursales.includes(r.sucursal));
+            if (mF !== 'TODOS') data = data.filter(r => (r.motivoRaw || '').toLowerCase().trim() === mF.toLowerCase().trim());
+            if (oF !== 'TODAS') data = data.filter(r => (r.observacion || '').trim() === oF.trim());
+            
+            // KPIs
+            const altasVal = data.filter(r => ALTAS.has((r.motivoRaw||'').toLowerCase().trim()) && !r.isTrazable).reduce((acc, r) => acc + r.CostoNum, 0);
+            const bajasVal = data.filter(r => BAJAS.has((r.motivoRaw||'').toLowerCase().trim()) && !r.isTrazable).reduce((acc, r) => acc + r.CostoNum, 0);
+            const trazabVal = data.filter(r => r.isTrazable || (r.motivoRaw||'').toLowerCase().includes('trazabilidad')).reduce((acc, r) => acc + r.CostoNum, 0);
+            const balance = altasVal - bajasVal;
+            
+            applyDynamicFontSize('kpiAltas', formatCurrency(altasVal));
+            applyDynamicFontSize('kpiBajas', formatCurrency(bajasVal));
+            applyDynamicFontSize('kpiTrazables', formatCurrency(trazabVal));
+            applyDynamicFontSize('kpiBalance', formatCurrency(balance));
+            
+            document.getElementById('kpiBalance').classList.remove('text-emerald-600', 'text-red-600');
+            document.getElementById('kpiBalance').classList.add(balance >= 0 ? 'text-emerald-600' : 'text-red-600');
+
+            // Tabla: Resumen por Motivo
+            const motivosAgg = {};
+            let totalUnidades = 0, totalMovs = 0, totalMonto = 0;
+            data.forEach(r => { 
+                const m = capitalize(r.motivoRaw);
+                if(!motivosAgg[m]) motivosAgg[m] = { unid: 0, movs: 0, monto: 0 };
+                motivosAgg[m].unid += r.Unidades;
+                motivosAgg[m].movs += 1;
+                motivosAgg[m].monto += r.CostoNum;
+                totalUnidades += r.Unidades;
+                totalMovs += 1;
+                totalMonto += r.CostoNum;
+            });
+            const topMotivosArr = Object.entries(motivosAgg).sort((a,b) => b[1].monto - a[1].monto);
+            
+            let htmlMotivos = topMotivosArr.map(m => {
+                const name = m[0], d = m[1];
+                const pct = totalMonto > 0 ? ((d.monto / totalMonto) * 100).toFixed(2) : 0;
+                return `
+                <tr>
+                    <td class="font-medium text-slate-800">${name}</td>
+                    <td class="text-right text-slate-600 font-medium">${formatNumber(d.unid)}</td>
+                    <td class="text-right text-slate-600 font-medium">${formatNumber(d.movs)}</td>
+                    <td class="text-right font-semibold text-slate-900">${formatCurrency(d.monto)}</td>
+                    <td class="text-right text-slate-500 font-medium">${pct} %</td>
+                </tr>`;
+            }).join('');
+            
+            htmlMotivos += `
+                <tr class="total-row">
+                    <td>TOTAL</td>
+                    <td class="text-right">${formatNumber(totalUnidades)}</td>
+                    <td class="text-right">${formatNumber(totalMovs)}</td>
+                    <td class="text-right">${formatCurrency(totalMonto)}</td>
+                    <td class="text-right">100 %</td>
+                </tr>`;
+            
+            document.getElementById('motivosContainer').innerHTML = htmlMotivos;
+            document.getElementById('pdfMotivosContainer').innerHTML = htmlMotivos;
+
+            // Anomalías
+            const anomSection = document.getElementById('anomaliasSection');
+            const pdfAnomSection = document.getElementById('pdfAnomaliasSection');
+            
+            if (selectedSucursales.length === allUnique.length && selectedSucursales.length > 0) {
+                anomSection.classList.remove('hidden');
+                pdfAnomSection.classList.remove('hidden');
+                const topMonto = [...data].sort((a,b) => b.CostoNum - a.CostoNum).slice(0, 5);
+                const topCant = [...data].sort((a,b) => b.Unidades - a.Unidades).slice(0, 5);
+                const anomaliesMap = new Map();
+                topMonto.forEach(r => anomaliesMap.set(r.id, r));
+                topCant.forEach(r => anomaliesMap.set(r.id, r));
+                const anomaliesData = Array.from(anomaliesMap.values());
+                const anomHtml = anomaliesData.map(r => generateRowHtml(r)).join('');
+                document.getElementById('anomaliasContainer').innerHTML = anomHtml;
+                document.getElementById('pdfAnomaliasContainer').innerHTML = anomHtml;
+            } else {
+                anomSection.classList.add('hidden');
+                pdfAnomSection.classList.add('hidden');
+            }
+
+            // Almacenar data global para el buscador y PDF
+            globalTableData = data;
+            window.currentPdfData = { data, topMotivosArr, balance, altasVal, bajasVal, trazabVal, totalMonto, totalMovs };
+            
+            // Re-renderizar solo la tabla de movimientos
+            renderTableOnly();
+        }
+
+        // --- LÓGICA DE RENDERIZADO EXCLUSIVO PARA LA TABLA (BUSCADOR RÁPIDO) ---
+        function renderTableOnly() {
+            let data = globalTableData;
+
+            // 1. Filtrar por el buscador en tiempo real
+            if (searchTableTerm !== '') {
+                data = data.filter(r => 
+                    String(r.NroBaja).toLowerCase().includes(searchTableTerm) || 
+                    String(r.producto).toLowerCase().includes(searchTableTerm)
+                );
+            }
+
+            // 2. Ordenamiento
+            if (currentSort.col) {
+                data.sort((a, b) => {
+                    let valA = a[currentSort.col], valB = b[currentSort.col];
+                    if (typeof valA === 'string') valA = valA.toLowerCase();
+                    if (typeof valB === 'string') valB = valB.toLowerCase();
+                    if (valA < valB) return currentSort.asc ? -1 : 1;
+                    if (valA > valB) return currentSort.asc ? 1 : -1;
+                    return 0;
+                });
+            }
+
+            // 3. Render
+            const tbody = document.getElementById('movimientosContainer');
+            const toggleBtn = document.getElementById('toggleViewBtn');
+
+            if (data.length === 0) {
+                // Estado Vacío Elegante
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="py-16 text-center">
+                            <div class="flex flex-col items-center justify-center text-slate-500">
+                                <div class="bg-slate-50 p-4 rounded-full mb-3 border border-slate-100">
+                                    <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                </div>
+                                <p class="text-base font-semibold text-slate-800">No se encontraron movimientos</p>
+                                <p class="text-sm mt-1 mb-5">No hay resultados que coincidan con "<span class="font-medium text-slate-700">${searchTableTerm}</span>"</p>
+                                <button onclick="clearSearch()" class="px-4 py-2 bg-white border border-slate-200 text-brand-text text-sm font-medium rounded-lg hover:bg-slate-50 smooth-transition shadow-sm">Limpiar búsqueda</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                toggleBtn.style.display = 'none';
+            } else {
+                let renderData = viewAll ? data : data.slice(0, 50);
+                toggleBtn.style.display = 'inline-block';
+                toggleBtn.innerText = viewAll ? "Ocultar movimientos" : `Ver todos los movimientos (${formatNumber(data.length)})`;
+                tbody.innerHTML = renderData.map(r => generateRowHtml(r)).join('');
+            }
+
+            // Actualizar tabla del PDF (Se imprimen los top 10 del subset filtrado)
+            document.getElementById('pdfMovimientosContainer').innerHTML = data.slice(0, 10).map(r => generateRowHtml(r)).join('');
+        }
+
+        // Eventos del Buscador
+        document.getElementById('searchTableInput').addEventListener('input', (e) => {
+            searchTableTerm = e.target.value.toLowerCase().trim();
+            document.getElementById('clearSearchBtn').classList.toggle('hidden', searchTableTerm === '');
+            renderTableOnly();
+        });
+
+        function clearSearch() {
+            searchTableTerm = '';
+            const input = document.getElementById('searchTableInput');
+            input.value = '';
+            input.focus();
+            document.getElementById('clearSearchBtn').classList.add('hidden');
+            renderTableOnly();
+        }
+        document.getElementById('clearSearchBtn').addEventListener('click', clearSearch);
+
+        // --- BOTÓN LIMPIAR FILTROS GLOBALES ---
+        function updateResetButtonState() {
+            const allUnique = [...new Set(fullData.map(r => r.sucursal).filter(Boolean))];
+            const motivoActivo = document.getElementById('motivoFilter').value !== 'TODOS';
+            const observacionActiva = document.getElementById('observacionFilter').value !== 'TODAS';
+            const sucursalesActivas = selectedSucursales.length !== allUnique.length;
+
+            const hayFiltros = motivoActivo || observacionActiva || sucursalesActivas;
+            const btn = document.getElementById('btnResetFilters');
+            if (btn) btn.disabled = !hayFiltros;
+        }
+
+        function resetAllFilters() {
+            const allUnique = [...new Set(fullData.map(r => r.sucursal).filter(Boolean))];
+            selectedSucursales = [...allUnique];
+            document.querySelectorAll('.suc-chk').forEach(chk => chk.checked = true);
+            updateSelectAllState(allUnique);
+
+            document.getElementById('motivoFilter').value = 'TODOS';
+            updateObservationFilter();
+            document.getElementById('observacionFilter').value = 'TODAS';
+
+            renderDashboard();
+            updateResetButtonState();
+        }
+        document.getElementById('btnResetFilters').addEventListener('click', resetAllFilters);
+
+        // ==========================================
+        // EXPORTACIÓN PDF
+        // ==========================================
+        document.getElementById('btnPdf').addEventListener('click', () => {
+            const pdfData = window.currentPdfData;
+            if(!pdfData) return;
+            const dt = new Date();
+            const period = minDateGlobal ? `${formatDate(minDateGlobal)} → ${formatDate(maxDateGlobal)}` : 'N/A';
+            
+            document.getElementById('pdfCoverPeriodo').innerText = period;
+            document.getElementById('pdfCoverGenerated').innerText = `${dt.toLocaleDateString()} ${dt.getHours().toString().padStart(2,'0')}:${dt.getMinutes().toString().padStart(2,'0')}`;
+            document.getElementById('pdfCoverMovimientos').innerText = formatNumber(pdfData.totalMovs);
+            document.getElementById('pdfCoverImpacto').innerText = formatCurrency(pdfData.totalMonto);
+            
+            document.querySelectorAll('.pdfHeaderPeriod').forEach(el => el.innerText = `Período: ${period}`);
+            document.getElementById('pdfKpiAltas').innerText = formatCurrency(pdfData.altasVal);
+            document.getElementById('pdfKpiBajas').innerText = formatCurrency(pdfData.bajasVal);
+            document.getElementById('pdfKpiTrazables').innerText = formatCurrency(pdfData.trazabVal);
+            document.getElementById('pdfKpiBalance').innerText = formatCurrency(pdfData.balance);
+            document.getElementById('pdfKpiBalance').style.color = pdfData.balance >= 0 ? '#10B981' : '#EF4444';
+            
+            const topMonto = pdfData.topMotivosArr.length > 0 ? pdfData.topMotivosArr[0] : null;
+            const sortedByCount = [...pdfData.topMotivosArr].sort((a,b) => b[1].movs - a[1].movs);
+            const topCount = sortedByCount.length > 0 ? sortedByCount[0] : null;
+            
+            let insightsHtml = '';
+            insightsHtml += `<li style="margin-bottom: 8px;">El <strong>Balance Neto de Inventario</strong> del período analizado resulta en un ${pdfData.balance >= 0 ? 'incremento' : 'déficit'} de <strong>${formatCurrency(pdfData.balance)}</strong>.</li>`;
+            
+            if(topMonto) {
+                const pctM = ((topMonto[1].monto / pdfData.totalMonto) * 100).toFixed(1);
+                insightsHtml += `<li style="margin-bottom: 8px;">El motivo crítico con <strong>mayor impacto económico</strong> es "${topMonto[0]}", representando un total de ${formatCurrency(topMonto[1].monto)} (${pctM}% del total analizado).</li>`;
+            }
+            if(topCount) {
+                const pctC = ((topCount[1].movs / pdfData.totalMovs) * 100).toFixed(1);
+                insightsHtml += `<li style="margin-bottom: 8px;">El factor generador del <strong>mayor volumen operativo</strong> es "${topCount[0]}", con ${formatNumber(topCount[1].movs)} movimientos registrados (${pctC}% del volumen total).</li>`;
+            }
+            if(selectedSucursales.length > 1) {
+                const sucAgg = {};
+                pdfData.data.forEach(r => { sucAgg[r.sucursal] = (sucAgg[r.sucursal] || 0) + r.CostoNum; });
+                const topSuc = Object.entries(sucAgg).sort((a,b) => b[1] - a[1])[0];
+                if(topSuc) insightsHtml += `<li style="margin-bottom: 8px;">La sucursal con <strong>mayor desviación económica</strong> registrada es ${topSuc[0]} (${formatCurrency(topSuc[1])}).</li>`;
+            }
+            document.getElementById('pdfInsights').innerHTML = insightsHtml;
+            
+            generatePDFCharts(pdfData);
+        });
+        
+        function generatePDFCharts(pdfData) {
+            Chart.defaults.font.family = 'Inter, sans-serif';
+            Chart.defaults.color = '#64748B';
+            
+            const top5 = pdfData.topMotivosArr.slice(0, 5);
+            const labels = top5.map(m => m[0].length > 20 ? m[0].substring(0, 20) + '...' : m[0]);
+            const values = top5.map(m => m[1].monto);
+            const counts = top5.map(m => m[1].movs);
+            const commonOptions = { 
+                responsive: false, 
+                animation: false,  
+                plugins: { legend: { display: false } }, 
+                scales: { 
+                    y: { beginAtZero: true, grid: { color: '#F1F5F9' } }, 
+                    x: { grid: { display: false } } 
+                } 
+            };
+            
+            Object.values(hiddenCharts).forEach(c => c.destroy());
+            
+            const ctxImp = document.getElementById('hcImpacto');
+            ctxImp.width = 800; ctxImp.height = 400;
+            hiddenCharts.imp = new Chart(ctxImp, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Impacto ($)', data: values, backgroundColor: '#1D4ED8', borderRadius: 4 }] }, options: commonOptions });
+            
+            const ctxVol = document.getElementById('hcVolumen');
+            ctxVol.width = 800; ctxVol.height = 400;
+            hiddenCharts.vol = new Chart(ctxVol, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Movimientos', data: counts, backgroundColor: '#94A3B8', borderRadius: 4 }] }, options: commonOptions });
+            
+            const ctxDist = document.getElementById('hcDist');
+            ctxDist.width = 400; ctxDist.height = 400;
+            hiddenCharts.dist = new Chart(ctxDist, { type: 'doughnut', data: { labels: ['Altas', 'Bajas', 'Trazables'], datasets: [{ data: [pdfData.altasVal, pdfData.bajasVal, pdfData.trazabVal], backgroundColor: ['#10B981', '#EF4444', '#F59E0B'], borderWidth: 0 }] }, options: { responsive: false, animation: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 20 } } }, cutout: '75%' } });
+            
+            document.getElementById('imgImpacto').src = hiddenCharts.imp.toBase64Image();
+            document.getElementById('imgVolumen').src = hiddenCharts.vol.toBase64Image();
+            document.getElementById('imgDist').src = hiddenCharts.dist.toBase64Image();
+            
+            setTimeout(() => window.print(), 150);
+        }
+
+        // ==========================================
+        // FUNCIONES AUXILIARES Y MODAL
+        // ==========================================
+        function showModal(idx) {
+            const item = fullData.find(x => x.id === idx);
+            if(!item) return;
+
+            const field = (label, value) => `
+                <div class="border-b border-slate-50 pb-2.5">
+                    <p class="text-xs font-semibold text-brand-textSec mb-0.5">${label}</p>
+                    <p class="font-medium text-slate-800 break-words">${value}</p>
+                </div>`;
+
+            let html = '';
+            html += field('Fecha', formatDate(item.Fecha));
+            html += field('Usuario', String(item.usuario || '').toUpperCase());
+            html += field('ID Producto', item.IDProducto);
+            html += field('EAN', item.codebar);
+            html += field('Producto', item.producto);
+            html += field('Cantidad', item.Unidades);
+
+            if (item.proveedor !== '-') {
+                html += field('Proveedor', item.proveedor);
+            }
+
+            if (item.isTrazable) {
+                html += field('Lote', item.NroLote);
+                html += field('Vencimiento', formatDate(item.FechaVencimiento));
+                html += field('Serie', item.Serie);
+            }
+
+            document.getElementById('modalDynamicContent').innerHTML = html;
+            document.getElementById('modalContent').innerText = item.observacion || "No hay observaciones registradas.";
+            
+            const modal = document.getElementById('modal');
+            modal.classList.remove('hidden', 'fade-out');
+            modal.classList.add('fade-in');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeModal() {
+            const modal = document.getElementById('modal');
+            modal.classList.remove('fade-in');
+            modal.classList.add('fade-out');
+            setTimeout(() => {
+                modal.classList.remove('fade-out');
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }, 150);
+        }
+
+        // Función para copiar el N° al portapapeles
+        function copyToClipboard(text, btn) {
+            event.stopPropagation(); 
+            navigator.clipboard.writeText(text).then(() => {
+                const originalSvg = btn.innerHTML;
+                btn.innerHTML = `<svg class="w-3.5 h-3.5 text-emerald-500 scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>`;
+                setTimeout(() => {
+                    btn.innerHTML = originalSvg;
+                }, 1500);
+            }).catch(err => console.error('Error al copiar al portapapeles: ', err));
+        }
+
+        document.getElementById('input').addEventListener('change', handleFile);
+        
+        document.getElementById('btnDelete').addEventListener('click', () => { 
+            fullData = []; selectedSucursales = [];
+            document.getElementById('input').value = ''; 
+            
+            document.getElementById('headerMainLabel').innerText = capitalize(defaultDateStr);
+            document.getElementById('headerSubLabel').innerText = "";
+            document.getElementById('btnUploadText').innerText = "📄 Importar archivo Excel";
+            document.getElementById('btnUploadLabel').classList.replace('bg-slate-700', 'bg-brand-primary');
+            ['dashboard', 'controls', 'btnPdf', 'btnDelete', 'errorBanner', 'resetFilterWrapper'].forEach(id => document.getElementById(id).classList.add('hidden'));
+        });
+        
+        document.getElementById('toggleViewBtn').addEventListener('click', () => { viewAll = !viewAll; renderTableOnly(); });
+        document.getElementById('motivoFilter').addEventListener('change', () => { renderDashboard(); updateResetButtonState(); });
+        document.getElementById('observacionFilter').addEventListener('change', () => { renderDashboard(); updateResetButtonState(); });
+    </script>
+</body>
+</html>
