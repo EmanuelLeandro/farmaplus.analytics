@@ -8,7 +8,7 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -19,96 +19,125 @@
                 extend: {
                     fontFamily: { sans: ['Inter', 'sans-serif'] },
                     colors: {
-                        brand: { 
-                            bg: '#F8FAFC', 
-                            text: '#0F172A', 
-                            textSec: '#64748B', 
-                            primary: '#1D4ED8', // Azul corporativo
-                            primaryHover: '#1e40af',
-                            card: '#FFFFFF',
-                            border: '#E2E8F0'
-                        }
+                        brand: { bg: '#F8FAFC', text: '#0F172A', textSec: '#64748B', primary: '#1D4ED8', primaryHover: '#1e40af', card: '#FFFFFF', border: '#E2E8F0' }
                     },
                     borderRadius: { '2xl': '16px' },
-                    boxShadow: { 'soft': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)' }
+                    boxShadow: { 
+                        'soft': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                        'floating': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+                    }
                 }
             }
         }
     </script>
     <style>
         body { background-color: #F8FAFC; color: #0F172A; }
-        
-        /* Custom Scrollbar */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
         
-        /* Estilos de tabla Enterprise */
-        .erp-table th { border-bottom: 1px solid #E2E8F0; padding: 14px 16px; font-weight: 600; color: #64748B; font-size: 12px; background-color: #F8FAFC; }
-        .erp-table td { padding: 14px 16px; border-bottom: 1px solid #F1F5F9; font-size: 13px; color: #0F172A; }
-        .erp-table tr:hover td { background-color: #F8FAFC; }
+        .erp-table th { border-bottom: 1px solid #E2E8F0; padding: 12px 16px; font-weight: 600; color: #64748B; font-size: 12px; background-color: #F8FAFC; white-space: nowrap; }
+        .erp-table td { padding: 12px 16px; border-bottom: 1px solid #F1F5F9; font-size: 13px; color: #0F172A; }
+        .dark-header-table th { background-color: #0F172A; color: #FFFFFF; border-bottom: none; }
+        .dark-header-table tr:hover td { background-color: #F1F5F9; }
+        .dark-header-table .total-row td { background-color: #E2E8F0; font-weight: 700; color: #0F172A; border-top: 2px solid #CBD5E1; }
         
-        /* Tabla Resumen Motivos */
-        .motivos-table th { background-color: #0F172A; color: #FFFFFF; border-bottom: none; }
-        .motivos-table tr:hover td { background-color: #F1F5F9; }
-        .motivos-table .total-row td { background-color: #E2E8F0; font-weight: 700; color: #0F172A; border-top: 2px solid #CBD5E1; }
         .smooth-transition { transition: all 0.2s ease-in-out; }
         
-        /* Lógica PDF Gerencial */
-        .print-only { display: none; }
+        /* Animaciones Dropdown Modernos */
+        .dropdown-menu { opacity: 0; transform: scale(0.95) translateY(-5px); pointer-events: none; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); transform-origin: top; display: block !important; visibility: hidden; position: absolute; top: 100%; left: 0; width: 100%; z-index: 50; }
+        .dropdown-menu.show { opacity: 1; transform: scale(1) translateY(0); pointer-events: auto; visibility: visible; }
         
+        @keyframes fadeOutUp { from { opacity: 1; transform: translateY(0) translateX(-50%); } to { opacity: 0; transform: translateY(-5px) translateX(-50%); } }
+        .animate-tooltip { animation: fadeOutUp 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        /* BI Print Logic - Ink Saver y Formato */
+        .print-only { display: none; }
         @media print { 
             body { background: white !important; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .no-print { display: none !important; }
-            .print-only { display: block; width: 100%; }
+            .print-only.active-print-report { display: block; width: 100%; }
             .page-break { page-break-before: always; }
             .avoid-break { page-break-inside: avoid; }
             @page { margin: 15mm; size: A4 portrait; }
+            
+            .dark-header-table th, .pdf-compact-table thead tr th { background-color: #F8FAFC !important; color: #0F172A !important; border-bottom: 2px solid #CBD5E1 !important; }
+            .pdf-compact-table thead { background-color: #F8FAFC !important; }
+
+            /* Evita que los renglones se corten a la mitad entre hojas */
+            .erp-table tr, .pdf-compact-table tr { page-break-inside: avoid; break-inside: avoid; }
+
+            .pdf-card { border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px; background: white; }
+            .pdf-kpi-title { font-size: 11px; font-weight: 600; color: #64748B; text-transform: uppercase; margin-bottom: 4px;}
+            .pdf-kpi-value { font-size: 20px; font-weight: 800; color: #0F172A; }
+            .pdf-insight-box { background-color: #F8FAFC; border-left: 4px solid #1D4ED8; padding: 16px; border-radius: 0 12px 12px 0; margin-bottom: 24px; }
+            .pdf-title-section { border-bottom: 2px solid #E2E8F0; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+            
+            .pdf-page-single { height: 98vh; display: flex; flex-direction: column; overflow: hidden; gap: 12px; box-sizing: border-box; position: relative; padding-bottom: 30px; }
+            .user-pdf-kpi { background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px; text-align: left; }
+            .user-pdf-kpi-title { font-size: 9px; font-weight: 700; color: #64748B; text-transform: uppercase; margin-bottom: 2px; }
+            .user-pdf-kpi-value { font-size: 16px; font-weight: 800; color: #0F172A; }
+            .pdf-compact-table th { padding: 4px 6px !important; font-size: 9px !important; white-space: nowrap; }
+            .pdf-compact-table td { padding: 4px 6px !important; font-size: 9px !important; border-bottom: 1px solid #F1F5F9; }
+            .pdf-insight-box-compact { background-color: #EEF2FF; border-left: 3px solid #4F46E5; padding: 8px 12px; border-radius: 0 8px 8px 0; margin-bottom: 0;}
+            .pdf-insight-box-compact h3 { font-size: 12px; margin-bottom: 4px; }
+            .pdf-insight-box-compact ul { font-size: 10px; line-height: 1.4; padding-left: 16px; margin: 0; }
+            
+            .print-footer { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 9px; color: #94A3B8; padding-top: 8px; border-top: 1px solid #E2E8F0; width: 100%; background: white; }
         }
-        #hidden-chart-container {
-            position: absolute; top: -9999px; left: -9999px; width: 1200px; height: 800px; visibility: hidden;
-        }
+        #hidden-chart-container { position: absolute; top: -9999px; left: -9999px; width: 1200px; height: 1200px; visibility: hidden; }
+
+        /* Animations */
+        .modal-overlay.fade-in { display: flex !important; animation: modalBgFadeIn 0.2s ease-out forwards; }
+        .modal-overlay.fade-out { display: flex !important; animation: modalBgFadeOut 0.15s ease-in forwards; }
+        .modal-overlay.fade-in > .modal-content { animation: modalScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .modal-overlay.fade-out > .modal-content { animation: modalScaleOut 0.15s ease-in forwards; }
+        @keyframes modalBgFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes modalBgFadeOut { from { opacity: 1; } to { opacity: 0; } }
+        @keyframes modalScaleIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+        @keyframes modalScaleOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.96); } }
     </style>
 </head>
-<body class="min-h-screen">
-    <header class="bg-white border-b border-slate-200 px-8 py-5 flex justify-between items-center no-print shadow-sm sticky top-0 z-50">
+<body class="min-h-screen relative">
+    <header class="bg-white border-b border-slate-200 px-4 sm:px-8 py-4 sm:py-5 flex flex-wrap justify-between items-center no-print shadow-sm sticky top-0 z-50 gap-4">
         <div class="flex items-center gap-4">
-            <div class="w-10 h-10 bg-brand-primary rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-soft">F</div>
+            <div class="w-10 h-10 bg-brand-primary rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-soft shrink-0">F</div>
             <div>
-                <h1 class="text-xl font-bold text-brand-text leading-tight tracking-tight">Farmaplus Analytics</h1>
-                <p id="headerSubtitle" class="text-xs text-brand-textSec font-medium mt-0.5">Plataforma de Business Intelligence </p>
+                <h1 class="text-lg sm:text-xl font-bold text-brand-text leading-tight tracking-tight">Farmaplus Analytics</h1>
+                <p id="headerSubtitle" class="text-xs text-brand-textSec font-medium mt-0.5">Plataforma de Business Intelligence</p>
             </div>
         </div>
-        <div class="flex items-center gap-6">
-            <div id="headerDateContainer" class="text-right hidden sm:block">
+        <div class="flex flex-wrap items-center gap-4 sm:gap-6 w-full sm:w-auto justify-end">
+            <div id="headerDateContainer" class="text-right hidden lg:block">
                 <p id="headerMainLabel" class="text-sm font-semibold text-brand-text"></p>
                 <p id="headerSubLabel" class="text-xs text-brand-textSec"></p>
             </div>
-            <div class="flex gap-3">
-                <button id="btnPdf" class="hidden px-5 py-2.5 bg-white border border-slate-200 text-brand-text font-medium rounded-xl text-sm hover:bg-slate-50 smooth-transition shadow-sm">Exportar Informe PDF</button>
-                <button id="btnDelete" class="hidden px-5 py-2.5 bg-white border border-slate-200 text-red-600 font-medium rounded-xl text-sm hover:bg-red-50 smooth-transition shadow-sm">Eliminar datos</button>
-                <label id="btnUploadLabel" class="px-5 py-2.5 bg-brand-primary text-white font-semibold rounded-xl text-sm hover:bg-brand-primaryHover smooth-transition shadow-soft cursor-pointer flex items-center gap-2">
-                    <span id="btnUploadText">📄 Importar archivo Excel</span>
+            <div class="flex gap-2 sm:gap-3 w-full sm:w-auto">
+                <button id="btnPdfGlobal" class="hidden flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-white border border-slate-200 text-brand-text font-medium rounded-xl text-sm hover:bg-slate-50 smooth-transition shadow-sm flex items-center gap-2 justify-center">
+                    <svg class="w-4 h-4 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> PDF General
+                </button>
+                <button id="btnDelete" class="hidden flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-white border border-slate-200 text-red-600 font-medium rounded-xl text-sm hover:bg-red-50 smooth-transition shadow-sm">Limpiar</button>
+                <label id="btnUploadLabel" class="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-brand-primary text-white font-semibold rounded-xl text-sm hover:bg-brand-primaryHover smooth-transition shadow-soft cursor-pointer flex items-center justify-center gap-2 relative overflow-hidden">
+                    <span id="btnUploadText" class="whitespace-nowrap">📄 Importar Excel</span>
                     <input type="file" id="input" class="hidden" accept=".xlsx, .xls">
                 </label>
             </div>
         </div>
     </header>
 
-    <main class="max-w-[1400px] mx-auto p-8" id="capture">
-        <div id="errorBanner" class="hidden mb-8 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm no-print">
-            <strong class="font-bold">Error al procesar: </strong>
-            <span id="errorText">Revisa que el archivo sea un Excel válido.</span>
+    <main class="max-w-[1600px] mx-auto p-4 sm:p-6 lg:p-8" id="capture">
+        <div id="errorBanner" class="hidden mb-6 sm:mb-8 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm no-print">
+            <strong class="font-bold">Error al procesar: </strong><span id="errorText">Revisa que el archivo sea un Excel válido.</span>
         </div>
 
-        <div id="controls" class="hidden mb-3 grid grid-cols-1 md:grid-cols-3 gap-6 no-print relative z-40">
+        <div id="controls" class="hidden mb-4 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 no-print relative z-40">
             <div class="relative w-full">
-                <div id="sucursalBtn" class="px-5 py-3.5 bg-white border border-slate-200 rounded-xl shadow-sm w-full flex justify-between items-center cursor-pointer text-sm hover:border-brand-primary smooth-transition">
+                <div id="sucursalBtn" onclick="toggleDropdown(event, 'sucursalDropdown')" class="px-4 py-3.5 bg-white border border-slate-200 rounded-xl shadow-sm w-full flex justify-between items-center cursor-pointer text-sm hover:border-brand-primary smooth-transition">
                     <span id="sucursalBtnText" class="truncate font-medium text-brand-text">Todas las sucursales</span>
-                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    <svg class="w-4 h-4 text-slate-400 shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                 </div>
-                <div id="sucursalDropdown" class="hidden absolute top-full left-0 w-full bg-white border border-slate-200 rounded-xl shadow-lg mt-2 overflow-hidden z-50">
+                <div id="sucursalDropdown" class="dropdown-menu bg-white border border-slate-200 rounded-xl shadow-floating mt-2 overflow-hidden" onclick="event.stopPropagation()">
                     <div class="p-3 border-b border-slate-100 bg-slate-50">
-                        <input type="text" id="branchSearch" placeholder="Buscar sucursal..." class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary">
+                        <input type="text" id="branchSearch" placeholder="Buscar sucursal..." class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary bg-white">
                     </div>
                     <label class="flex items-center gap-3 p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100">
                         <input type="checkbox" id="selectAllSucursales" class="w-4 h-4 text-brand-primary rounded border-slate-300" checked> 
@@ -117,128 +146,127 @@
                     <div id="sucursalCheckboxes" class="max-h-60 overflow-y-auto custom-scrollbar p-1"></div>
                 </div>
             </div>
-            <select id="motivoFilter" class="px-5 py-3.5 bg-white border border-slate-200 rounded-xl shadow-sm w-full outline-none text-sm font-medium text-brand-text hover:border-brand-primary smooth-transition appearance-none">
+            
+            <select id="motivoFilter" class="px-4 py-3.5 bg-white border border-slate-200 rounded-xl shadow-sm w-full outline-none text-sm font-medium text-brand-text hover:border-brand-primary smooth-transition appearance-none">
                 <option value="TODOS" class="text-slate-400">Todos los motivos</option>
             </select>
             
-            <select id="observacionFilter" class="px-5 py-3.5 bg-white border border-slate-200 rounded-xl shadow-sm w-full outline-none text-sm font-medium text-brand-text hover:border-brand-primary smooth-transition appearance-none">
-                <option value="TODAS" class="text-slate-400">Todas las observaciones</option>
-            </select>
+            <div class="relative w-full">
+                <div id="obsBtn" onclick="toggleDropdown(event, 'obsDropdown')" class="px-4 py-3.5 bg-white border border-slate-200 rounded-xl shadow-sm w-full flex justify-between items-center cursor-pointer text-sm hover:border-brand-primary smooth-transition">
+                    <span id="obsBtnText" class="truncate font-medium text-brand-text">Todas las observaciones</span>
+                    <svg class="w-4 h-4 text-slate-400 shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+                <div id="obsDropdown" class="dropdown-menu bg-white border border-slate-200 rounded-xl shadow-floating mt-2 overflow-hidden" onclick="event.stopPropagation()">
+                    <div class="p-3 border-b border-slate-100 bg-slate-50 relative">
+                        <input type="text" id="obsSearch" placeholder="Buscar observación..." class="w-full px-3 py-2 pr-8 text-sm border border-slate-200 rounded-lg outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary bg-white">
+                        <button id="clearObsSearch" class="hidden absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500 smooth-transition p-1 rounded-md hover:bg-slate-100 outline-none" title="Limpiar búsqueda">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                    <div id="obsList" class="max-h-60 overflow-y-auto custom-scrollbar p-1"></div>
+                </div>
+            </div>
         </div>
-
-        <div id="resetFilterWrapper" class="hidden flex justify-end mb-8 no-print">
-            <button id="btnResetFilters" disabled
-                class="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-brand-textSec border border-slate-200 rounded-lg hover:text-brand-primary hover:border-brand-primary smooth-transition disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-brand-textSec disabled:hover:border-slate-200">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                </svg>
-                Restablecer filtros
+        
+        <div id="resetFilterWrapper" class="hidden flex justify-end mb-6 sm:mb-8 no-print">
+            <button id="btnResetFilters" disabled class="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-brand-textSec border border-slate-200 rounded-lg hover:text-brand-primary hover:border-brand-primary smooth-transition disabled:opacity-40 disabled:cursor-not-allowed bg-white">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Restablecer filtros
             </button>
         </div>
 
-        <div id="dashboard" class="hidden space-y-8">
-            
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 no-print">
-                <div class="bg-white p-5 rounded-2xl shadow-soft border border-slate-100 flex flex-col justify-between">
-                    <div class="flex items-center gap-2 mb-2">
-                        <span class="text-lg">📈</span>
-                        <h3 class="text-sm font-semibold text-brand-textSec">Valor Total de Altas</h3>
-                    </div>
+        <div id="dashboard" class="hidden space-y-6 sm:space-y-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 no-print">
+                <div class="bg-white p-5 rounded-2xl shadow-soft border border-slate-100 flex flex-col justify-between hover:shadow-md smooth-transition">
+                    <div class="flex items-center gap-2 mb-2"><span class="text-lg">📈</span><h3 class="text-sm font-semibold text-brand-textSec">Valor Total Altas</h3></div>
                     <p class="font-bold text-brand-text tracking-tight kpi-value" id="kpiAltas">$0</p>
                 </div>
-                <div class="bg-white p-5 rounded-2xl shadow-soft border border-slate-100 flex flex-col justify-between">
-                    <div class="flex items-center gap-2 mb-2">
-                        <span class="text-lg">📉</span>
-                        <h3 class="text-sm font-semibold text-brand-textSec">Valor Total de Bajas</h3>
-                    </div>
+                <div class="bg-white p-5 rounded-2xl shadow-soft border border-slate-100 flex flex-col justify-between hover:shadow-md smooth-transition">
+                    <div class="flex items-center gap-2 mb-2"><span class="text-lg">📉</span><h3 class="text-sm font-semibold text-brand-textSec">Valor Total Bajas</h3></div>
                     <p class="font-bold text-brand-text tracking-tight kpi-value" id="kpiBajas">$0</p>
                 </div>
-                <div class="bg-white p-5 rounded-2xl shadow-soft border border-slate-100 flex flex-col justify-between">
-                    <div class="flex items-center gap-2 mb-2">
-                        <span class="text-lg">💊</span>
-                        <h3 class="text-sm font-semibold text-brand-textSec">Valor Mov. Trazables</h3>
-                    </div>
+                <div class="bg-white p-5 rounded-2xl shadow-soft border border-slate-100 flex flex-col justify-between hover:shadow-md smooth-transition">
+                    <div class="flex items-center gap-2 mb-2"><span class="text-lg">💊</span><h3 class="text-sm font-semibold text-brand-textSec">Valor Mov. Trazables</h3></div>
                     <p class="font-bold text-brand-text tracking-tight kpi-value" id="kpiTrazables">$0</p>
                 </div>
-                <div class="bg-white p-5 rounded-2xl shadow-soft border border-slate-100 flex flex-col justify-between">
-                    <div class="flex items-center gap-2 mb-2">
-                        <span class="text-lg">⚖️</span>
-                        <h3 class="text-sm font-semibold text-brand-textSec">Balance Neto de Inventario</h3>
-                    </div>
+                <div class="bg-white p-5 rounded-2xl shadow-soft border border-slate-100 flex flex-col justify-between hover:shadow-md smooth-transition">
+                    <div class="flex items-center gap-2 mb-2"><span class="text-lg">⚖️</span><h3 class="text-sm font-semibold text-brand-textSec">Balance Neto</h3></div>
                     <p class="font-bold tracking-tight kpi-value" id="kpiBalance">$0</p>
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden no-print">
-                <div class="px-6 py-5 bg-white border-b border-slate-100">
-                    <h2 class="text-base font-bold text-brand-text tracking-tight">Resumen por Motivo de Ajuste</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 no-print">
+                <div class="bg-white rounded-2xl shadow-soft border border-slate-100 flex flex-col overflow-hidden hover:shadow-md smooth-transition">
+                    <div class="px-5 sm:px-6 py-4 bg-white border-b border-slate-100 flex items-center justify-between"><h2 class="text-base font-bold text-brand-text tracking-tight">Resumen por Motivo</h2></div>
+                    <div class="overflow-x-auto custom-scrollbar flex-1">
+                        <table class="w-full text-left erp-table dark-header-table">
+                            <thead><tr><th>Motivo</th><th class="text-right">Unidades</th><th class="text-right">Movimientos</th><th class="text-right">Monto</th><th class="text-right">%</th></tr></thead>
+                            <tbody id="motivosContainer"></tbody>
+                        </table>
+                    </div>
                 </div>
-                <div class="overflow-x-auto custom-scrollbar">
-                    <table class="w-full text-left erp-table motivos-table">
-                        <thead>
-                            <tr>
-                                <th>Motivo</th>
-                                <th class="text-right">Unidades</th>
-                                <th class="text-right">Movimientos</th>
-                                <th class="text-right">Impacto Económico</th>
-                                <th class="text-right">% del Total</th>
-                            </tr>
-                        </thead>
-                        <tbody id="motivosContainer"></tbody>
-                    </table>
+                <div class="bg-white rounded-2xl shadow-soft border border-slate-100 flex flex-col overflow-hidden hover:shadow-md smooth-transition">
+                    <div class="px-5 sm:px-6 py-4 bg-white border-b border-slate-100 flex flex-wrap gap-3 items-center justify-between">
+                        <h2 class="text-base font-bold text-brand-text tracking-tight shrink-0">Actividad por Usuario</h2>
+                        <div class="relative w-full sm:w-auto flex-1 sm:max-w-[200px]">
+                            <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            <input type="text" id="searchUserInputMain" placeholder="Buscar usuario..." class="pl-9 pr-3 py-0.4 w-full text-sm border border-slate-200 rounded-lg outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary bg-slate-50 focus:bg-white transition-all">
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto custom-scrollbar flex-1">
+                        <table class="w-full text-left erp-table dark-header-table">
+                            <thead><tr><th>Usuario</th><th class="text-right">Movimientos</th><th class="text-right">% del Total</th></tr></thead>
+                            <tbody id="usuariosContainerMain"></tbody>
+                        </table>
+                    </div>
+                    <div class="px-4 py-3 bg-slate-50 border-t border-slate-100 text-center" id="verTodosUsuariosWrapper">
+                        <button onclick="openAllUsersModal()" class="text-sm font-semibold text-brand-primary hover:text-brand-primaryHover transition-colors">Ver todos los usuarios</button>
+                    </div>
                 </div>
             </div>
 
-            <div id="anomaliasSection" class="bg-white rounded-2xl shadow-soft border border-red-200 overflow-hidden no-print">
-                <div class="px-6 py-5 bg-red-50/50 border-b border-red-100">
+            <div id="anomaliasSection" class="bg-white rounded-2xl shadow-soft border border-red-200 overflow-hidden no-print hidden">
+                <div class="px-5 sm:px-6 py-4 bg-red-50/50 border-b border-red-100">
                     <h2 class="text-base font-bold text-red-700 flex items-center gap-2 tracking-tight">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                        Anomalías Detectadas (Mayor Cantidad e Impacto)
+                        Anomalías Detectadas (Top Monto y Volumen)
                     </h2>
                 </div>
-                <div class="overflow-x-auto custom-scrollbar">
+                <div class="overflow-x-auto custom-scrollbar w-full">
                     <table class="w-full text-left erp-table">
                         <thead class="bg-slate-50">
-                            <tr>
-                                <th>Fecha</th>
-                                <th>N°</th>
-                                <th>Sucursal</th>
-                                <th>Producto</th>
-                                <th class="text-right">Cantidad</th>
-                                <th>Motivo</th>
-                                <th class="text-right">Monto</th>
-                            </tr>
+                            <tr><th>Fecha</th><th class="hidden sm:table-cell">N°</th><th class="hidden md:table-cell">Sucursal</th><th>Producto</th><th class="text-right">Cantidad</th><th>Motivo</th><th class="hidden sm:table-cell text-right">Monto</th><th class="sm:hidden no-print"></th></tr>
                         </thead>
                         <tbody id="anomaliasContainer"></tbody>
                     </table>
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden no-print">
-                <div class="px-6 py-4 bg-white border-b border-slate-100 flex flex-wrap justify-between items-center gap-4">
+            <div class="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden no-print w-full hover:shadow-md smooth-transition">
+                <div class="px-4 sm:px-6 py-4 bg-white border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <h2 class="text-base font-bold text-brand-text tracking-tight">Movimientos Generales</h2>
-                    <div class="flex items-center gap-4">
-                        <div class="relative">
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
+                        <div class="relative w-full sm:w-auto">
                             <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                            <input type="text" id="searchTableInput" placeholder="Buscar por N° o producto..." class="pl-9 pr-8 py-2 w-64 text-sm border border-slate-200 rounded-xl outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary smooth-transition bg-slate-50 focus:bg-white placeholder-slate-400">
+                            <input type="text" id="searchTableInput" placeholder="Buscar N° o producto..." class="pl-9 pr-8 py-1.5 w-full sm:w-64 text-sm border border-slate-200 rounded-xl outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all bg-slate-50 focus:bg-white placeholder-slate-400">
                             <button id="clearSearchBtn" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 smooth-transition p-1 rounded-md hover:bg-slate-100">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                             </button>
                         </div>
-                        <button id="toggleViewBtn" class="text-xs font-semibold text-brand-primary hover:text-brand-primaryHover transition whitespace-nowrap">Ver todos los movimientos</button>
+                        <button id="toggleViewBtn" class="text-xs font-semibold text-brand-primary hover:text-brand-primaryHover transition whitespace-nowrap self-end sm:self-center px-3 py-1.5 rounded-lg hover:bg-slate-50 border border-transparent">Ver todos</button>
                     </div>
                 </div>
-                <div class="overflow-x-auto custom-scrollbar max-h-[600px]">
+                <div class="overflow-x-auto custom-scrollbar max-h-[600px] w-full relative">
                     <table class="w-full text-left erp-table relative">
-                        <thead class="bg-slate-50 sticky top-0 z-10 shadow-sm">
+                        <thead class="bg-slate-50 sticky top-0 z-10 shadow-sm border-b border-slate-200">
                             <tr>
-                                <th class="cursor-pointer hover:text-brand-primary whitespace-nowrap" onclick="setSort('Fecha')">Fecha ↕</th>
-                                <th class="cursor-pointer hover:text-brand-primary whitespace-nowrap" onclick="setSort('NroBaja')">N° ↕</th>
-                                <th class="cursor-pointer hover:text-brand-primary whitespace-nowrap" onclick="setSort('sucursal')">Sucursal ↕</th>
-                                <th>Producto y Código</th>
-                                <th class="text-right cursor-pointer hover:text-brand-primary whitespace-nowrap" onclick="setSort('Unidades')">Cantidad ↕</th>
+                                <th class="cursor-pointer hover:text-brand-primary hover:bg-slate-100 whitespace-nowrap smooth-transition" onclick="setSort('Fecha')">Fecha ↕</th>
+                                <th class="hidden sm:table-cell cursor-pointer hover:text-brand-primary hover:bg-slate-100 whitespace-nowrap smooth-transition" onclick="setSort('NroBaja')">N° ↕</th>
+                                <th class="hidden md:table-cell cursor-pointer hover:text-brand-primary hover:bg-slate-100 whitespace-nowrap smooth-transition" onclick="setSort('sucursal')">Sucursal ↕</th>
+                                <th>Producto y EAN</th>
+                                <th class="text-right cursor-pointer hover:text-brand-primary hover:bg-slate-100 whitespace-nowrap smooth-transition" onclick="setSort('Unidades')">Cant. ↕</th>
                                 <th>Motivo</th>
-                                <th class="text-right cursor-pointer hover:text-brand-primary whitespace-nowrap" onclick="setSort('CostoNum')">Monto ↕</th>
+                                <th class="hidden sm:table-cell text-right cursor-pointer hover:text-brand-primary hover:bg-slate-100 whitespace-nowrap smooth-transition" onclick="setSort('CostoNum')">Monto ↕</th>
+                                <th class="sm:hidden no-print"></th>
                             </tr>
                         </thead>
                         <tbody id="movimientosContainer"></tbody>
@@ -252,181 +280,339 @@
         <canvas id="hcImpacto"></canvas>
         <canvas id="hcVolumen"></canvas>
         <canvas id="hcDist"></canvas>
-        <canvas id="hcPareto"></canvas>
+        <canvas id="hcUserImpact"></canvas>
+        <canvas id="hcUserVol"></canvas>
     </div>
+    
+    <div id="pdf-report-global" class="print-only">
+        <div style="height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background-color: #F8FAFC; padding: 40px; position: relative;">
+            <div style="margin-bottom: 30px;">
+                <div style="width: 70px; height: 70px; background-color: #1D4ED8; border-radius: 16px; color: white; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; margin: 0 auto 16px auto;">F</div>
+                <h1 style="font-size: 28px; font-weight: 800; color: #0F172A; margin: 0;">Farmaplus Analytics</h1>
+                <p style="font-size: 14px; color: #64748B; font-weight: 500; margin-top: 6px;">Informe Ejecutivo de Operaciones</p>
+            </div>
+            
+            <div style="background: white; padding: 40px; border-radius: 16px; border: 1px solid #E2E8F0; width: 100%; max-width: 700px; text-align: left; margin-bottom: 20px;">
+                <h2 style="font-size: 36px; font-weight: 800; color: #0F172A; line-height: 1.1; margin: 0 0 16px 0; border-bottom: 4px solid #1D4ED8; padding-bottom: 16px;">REPORTE<br>GERENCIAL</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                    <div><p style="font-size: 11px; font-weight: 600; color: #64748B; text-transform: uppercase;">Período Analizado</p><p style="font-size: 16px; font-weight: 700; color: #0F172A;" id="pdfCoverPeriodo"></p></div>
+                    <div><p style="font-size: 11px; font-weight: 600; color: #64748B; text-transform: uppercase;">Generado el</p><p style="font-size: 16px; font-weight: 700; color: #0F172A;" id="pdfCoverGenerated"></p></div>
+                    <div><p style="font-size: 11px; font-weight: 600; color: #64748B; text-transform: uppercase;">Total Movimientos</p><p style="font-size: 16px; font-weight: 700; color: #0F172A;" id="pdfCoverMovimientos"></p></div>
+                    <div><p style="font-size: 11px; font-weight: 600; color: #64748B; text-transform: uppercase;">Impacto Económico</p><p style="font-size: 16px; font-weight: 700; color: #0F172A;" id="pdfCoverImpacto"></p></div>
+                </div>
+            </div>
 
-    <div id="pdf-report" class="print-only">
-        <div style="height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background-color: #F8FAFC; padding: 40px; border: 1px solid #E2E8F0;">
-            <div style="margin-bottom: 40px;">
-                <div style="width: 80px; height: 80px; background-color: #1D4ED8; border-radius: 20px; color: white; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: bold; margin: 0 auto 20px auto;">F</div>
-                <h1 style="font-size: 32px; font-weight: 800; color: #0F172A; margin: 0;">Farmaplus Analytics</h1>
-                <p style="font-size: 16px; color: #64748B; font-weight: 500; margin-top: 8px;">Plataforma de Business Intelligence</p>
-            </div>
-            
-            <div style="background: white; padding: 60px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); width: 100%; max-width: 700px; text-align: left;">
-                <h2 style="font-size: 48px; font-weight: 800; color: #0F172A; line-height: 1.1; margin: 0 0 16px 0; border-bottom: 4px solid #1D4ED8; padding-bottom: 24px;">INFORME<br>GERENCIAL</h2>
-                <p style="font-size: 20px; color: #64748B; font-weight: 500; margin-bottom: 40px;">Análisis de Movimientos de Inventario</p>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
-                    <div>
-                        <p style="font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase; margin-bottom: 4px;">Período Analizado</p>
-                        <p style="font-size: 18px; font-weight: 700; color: #0F172A;" id="pdfCoverPeriodo"></p>
-                    </div>
-                    <div>
-                        <p style="font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase; margin-bottom: 4px;">Generado el</p>
-                        <p style="font-size: 18px; font-weight: 700; color: #0F172A;" id="pdfCoverGenerated"></p>
-                    </div>
-                    <div>
-                        <p style="font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase; margin-bottom: 4px;">Total Movimientos</p>
-                        <p style="font-size: 18px; font-weight: 700; color: #0F172A;" id="pdfCoverMovimientos"></p>
-                    </div>
-                    <div>
-                        <p style="font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase; margin-bottom: 4px;">Impacto Económico Total</p>
-                        <p style="font-size: 18px; font-weight: 700; color: #0F172A;" id="pdfCoverImpacto"></p>
-                    </div>
+            <div style="background: white; padding: 24px 32px; border-radius: 16px; border: 1px solid #E2E8F0; width: 100%; max-width: 700px; text-align: left; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                    <svg style="width: 20px; height: 20px; color: #1D4ED8;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                    <h3 style="font-size: 14px; font-weight: 700; color: #64748B; text-transform: uppercase; margin: 0;">Sucursales Analizadas</h3>
                 </div>
+                <p style="font-size: 20px; font-weight: 800; color: #0F172A; margin: 0 0 16px 0;" id="pdfCoverBranchCountText"></p>
+                <div id="pdfCoverBranchList" style="font-size: 11px; font-weight: 500; color: #475569; column-gap: 32px;"></div>
             </div>
-            <div style="margin-top: 60px; font-size: 12px; color: #94A3B8;">
-                Generado automáticamente por Farmaplus Analytics BI
-            </div>
+            <div class="print-footer">Documento de uso interno - Farmaplus Analytics</div>
         </div>
-        <div class="page-break" style="padding-top: 20px;">
-            <div style="border-bottom: 2px solid #E2E8F0; padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end;">
-                <div>
-                    <h2 style="font-size: 24px; font-weight: 800; color: #0F172A; margin: 0;">Resumen Ejecutivo</h2>
-                    <p style="font-size: 12px; color: #64748B; margin-top: 4px;" class="pdfHeaderPeriod"></p>
-                </div>
-                <div style="font-weight: bold; color: #1D4ED8;">Farmaplus Analytics</div>
-            </div>
+        
+        <div class="page-break" style="padding-top: 20px; position: relative;">
+            <div class="pdf-title-section"><h2 style="font-size: 24px; font-weight: 800; color: #0F172A; margin:0;">Resumen Ejecutivo</h2><div style="font-weight: bold; color: #1D4ED8;">Farmaplus</div></div>
+            
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px;">
-                <div style="padding: 16px; border: 1px solid #E2E8F0; border-radius: 12px;"><p style="font-size: 11px; font-weight: 600; color: #64748B; margin-bottom: 8px; text-transform: uppercase;">📈 Altas</p><p style="font-size: 20px; font-weight: 800; color: #0F172A;" id="pdfKpiAltas"></p></div>
-                <div style="padding: 16px; border: 1px solid #E2E8F0; border-radius: 12px;"><p style="font-size: 11px; font-weight: 600; color: #64748B; margin-bottom: 8px; text-transform: uppercase;">📉 Bajas</p><p style="font-size: 20px; font-weight: 800; color: #0F172A;" id="pdfKpiBajas"></p></div>
-                <div style="padding: 16px; border: 1px solid #E2E8F0; border-radius: 12px;"><p style="font-size: 11px; font-weight: 600; color: #64748B; margin-bottom: 8px; text-transform: uppercase;">💊 Trazables</p><p style="font-size: 20px; font-weight: 800; color: #0F172A;" id="pdfKpiTrazables"></p></div>
-                <div style="padding: 16px; background-color: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 12px;"><p style="font-size: 11px; font-weight: 700; color: #0F172A; margin-bottom: 8px; text-transform: uppercase;">⚖️ Balance Neto</p><p style="font-size: 22px; font-weight: 800;" id="pdfKpiBalance"></p></div>
+                <div class="pdf-card"><p class="pdf-kpi-title">Total Altas</p><p class="pdf-kpi-value text-emerald-600" id="pdfKpiAltas"></p></div>
+                <div class="pdf-card"><p class="pdf-kpi-title">Total Bajas</p><p class="pdf-kpi-value text-red-600" id="pdfKpiBajas"></p></div>
+                <div class="pdf-card"><p class="pdf-kpi-title">Mov. Trazables</p><p class="pdf-kpi-value text-orange-500" id="pdfKpiTrazables"></p></div>
+                <div class="pdf-card" style="background-color: #F8FAFC;"><p class="pdf-kpi-title" style="color: #0F172A;">Balance Neto</p><p class="pdf-kpi-value" id="pdfKpiBalance"></p></div>
             </div>
-            <div class="avoid-break" style="background-color: #F8FAFC; border: 1px solid #E2E8F0; padding: 24px; border-radius: 12px; margin-bottom: 32px;">
-                <h3 style="font-size: 16px; font-weight: 700; color: #0F172A; margin-top: 0; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                    <span style="font-size: 20px;">💡</span> Conclusiones y Hallazgos Principales
-                </h3>
-                <ul id="pdfInsights" style="margin: 0; padding-left: 20px; color: #334155; font-size: 13px; line-height: 1.6; font-weight: 500;"></ul>
+
+            <div class="avoid-break pdf-insight-box">
+                <h3 style="font-size: 16px; font-weight: 700; color: #0F172A; margin: 0 0 12px 0; display: flex; align-items: center; gap: 8px;">💡 Hallazgos y Conclusiones del Período</h3>
+                <ul id="pdfInsightsGlobal" style="margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.6; color: #334155;"></ul>
             </div>
-            <div class="avoid-break" style="margin-bottom: 32px;">
-                <h3 style="font-size: 14px; font-weight: 700; color: #0F172A; margin-bottom: 16px; text-transform: uppercase;">Impacto Económico por Motivo</h3>
-                <div style="border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px; background: white; text-align: center;">
-                    <img id="imgImpacto" style="max-width: 100%; height: auto; max-height: 280px; object-fit: contain;">
+
+            <div class="avoid-break" style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 32px;">
+                <div>
+                    <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 12px;">Top Motivos por Impacto Económico</h3>
+                    <div class="pdf-card" style="text-align: center;"><img id="imgImpacto" style="width: 100%; height: 260px; object-fit: contain;"></div>
+                </div>
+                <div>
+                    <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 12px;">Distribución General</h3>
+                    <div class="pdf-card" style="text-align: center;"><img id="imgDist" style="width: 100%; height: 260px; object-fit: contain;"></div>
                 </div>
             </div>
             
-            <div class="avoid-break" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-                <div>
-                    <h3 style="font-size: 14px; font-weight: 700; color: #0F172A; margin-bottom: 16px; text-transform: uppercase;">Volumen Operativo (Movimientos)</h3>
-                    <div style="border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px; background: white; text-align: center;">
-                        <img id="imgVolumen" style="max-width: 100%; height: auto; max-height: 250px; object-fit: contain;">
-                    </div>
-                </div>
-                <div>
-                    <h3 style="font-size: 14px; font-weight: 700; color: #0F172A; margin-bottom: 16px; text-transform: uppercase;">Distribución del Impacto</h3>
-                    <div style="border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px; background: white; text-align: center;">
-                        <img id="imgDist" style="max-width: 100%; height: auto; max-height: 250px; object-fit: contain;">
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="page-break" style="padding-top: 20px;">
-            <div style="border-bottom: 2px solid #E2E8F0; padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end;">
-                <div>
-                    <h2 style="font-size: 24px; font-weight: 800; color: #0F172A; margin: 0;">Análisis Detallado</h2>
-                    <p style="font-size: 12px; color: #64748B; margin-top: 4px;" class="pdfHeaderPeriod"></p>
-                </div>
-                <div style="font-weight: bold; color: #1D4ED8;">Farmaplus Analytics</div>
-            </div>
             <div class="avoid-break" style="margin-bottom: 40px;">
-                <h3 style="font-size: 16px; font-weight: 700; color: #0F172A; margin-bottom: 16px;">Resumen por Motivo de Ajuste</h3>
-                <table class="w-full text-left erp-table motivos-table" style="border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden;">
-                    <thead><tr><th>Motivo</th><th class="text-right">Unidades</th><th class="text-right">Movimientos</th><th class="text-right">Impacto Económico</th><th class="text-right">% del Total</th></tr></thead>
+                <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 12px;">Desglose por Motivo Operativo</h3>
+                <table class="w-full text-left erp-table dark-header-table" style="border: 1px solid #E2E8F0; border-radius: 8px;">
+                    <thead><tr><th>Motivo</th><th class="text-right">Unidades</th><th class="text-right">Movimientos</th><th class="text-right">Monto</th><th class="text-right">% Share</th></tr></thead>
                     <tbody id="pdfMotivosContainer"></tbody>
                 </table>
             </div>
-            <div id="pdfAnomaliasSection" class="avoid-break" style="margin-bottom: 40px;">
-                <h3 style="font-size: 16px; font-weight: 700; color: #DC2626; margin-bottom: 16px;">Anomalías Detectadas (Mayor Cantidad e Impacto)</h3>
-                <table class="w-full text-left erp-table" style="border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden;">
-                    <thead style="background-color: #FEF2F2;"><tr><th>Fecha</th><th>N°</th><th>Sucursal</th><th>Producto</th><th class="text-right">Cant.</th><th>Motivo</th><th class="text-right">Monto</th></tr></thead>
-                    <tbody id="pdfAnomaliasContainer"></tbody>
-                </table>
-            </div>
-            <div class="avoid-break" style="margin-bottom: 20px;">
-                <h3 style="font-size: 16px; font-weight: 700; color: #0F172A; margin-bottom: 16px;">Top 10 Movimientos Relevantes</h3>
-                <table class="w-full text-left erp-table" style="border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden;">
-                    <thead style="background-color: #F8FAFC;"><tr><th>Fecha</th><th>N°</th><th>Sucursal</th><th>Producto</th><th class="text-right">Cant.</th><th>Motivo</th><th class="text-right">Monto</th></tr></thead>
-                    <tbody id="pdfMovimientosContainer"></tbody>
-                </table>
-            </div>
+            <div class="print-footer">Documento de uso interno - Farmaplus Analytics</div>
+        </div>
+
+        <div class="page-break" style="padding-top: 20px; position: relative;">
+            <div class="pdf-title-section"><h2 style="font-size: 24px; font-weight: 800; color: #0F172A; margin:0;">Rankings Operativos</h2><div style="font-weight: bold; color: #1D4ED8;">Farmaplus</div></div>
             
-            <div style="text-align: center; color: #94A3B8; font-size: 10px; margin-top: 40px;">
-                Fin del reporte gerencial.
+            <div class="avoid-break" style="margin-bottom: 32px;">
+                <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 12px;">Top 10 Productos con Mayor Impacto ($)</h3>
+                <table class="w-full text-left erp-table" style="border: 1px solid #E2E8F0; border-radius: 8px;">
+                    <thead style="background-color: #F8FAFC;"><tr><th>Producto</th><th>EAN</th><th class="text-right">Movs</th><th class="text-right">Unidades</th><th class="text-right">Impacto Total ($)</th></tr></thead>
+                    <tbody id="pdfTopProductosContainer"></tbody>
+                </table>
             </div>
+
+            <div class="avoid-break" style="margin-bottom: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                <div>
+                    <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 12px;">Top 10 Usuarios (Actividad)</h3>
+                    <table class="w-full text-left erp-table" style="border: 1px solid #E2E8F0; border-radius: 8px;">
+                        <thead style="background-color: #F8FAFC;"><tr><th>Usuario</th><th class="text-right">Movs</th><th class="text-right">% Total</th></tr></thead>
+                        <tbody id="pdfTopUsuariosContainer"></tbody>
+                    </table>
+                </div>
+                <div>
+                    <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 12px;">Top Sucursales (Volumen)</h3>
+                    <table class="w-full text-left erp-table" style="border: 1px solid #E2E8F0; border-radius: 8px;">
+                        <thead style="background-color: #F8FAFC;"><tr><th>Sucursal</th><th class="text-right">Movs</th><th class="text-right">Impacto ($)</th></tr></thead>
+                        <tbody id="pdfTopSucursalesContainer"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="print-footer">Documento de uso interno - Farmaplus Analytics</div>
         </div>
     </div>
 
-    <div id="modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 no-print bg-slate-900/50 backdrop-blur-sm" onclick="if(event.target === this) closeModal()">
-        <div id="modalInner" class="bg-white rounded-2xl shadow-xl border border-slate-100 w-full max-w-md max-h-[85vh] overflow-y-auto custom-scrollbar" style="scrollbar-gutter: stable;" onclick="event.stopPropagation()">
-            <div class="flex justify-between items-center px-6 py-5 border-b border-slate-100 sticky top-0 bg-white rounded-t-2xl">
+    <div id="pdf-report-user" class="print-only">
+        <div class="pdf-page-single">
+            
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; flex-shrink: 0;">
+                <div>
+                    <h2 style="font-size: 14px; font-weight: 800; color: #0F172A; margin:0;">Análisis Individual de Operador</h2>
+                    <h1 style="font-size: 22px; font-weight: 800; color: #1E3A8A; margin: 2px 0 0 0;" id="pdfU_Nombre"></h1>
+                    <p style="font-size: 10px; font-weight: 600; color: #64748B; margin-top: 2px;">📍 Sucursales: <span id="pdfU_Sucursales"></span></p>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-weight: 900; color: #1D4ED8; font-size: 18px;">Farmaplus</div>
+                    <div style="font-size: 9px; color: #64748B; font-weight: 600; margin-top: 2px;" id="pdfU_Periodo"></div>
+                    <div style="font-size: 9px; color: #94A3B8;" id="pdfU_Gen"></div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; flex-shrink: 0;">
+                <div class="user-pdf-kpi"><p class="user-pdf-kpi-title">Movimientos Totales</p><p class="user-pdf-kpi-value text-indigo-700" id="pdfU_KPI_Movs"></p></div>
+                <div class="user-pdf-kpi"><p class="user-pdf-kpi-title">Unidades Ajustadas</p><p class="user-pdf-kpi-value" id="pdfU_KPI_Unid"></p></div>
+                <div class="user-pdf-kpi"><p class="user-pdf-kpi-title">Productos Distintos</p><p class="user-pdf-kpi-value" id="pdfU_KPI_Prod"></p></div>
+                <div class="user-pdf-kpi"><p class="user-pdf-kpi-title">Impacto Económico</p><p class="user-pdf-kpi-value text-red-600" id="pdfU_KPI_Imp"></p></div>
+            </div>
+
+            <div class="pdf-insight-box-compact flex-shrink-0">
+                <h3 style="font-weight: 700; color: #0F172A;">🧠 Perfil Operativo y Conclusiones</h3>
+                <ul id="pdfU_Insights"></ul>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; flex-shrink: 0;">
+                <div>
+                    <h3 style="font-size: 11px; font-weight: 700; margin-bottom: 4px; color: #334155;">Top Motivos (Volumen)</h3>
+                    <div style="border: 1px solid #E2E8F0; border-radius: 8px; padding: 6px; text-align: center;"><img id="imgUserVol" style="width: 100%; height: 130px; object-fit: contain;"></div>
+                </div>
+                <div>
+                    <h3 style="font-size: 11px; font-weight: 700; margin-bottom: 4px; color: #334155;">Top Motivos (Impacto $)</h3>
+                    <div style="border: 1px solid #E2E8F0; border-radius: 8px; padding: 6px; text-align: center;"><img id="imgUserImp" style="width: 100%; height: 130px; object-fit: contain;"></div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1.1fr 1.3fr; gap: 12px; flex: 1; overflow: hidden; align-items: start;">
+                <div style="border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden;">
+                    <div style="background: #F8FAFC; padding: 6px 8px; border-bottom: 1px solid #E2E8F0;"><h3 style="font-size: 10px; font-weight: 700; margin: 0;">Top Productos Operados</h3></div>
+                    <table class="w-full text-left pdf-compact-table">
+                        <thead style="background-color: #0F172A; color: white;"><tr><th>Producto</th><th class="text-right">Movs</th><th class="text-right">Unid</th><th class="text-right">Motivo Ppal</th></tr></thead>
+                        <tbody id="pdfU_Prods"></tbody>
+                    </table>
+                </div>
+                <div style="border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden;">
+                    <div style="background: #F8FAFC; padding: 6px 8px; border-bottom: 1px solid #E2E8F0;"><h3 style="font-size: 10px; font-weight: 700; margin: 0;">Últimos Movimientos</h3></div>
+                    <table class="w-full text-left pdf-compact-table">
+                        <thead style="background-color: #0F172A; color: white;"><tr><th>Fecha</th><th>N°</th><th>Producto</th><th class="text-right">Cant.</th><th>Motivo</th><th class="text-right">Monto</th></tr></thead>
+                        <tbody id="pdfU_History"></tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="print-footer">Documento de uso interno - Farmaplus Analytics</div>
+        </div>
+    </div>
+
+
+    <div id="modalMov" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 no-print bg-slate-900/50 backdrop-blur-sm modal-overlay" onclick="if(event.target === this) closeModal('modalMov')">
+        <div class="bg-white rounded-2xl shadow-floating border border-slate-100 w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col modal-content" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-white shrink-0">
                 <h3 class="text-base font-bold text-brand-text tracking-tight">Detalle del Movimiento</h3>
-                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-700 smooth-transition rounded-lg p-1 hover:bg-slate-50 outline-none">
+                <button onclick="closeModal('modalMov')" class="text-slate-400 hover:text-slate-700 smooth-transition p-1.5 rounded-lg hover:bg-slate-100 outline-none">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
-            <div class="px-6 py-5 space-y-3 text-sm" id="modalDynamicContent"></div>
-            <div class="px-6 pb-6">
+            <div class="px-6 py-5 space-y-3 text-sm overflow-y-auto custom-scrollbar flex-1" id="modalDynamicContent"></div>
+            <div class="px-6 py-5 border-t border-slate-100 bg-slate-50 shrink-0">
                 <p class="text-xs font-semibold text-brand-textSec uppercase tracking-wider mb-2">Observación</p>
-                <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 text-sm text-slate-700" id="modalContent"></div>
+                <div class="bg-white border border-slate-200 rounded-xl p-3 text-sm text-slate-700" id="modalContent"></div>
             </div>
         </div>
     </div>
 
+    <div id="modalAllUsers" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 no-print bg-slate-900/50 backdrop-blur-sm modal-overlay" onclick="if(event.target === this) closeModal('modalAllUsers')">
+        <div class="bg-white rounded-2xl shadow-floating border border-slate-100 w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col modal-content" onclick="event.stopPropagation()">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center px-6 py-4 border-b border-slate-100 bg-white shrink-0 gap-4">
+                <h3 class="text-base font-bold text-brand-text tracking-tight">Todos los Usuarios</h3>
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <div class="relative flex-1 sm:w-64">
+                        <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        <input type="text" id="searchAllUsersInput" placeholder="Buscar usuario..." class="pl-9 pr-3 py-1.5 w-full text-sm border border-slate-200 rounded-lg outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary bg-slate-50 focus:bg-white">
+                    </div>
+                    <button onclick="closeModal('modalAllUsers')" class="text-slate-400 hover:text-slate-700 smooth-transition p-1.5 rounded-lg hover:bg-slate-100 outline-none shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="overflow-x-auto overflow-y-auto custom-scrollbar flex-1 bg-white">
+                <table class="w-full text-left erp-table dark-header-table">
+                    <thead class="sticky top-0 z-10 shadow-sm"><tr><th>Usuario</th><th class="text-right">Movimientos</th><th class="text-right">% del Total</th></tr></thead>
+                    <tbody id="allUsersContainer"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalUserDetail" class="fixed inset-0 z-[110] hidden items-center justify-center p-4 sm:p-6 no-print bg-slate-900/60 backdrop-blur-md modal-overlay" onclick="if(event.target === this) closeModal('modalUserDetail')">
+        <div class="bg-white rounded-2xl shadow-floating w-full max-w-5xl max-h-[95vh] overflow-hidden flex flex-col modal-content" onclick="event.stopPropagation()">
+            <div class="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white shrink-0 gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-bold text-lg shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    </div>
+                    <div>
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-0.5">
+                            <h3 class="text-lg font-bold text-brand-text tracking-tight leading-none" id="uDetName">Nombre Usuario</h3>
+                            <div class="hidden sm:block text-slate-300 select-none">·</div>
+                            <div class="flex items-center gap-1 text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded text-xs font-bold border border-indigo-100 w-fit">
+                                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                                <span id="uDetBranchText" class="truncate max-w-[200px]">Sucursal</span>
+                            </div>
+                        </div>
+                        <p class="text-xs font-medium text-slate-500 mt-1">Análisis detallado de actividad</p>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button id="btnPdfUser" class="px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg text-sm hover:bg-indigo-700 smooth-transition shadow-sm flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> Exportar PDF
+                    </button>
+                    <button onclick="closeModal('modalUserDetail')" class="text-slate-400 hover:text-slate-700 smooth-transition p-2 rounded-xl hover:bg-slate-100 outline-none">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="overflow-y-auto custom-scrollbar flex-1 bg-slate-50/50 p-4 sm:p-6">
+                <div class="bg-white border border-slate-100 rounded-xl p-4 mb-6 shadow-sm inline-flex items-center gap-4">
+                    <div class="p-3 bg-blue-50 rounded-lg text-brand-primary">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    </div>
+                    <div><p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Movimientos</p><p class="text-2xl font-bold text-slate-900" id="uDetTotalMovs">0</p></div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden flex flex-col h-full max-h-[350px]">
+                        <div class="px-5 py-3 border-b border-slate-100 bg-slate-50/80"><h4 class="text-sm font-bold text-slate-700">Desglose por Motivo</h4></div>
+                        <div class="overflow-x-auto overflow-y-auto custom-scrollbar flex-1">
+                            <table class="w-full text-left erp-table"><thead class="bg-white sticky top-0 shadow-sm z-10"><tr><th>Motivo</th><th class="text-right">Cantidad</th><th class="text-right">%</th></tr></thead><tbody id="uDetTableBody"></tbody></table>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden flex flex-col min-h-[300px]">
+                        <div class="px-5 py-3 border-b border-slate-100 bg-slate-50/80"><h4 class="text-sm font-bold text-slate-700">Distribución Visual</h4></div>
+                        <div class="p-4 flex-1 relative w-full h-full min-h-[250px]"><canvas id="uDetChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden flex flex-col">
+                    <div class="px-5 py-3 border-b border-slate-100 bg-slate-50/80 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                        <h4 class="text-sm font-bold text-slate-700">Control de Consistencia Operativa</h4>
+                    </div>
+                    <div class="p-4 bg-blue-50/60 border-b border-blue-100 text-xs text-blue-900">
+                        <p class="font-bold mb-1 flex items-center gap-1"><svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Explicabilidad de los datos analizados:</p>
+                        <ul class="list-disc pl-5 mt-1 space-y-1 text-[11px] sm:text-xs">
+                            <li>La <strong>repetición de producto</strong> se calcula usando la columna <em>Producto</em> agrupada por <em>Usuario</em>.</li>
+                            <li>La <strong>concentración</strong> se calcula sumando la columna <em>Cantidad</em> por Producto dentro del usuario.</li>
+                            <li>La <strong>repetición temporal</strong> usa <em>Fecha</em> y el <em>Número de movimiento</em> para detectar eventos cercanos.</li>
+                            <li>Los <strong>motivos</strong> provienen de la columna <em>Motivo de ajuste</em>.</li>
+                        </ul>
+                    </div>
+                    <div class="p-5" id="uDetConsistency"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalValidationError" class="fixed inset-0 z-[120] hidden items-center justify-center p-4 no-print bg-slate-900/50 backdrop-blur-sm modal-overlay" onclick="if(event.target === this) closeModal('modalValidationError')">
+        <div class="bg-white rounded-2xl shadow-floating border border-slate-100 w-full max-w-md overflow-hidden flex flex-col modal-content" onclick="event.stopPropagation()">
+            <div class="px-6 py-5 flex flex-col items-center text-center">
+                <div class="w-14 h-14 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900 mb-2">Archivo no válido</h3>
+                <p class="text-sm text-slate-600 leading-relaxed mb-6">Este archivo está manipulado o no corresponde al formato correcto. Recordá descargar el archivo desde <strong class="font-semibold text-slate-800">Plex → Informes → Stock → Bajas de Stock</strong> e intentá nuevamente.</p>
+                <button onclick="closeModal('modalValidationError')" class="w-full px-5 py-2.5 bg-brand-primary text-white font-semibold rounded-xl text-sm hover:bg-brand-primaryHover smooth-transition shadow-soft">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
+
     <script>
-        // Animaciones del modal corregidas
-        const modalStyleTag = document.createElement('style');
-        modalStyleTag.innerHTML = `
-            #modal.fade-in { display: flex !important; animation: modalBgFadeIn 0.2s ease-out forwards; }
-            #modal.fade-out { display: flex !important; animation: modalBgFadeOut 0.15s ease-in forwards; }
-            
-            #modal.fade-in > #modalInner { animation: modalScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-            #modal.fade-out > #modalInner { animation: modalScaleOut 0.15s ease-in forwards; }
-
-            @keyframes modalBgFadeIn { from { opacity: 0; } to { opacity: 1; } }
-            @keyframes modalBgFadeOut { from { opacity: 1; } to { opacity: 0; } }
-            
-            @keyframes modalScaleIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
-            @keyframes modalScaleOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.96); } }
-        `;
-        document.head.appendChild(modalStyleTag);
-
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                const modal = document.getElementById('modal');
-                if (modal.classList.contains('fade-in')) closeModal();
+                closeDropdowns();
+                ['modalUserDetail', 'modalAllUsers', 'modalMov', 'modalValidationError'].forEach(id => {
+                    const m = document.getElementById(id);
+                    if (m && m.classList.contains('fade-in')) closeModal(id);
+                });
             }
         });
+        function openModal(id) { const modal = document.getElementById(id); modal.classList.remove('hidden', 'fade-out'); modal.classList.add('fade-in'); document.body.style.overflow = 'hidden'; }
+        function closeModal(id) {
+            const modal = document.getElementById(id); modal.classList.remove('fade-in'); modal.classList.add('fade-out');
+            setTimeout(() => {
+                modal.classList.remove('fade-out'); modal.classList.add('hidden');
+                if(document.querySelectorAll('.modal-overlay.fade-in').length === 0) document.body.style.overflow = '';
+            }, 150);
+        }
 
-        // CONFIGURACIÓN CONSTANTES
+        function toggleDropdown(event, dropId) {
+            if (event) event.stopPropagation(); 
+            const dropElement = document.getElementById(dropId);
+            const isShowing = dropElement.classList.contains('show');
+            closeDropdowns();
+            if (!isShowing) dropElement.classList.add('show');
+        }
+        function closeDropdowns() {
+            document.querySelectorAll('.dropdown-menu.show').forEach(d => d.classList.remove('show'));
+        }
+        document.addEventListener('click', closeDropdowns);
+
         const ALTAS = new Set(['ajuste por bonificación de proveedores', 'ajuste por fraccionados', 'ajuste por ingreso de mercadería', 'ajuste por inventario', 'ajuste por trazabilidad', 'ajuste por vale no retirado']);
         const BAJAS = new Set(['ajuste por error de ingreso', 'ajuste por fraccionador', 'ajuste por robo/hurto', 'devolucion a proveedores', 'devolucion ace', 'devolucion comercial', 'faltante', 'roto/mal estado', 'uso interno', 'vencido']);
         
-        let fullData = [], selectedSucursales = [], viewAll = false, currentSort = { col: 'CostoNum', asc: false };
+        let fullData = [], selectedSucursales = [], currentSort = { col: 'CostoNum', asc: false };
+        let viewAll = false; 
         let minDateGlobal = null, maxDateGlobal = null;
         let hiddenCharts = {}; 
-        
-        // Variables para la tabla interactiva
-        let globalTableData = []; 
-        let searchTableTerm = '';
+        let globalTableData = []; let searchTableTerm = '';
+        let globalUserAgg = []; let userChartInstance = null;
+        let activeUserForPdf = null;
+        let selectedObservation = 'TODAS';
+        window.currentObsList = [];
 
-        // FORMATOS Y UTILIDADES
+        function escapeHtml(u) { return u.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
+
         const formatCurrency = (val) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0);
         const formatNumber = (val) => new Intl.NumberFormat('es-AR').format(val || 0);
         const capitalize = (s) => s ? String(s).charAt(0).toUpperCase() + String(s).slice(1).toLowerCase() : '';
-        
-        // Inicializar Fecha por defecto
         const defaultDateStr = new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         document.getElementById('headerMainLabel').innerText = capitalize(defaultDateStr);
         
@@ -443,601 +629,553 @@
             return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; 
         }
 
-        // --- LÓGICA DE FUENTES DINÁMICAS PARA KPIs ---
         function applyDynamicFontSize(elementId, textValue) {
             const el = document.getElementById(elementId);
             el.innerText = textValue;
-            el.classList.remove('text-3xl', 'text-2xl', 'text-xl', 'text-lg');
+            el.classList.remove('text-3xl', 'text-2xl', 'text-xl', 'text-lg', 'text-base');
             const len = textValue.length;
-            if (len > 22) el.classList.add('text-lg');
-            else if (len > 16) el.classList.add('text-xl');
-            else if (len > 12) el.classList.add('text-2xl');
-            else el.classList.add('text-3xl');
+            if (len > 22) el.classList.add('text-base'); else if (len > 16) el.classList.add('text-lg'); else if (len > 12) el.classList.add('text-xl'); else if (len > 9) el.classList.add('text-2xl'); else el.classList.add('text-3xl');
         }
 
-        // --- LÓGICA SELECTOR SUCURSALES ---
-        const btnSucursal = document.getElementById('sucursalBtn');
-        const dropSucursal = document.getElementById('sucursalDropdown');
-        const searchSucursal = document.getElementById('branchSearch');
-        const chkAllSucursales = document.getElementById('selectAllSucursales');
-        
-        btnSucursal.addEventListener('click', (e) => { e.stopPropagation(); dropSucursal.classList.toggle('hidden'); });
-        document.addEventListener('click', () => dropSucursal.classList.add('hidden'));
-        dropSucursal.addEventListener('click', (e) => e.stopPropagation());
-        
-        function updateSelectAllState(allUnique) {
-            const btnText = document.getElementById('sucursalBtnText');
-            const checkedCount = selectedSucursales.length;
-            const totalCount = allUnique.length;
-            if (checkedCount === totalCount && totalCount > 0) {
-                btnText.innerText = 'Todas las sucursales';
-                chkAllSucursales.checked = true;
-                chkAllSucursales.indeterminate = false;
-            } else if (checkedCount === 0) {
-                btnText.innerText = 'Ninguna seleccionada';
-                chkAllSucursales.checked = false;
-                chkAllSucursales.indeterminate = false;
-            } else {
-                btnText.innerText = checkedCount === 1 ? selectedSucursales[0] : `${checkedCount} sucursales seleccionadas`;
-                chkAllSucursales.checked = false;
-                chkAllSucursales.indeterminate = true;
+        const searchObs = document.getElementById('obsSearch'); 
+        const clearObsSearch = document.getElementById('clearObsSearch');
+
+        searchObs.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase().trim();
+            clearObsSearch.classList.toggle('hidden', term === '');
+            const filtered = (window.currentObsList || []).filter(o => o.toLowerCase().includes(term));
+            renderObsDropdownList(filtered);
+        });
+
+        clearObsSearch.addEventListener('click', () => {
+            searchObs.value = '';
+            clearObsSearch.classList.add('hidden');
+            searchObs.focus();
+            renderObsDropdownList(window.currentObsList || []);
+        });
+
+        document.getElementById('obsList').addEventListener('click', (e) => {
+            const item = e.target.closest('.obs-item');
+            if (!item) return;
+            selectedObservation = item.getAttribute('data-val');
+            document.getElementById('obsBtnText').innerText = selectedObservation === 'TODAS' ? 'Todas las observaciones' : selectedObservation;
+            
+            if (selectedObservation === 'TODAS') {
+                document.getElementById('obsSearch').value = '';
+                document.getElementById('clearObsSearch').classList.add('hidden');
             }
+            
+            closeDropdowns();
+            renderObsDropdownList(window.currentObsList);
+            renderDashboard();
+            updateResetButtonState();
+        });
+
+        function updateSelectAllState(allUnique) {
+            const btnText = document.getElementById('sucursalBtnText'); const checkedCount = selectedSucursales.length; const totalCount = allUnique.length;
+            if (checkedCount === totalCount && totalCount > 0) { btnText.innerText = 'Todas las sucursales'; document.getElementById('selectAllSucursales').checked = true; document.getElementById('selectAllSucursales').indeterminate = false; } else if (checkedCount === 0) { btnText.innerText = 'Ninguna seleccionada'; document.getElementById('selectAllSucursales').checked = false; document.getElementById('selectAllSucursales').indeterminate = false; } else { btnText.innerText = checkedCount === 1 ? selectedSucursales[0] : `${checkedCount} sucursales`; document.getElementById('selectAllSucursales').checked = false; document.getElementById('selectAllSucursales').indeterminate = true; }
         }
+
         function buildMultiSelect() {
             const allUnique = [...new Set(fullData.map(r => r.sucursal).filter(Boolean))].sort();
-            selectedSucursales = [...allUnique]; 
+            selectedSucursales = [...allUnique]; document.getElementById('branchSearch').value = ''; renderBranchCheckboxes(allUnique);
             
-            searchSucursal.value = '';
-            renderBranchCheckboxes(allUnique, allUnique);
-            
-            chkAllSucursales.onchange = (e) => {
-                const isChecked = e.target.checked;
-                selectedSucursales = isChecked ? [...allUnique] : [];
-                document.querySelectorAll('.suc-chk').forEach(chk => chk.checked = isChecked);
-                updateSelectAllState(allUnique); 
-                updateObservationFilter(); 
-                renderDashboard();
-                updateResetButtonState();
+            document.getElementById('selectAllSucursales').onchange = (e) => { 
+                const isChecked = e.target.checked; 
+                selectedSucursales = isChecked ? [...allUnique] : []; 
+                
+                if (isChecked) {
+                    document.getElementById('branchSearch').value = '';
+                    renderBranchCheckboxes(allUnique);
+                }
+
+                document.querySelectorAll('.suc-chk').forEach(chk => chk.checked = isChecked); 
+                updateSelectAllState(allUnique); updateObservationFilter(); renderDashboard(); updateResetButtonState(); 
             };
             
-            searchSucursal.oninput = (e) => {
-                const term = e.target.value.toLowerCase();
-                const filtered = allUnique.filter(s => String(s).toLowerCase().includes(term));
-                renderBranchCheckboxes(filtered, allUnique);
+            document.getElementById('branchSearch').oninput = (e) => { 
+                const term = e.target.value.toLowerCase(); 
+                const filtered = allUnique.filter(s => String(s).toLowerCase().includes(term)); 
+                renderBranchCheckboxes(filtered); 
             };
-            
+            updateSelectAllState(allUnique); updateResetButtonState();
+        }
+
+        document.getElementById('sucursalCheckboxes').addEventListener('change', (e) => {
+            if (!e.target.classList.contains('suc-chk')) return;
+            const val = e.target.value;
+            const allUnique = [...new Set(fullData.map(r => r.sucursal).filter(Boolean))].sort();
+            if(e.target.checked && !selectedSucursales.includes(val)) selectedSucursales.push(val);
+            else if(!e.target.checked) selectedSucursales = selectedSucursales.filter(v => v !== val);
             updateSelectAllState(allUnique);
+            updateObservationFilter();
+            renderDashboard();
             updateResetButtonState();
+        });
+
+        function renderBranchCheckboxes(listToShow) {
+            const container = document.getElementById('sucursalCheckboxes');
+            container.innerHTML = listToShow.map(s => `<label class="flex items-center gap-3 p-2 hover:bg-slate-50 cursor-pointer rounded"><input type="checkbox" value="${s}" class="suc-chk w-4 h-4 text-brand-primary rounded border-slate-300" ${selectedSucursales.includes(s) ? 'checked' : ''}> <span class="text-sm text-brand-text">${s}</span></label>`).join('');
         }
         
-        function renderBranchCheckboxes(listToShow, allUnique) {
-            const container = document.getElementById('sucursalCheckboxes');
-            container.innerHTML = listToShow.map(s => `
-                <label class="flex items-center gap-3 p-2 hover:bg-slate-50 cursor-pointer rounded">
-                    <input type="checkbox" value="${s}" class="suc-chk w-4 h-4 text-brand-primary rounded border-slate-300" ${selectedSucursales.includes(s) ? 'checked' : ''}> 
-                    <span class="text-sm text-brand-text">${s}</span>
-                </label>
-            `).join('');
-            document.querySelectorAll('.suc-chk').forEach(chk => {
-                chk.addEventListener('change', (e) => {
-                    const val = e.target.value;
-                    if(e.target.checked && !selectedSucursales.includes(val)) selectedSucursales.push(val);
-                    else if(!e.target.checked) selectedSucursales = selectedSucursales.filter(v => v !== val);
-                    
-                    updateSelectAllState(allUnique); 
-                    updateObservationFilter(); 
-                    renderDashboard();
-                    updateResetButtonState();
-                });
-            });
-        }
-
         function updateObservationFilter() {
-            let baseData = fullData.filter(r => selectedSucursales.includes(r.sucursal));
-            const obs = [...new Set(baseData.map(r => r.observacion).filter(Boolean))].sort();
-            const el = document.getElementById('observacionFilter');
-            const current = el.value;
-            el.innerHTML = `<option value="TODAS" class="text-slate-400">Todas las observaciones</option>` + obs.map(o => `<option value="${o}">${o}</option>`).join('');
-            if(obs.includes(current)) el.value = current; else el.value = 'TODAS';
-        }
-
-        const findProductValue = (rowRaw) => {
-            const possibleKeys = ['producto', 'descripción', 'descripcion', 'articulo', 'artículo', 'nombre', 'descripción del producto', 'material'];
-            for(let k of possibleKeys) {
-                if(rowRaw[k] !== undefined && rowRaw[k] !== null && rowRaw[k] !== '') return String(rowRaw[k]).trim();
+            const allUnique = [...new Set(fullData.map(r => r.sucursal).filter(Boolean))];
+            const isAllSelected = selectedSucursales.length === allUnique.length;
+            
+            // Si están todas las sucursales seleccionadas, usamos fullData completo.
+            let baseData = isAllSelected ? fullData : fullData.filter(r => selectedSucursales.includes(r.sucursal));
+            window.currentObsList = [...new Set(baseData.map(r => r.observacion).filter(Boolean))].sort();
+            
+            // Forzamos a "TODAS" si estamos en reset (isAllSelected) o si la observación no aplica.
+            if (isAllSelected || (!window.currentObsList.includes(selectedObservation) && selectedObservation !== 'TODAS')) {
+                selectedObservation = 'TODAS';
             }
-            return '-';
-        };
+            
+            document.getElementById('obsBtnText').innerText = selectedObservation === 'TODAS' ? 'Todas las observaciones' : selectedObservation;
+            document.getElementById('obsSearch').value = '';
+            document.getElementById('clearObsSearch').classList.add('hidden');
+            renderObsDropdownList(window.currentObsList);
+        }
 
-        // --- PROCESAMIENTO DE EXCEL ---
+        function renderObsDropdownList(listToShow) {
+            const container = document.getElementById('obsList');
+            let html = `<div class="p-2.5 hover:bg-slate-50 cursor-pointer rounded-lg text-sm text-brand-text font-medium mb-1 obs-item ${selectedObservation === 'TODAS' ? 'bg-indigo-50/50 text-brand-primary' : ''}" data-val="TODAS">Todas las observaciones</div>`;
+            
+            if (listToShow.length === 0) {
+                html += `<div class="p-3 text-center text-xs text-slate-400">No hay coincidencias</div>`;
+            } else {
+                html += listToShow.map(o => `<div class="p-2.5 hover:bg-slate-50 cursor-pointer rounded-lg text-sm text-brand-text truncate obs-item transition-colors ${selectedObservation === o ? 'bg-indigo-50/50 text-brand-primary font-medium' : ''}" data-val="${escapeHtml(o)}" title="${escapeHtml(o)}">${escapeHtml(o)}</div>`).join('');
+            }
+            container.innerHTML = html;
+        }
+
+        const findProductValue = (rowRaw) => { const possibleKeys = ['producto', 'descripción', 'descripcion', 'articulo', 'artículo', 'nombre', 'descripción del producto', 'material']; for(let k of possibleKeys) { if(rowRaw[k] !== undefined && rowRaw[k] !== null && rowRaw[k] !== '') return String(rowRaw[k]).trim(); } return '-'; };
+
         function handleFile(e) {
-            const file = e.target.files[0];
-            if(!file) return;
+            const file = e.target.files[0]; if(!file) return;
             const reader = new FileReader();
+
+            const uploadBtn = document.getElementById('btnUploadLabel');
+            const uploadText = document.getElementById('btnUploadText');
+            uploadText.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Procesando...`;
+            uploadBtn.classList.add('opacity-80', 'pointer-events-none');
+
             reader.onload = function(evt) {
-                try {
-                    document.getElementById('errorBanner').classList.add('hidden');
-                    const data = XLSX.read(evt.target.result, {type: 'binary', cellDates: true});
-                    const rawJson = XLSX.utils.sheet_to_json(data.Sheets[data.SheetNames[0]]);
-                    
-                    let minDate = new Date(8640000000000000);
-                    let maxDate = new Date(-8640000000000000);
-                    
-                    fullData = rawJson.map((rawRow, i) => {
-                        const row = {};
-                        for (let key in rawRow) {
-                            if(Object.prototype.hasOwnProperty.call(rawRow, key)) {
-                                row[key.toLowerCase().trim()] = rawRow[key];
-                            }
+                setTimeout(() => {
+                    try {
+                        document.getElementById('errorBanner').classList.add('hidden');
+                        const data = XLSX.read(evt.target.result, {type: 'binary', cellDates: true});
+                        const sheet = data.Sheets[data.SheetNames[0]];
+                        
+                        // VALIDACIÓN ESTRICTA DE COLUMNAS
+                        const headersRow = XLSX.utils.sheet_to_json(sheet, { header: 1 })[0] || [];
+                        const normalizedHeaders = headersRow.map(h => String(h).toLowerCase().trim());
+
+                        const requiredColumns = [
+                            'idoperacion', 'nrobaja', 'fecha', 'observacion', 'usuario',
+                            'sucursal', 'motivo', 'proveedor', 'idproducto', 'cantidad',
+                            'unidades', 'producto', 'codebar', 'nrolote', 'fechavencimiento',
+                            'serie', 'costo', 'precio', 'totalcosto', 'total', 'rubro'
+                        ];
+
+                        const missingColumns = requiredColumns.filter(col => !normalizedHeaders.includes(col));
+
+                        if (missingColumns.length > 0) {
+                            openModal('modalValidationError');
+                            document.getElementById('input').value = '';
+                            return; // Se cancela la importación completamente
                         }
-                        const motivoRaw = String(row.motivo || row.motivos || 'Sin motivo').trim();
-                        const sucursal = String(row.sucursal || row.sucursales || 'Sin Sucursal').trim();
-                        const costo = parseFloat(row.totalcosto || row['total costo'] || row.monto || row.costo || 0) || 0;
-                        const unidades = parseInt(row.cantidad || row.cant || row.unidades || 0) || 0;
+
+                        // PROCESAMIENTO SI LA VALIDACIÓN ES EXITOSA
+                        const rawJson = XLSX.utils.sheet_to_json(sheet);
+                        let minDate = new Date(8640000000000000); let maxDate = new Date(-8640000000000000);
                         
-                        let dVal = row.fecha || row.date;
-                        let dObj = null;
-                        if(dVal instanceof Date) dObj = dVal;
-                        else if(typeof dVal === 'number') dObj = new Date(Math.round((dVal - 25569) * 86400 * 1000));
-                        else if(dVal) dObj = new Date(dVal);
+                        fullData = rawJson.map((rawRow, i) => {
+                            const row = {}; for (let key in rawRow) { if(Object.prototype.hasOwnProperty.call(rawRow, key)) { row[key.toLowerCase().trim()] = rawRow[key]; } }
+                            const motivoRaw = String(row.motivo || row.motivos || 'Sin motivo').trim();
+                            const sucursal = String(row.sucursal || row.sucursales || 'Sin Sucursal').trim();
+                            const costo = parseFloat(row.totalcosto || row['total costo'] || row.monto || row.costo || 0) || 0;
+                            const unidades = parseInt(row.cantidad || row.cant || row.unidades || 0) || 0;
+                            let dVal = row.fecha || row.date; let dObj = null;
+                            if(dVal instanceof Date) dObj = dVal; else if(typeof dVal === 'number') dObj = new Date(Math.round((dVal - 25569) * 86400 * 1000)); else if(dVal) dObj = new Date(dVal);
+                            if(dObj && !isNaN(dObj.getTime())) { if(dObj < minDate) minDate = dObj; if(dObj > maxDate) maxDate = dObj; } else { dObj = new Date(); }
+                            return { id: i, CostoNum: costo, Unidades: unidades, motivoRaw: motivoRaw, sucursal: sucursal, producto: findProductValue(row), observacion: String(row.observacion || row.observaciones || ''), codebar: String(row.codebar || row.ean || row.codigo || '-'), IDProducto: String(row.idproducto || row['id producto'] || row.id || '-'), NroBaja: String(row.nrobaja || row['nro baja'] || row['nº baja'] || row.id || i || '-'), usuario: String(row.usuario || row.user || 'DESCONOCIDO'), proveedor: String(row.proveedor || row.proveedores || '-'), NroLote: String(row.nrolote || row.lote || '-'), FechaVencimiento: row.fechavencimiento || row.vencimiento || '-', Serie: String(row.serie || row.nroserie || '-'), isTrazable: motivoRaw.toLowerCase().includes('trazabilidad'), Fecha: dObj };
+                        });
                         
-                        if(dObj && !isNaN(dObj.getTime())) {
-                            if(dObj < minDate) minDate = dObj;
-                            if(dObj > maxDate) maxDate = dObj;
-                        } else {
-                            dObj = new Date();
-                        }
+                        minDateGlobal = minDate; maxDateGlobal = maxDate;
+                        let periodStr = '';
+                        if(minDate.getTime() !== new Date(8640000000000000).getTime()) { periodStr = `${formatDate(minDate)} → ${formatDate(maxDate)}`; document.getElementById('headerMainLabel').innerText = `Período: ${periodStr}`; } else { document.getElementById('headerMainLabel').innerText = `Período: N/A`; }
+                        const now = new Date(); document.getElementById('headerSubLabel').innerText = `Actualizado: ${now.toLocaleDateString()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
                         
-                        return {
-                            id: i,
-                            CostoNum: costo,
-                            Unidades: unidades,
-                            motivoRaw: motivoRaw, 
-                            sucursal: sucursal,
-                            producto: findProductValue(row),
-                            observacion: String(row.observacion || row.observaciones || ''),
-                            codebar: String(row.codebar || row.ean || row.codigo || '-'),
-                            IDProducto: String(row.idproducto || row['id producto'] || row.id || '-'),
-                            NroBaja: String(row.nrobaja || row['nro baja'] || row['nº baja'] || row.id || i || '-'),
-                            usuario: String(row.usuario || row.user || '-'),
-                            proveedor: String(row.proveedor || row.proveedores || '-'),
-                            NroLote: String(row.nrolote || row.lote || '-'),
-                            FechaVencimiento: row.fechavencimiento || row.vencimiento || '-',
-                            Serie: String(row.serie || row.nroserie || '-'),
-                            isTrazable: motivoRaw.toLowerCase().includes('trazabilidad'),
-                            Fecha: dObj
-                        };
-                    });
-                    
-                    minDateGlobal = minDate;
-                    maxDateGlobal = maxDate;
-                    
-                    let periodStr = '';
-                    if(minDate.getTime() !== new Date(8640000000000000).getTime()) {
-                        periodStr = `${formatDate(minDate)} → ${formatDate(maxDate)}`;
-                        document.getElementById('headerMainLabel').innerText = `Período analizado: ${periodStr}`;
-                    } else {
-                        document.getElementById('headerMainLabel').innerText = `Período analizado: N/A`;
+                        buildMultiSelect();
+                        const todosLosMotivos = Array.from(new Set([...ALTAS, ...BAJAS, ...fullData.map(r => String(r.motivoRaw).toLowerCase())])).sort();
+                        document.getElementById('motivoFilter').innerHTML = `<option value="TODOS" class="text-slate-400">Todos los motivos</option>` + todosLosMotivos.map(m => `<option value="${m}">${capitalize(m)}</option>`).join('');
+                        updateObservationFilter();
+                        
+                        ['dashboard', 'controls', 'btnPdfGlobal', 'btnDelete', 'resetFilterWrapper'].forEach(id => document.getElementById(id).classList.remove('hidden'));
+                        renderDashboard(); updateResetButtonState();
+                        
+                    } catch (error) { 
+                        console.error("Error:", error); document.getElementById('errorBanner').classList.remove('hidden'); 
+                    } finally {
+                        uploadText.innerText = "📄 Cambiar Excel"; 
+                        uploadBtn.classList.replace('bg-brand-primary', 'bg-slate-700');
+                        uploadBtn.classList.remove('opacity-80', 'pointer-events-none');
                     }
-                    
-                    const now = new Date();
-                    document.getElementById('headerSubLabel').innerText = `Última actualización: ${now.toLocaleDateString()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
-                    document.getElementById('btnUploadText').innerText = "📄 Cambiar archivo";
-                    document.getElementById('btnUploadLabel').classList.replace('bg-brand-primary', 'bg-slate-700');
-                    
-                    buildMultiSelect();
-                    
-                    const todosLosMotivos = Array.from(new Set([...ALTAS, ...BAJAS, ...fullData.map(r => String(r.motivoRaw).toLowerCase())])).sort();
-                    document.getElementById('motivoFilter').innerHTML = `<option value="TODOS" class="text-slate-400">Todos los motivos</option>` + todosLosMotivos.map(m => `<option value="${m}">${capitalize(m)}</option>`).join('');
-                    
-                    updateObservationFilter();
-                    
-                    ['dashboard', 'controls', 'btnPdf', 'btnDelete', 'resetFilterWrapper'].forEach(id => document.getElementById(id).classList.remove('hidden'));
-                    renderDashboard();
-                    updateResetButtonState();
-                    
-                } catch (error) {
-                    console.error("Error leyendo Excel:", error);
-                    document.getElementById('errorBanner').classList.remove('hidden');
-                }
-            };
-            reader.readAsBinaryString(file);
-            e.target.value = '';
+                }, 50);
+            }; reader.readAsBinaryString(file); e.target.value = '';
         }
 
-        // Lógica de ordenamiento rápida (Solo re-renderiza la tabla)
-        function setSort(colName) { 
-            if (currentSort.col === colName) currentSort.asc = !currentSort.asc;
-            else { currentSort.col = colName; currentSort.asc = false; }
-            renderTableOnly(); 
-        }
-
-        const getRowColor = (r) => {
-            const mLow = (r.motivoRaw || '').toLowerCase().trim();
-            if (r.isTrazable || mLow.includes('trazabilidad')) return 'text-orange-600 bg-orange-50/50'; 
-            if (ALTAS.has(mLow)) return 'text-emerald-700 bg-emerald-50/50'; 
-            return 'text-red-700 bg-red-50/50'; 
-        };
-
+        const getRowColor = (r) => { const mLow = (r.motivoRaw || '').toLowerCase().trim(); if (r.isTrazable || mLow.includes('trazabilidad')) return 'text-orange-600 bg-orange-50/50'; if (ALTAS.has(mLow)) return 'text-emerald-700 bg-emerald-50/50'; return 'text-red-700 bg-red-50/50'; };
         const generateRowHtml = (r) => `
-            <tr>
+            <tr class="cursor-pointer hover:bg-slate-50 transition-colors group" onclick="showModalMov(${r.id})">
                 <td class="whitespace-nowrap">${formatDate(r.Fecha)}</td>
-                <td class="group">
-                    <div class="flex items-center gap-1.5">
-                        <span class="font-mono text-slate-500 font-semibold cursor-pointer hover:text-brand-primary smooth-transition" onclick="showModal(${r.id})">${r.NroBaja}</span>
-                        <button onclick="copyToClipboard('${r.NroBaja}', this)" class="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-slate-400 hover:text-brand-primary hover:bg-slate-100 rounded outline-none" title="Copiar N°">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                        </button>
-                    </div>
+                <td class="hidden sm:table-cell group whitespace-nowrap" onclick="event.stopPropagation()">
+                    <div class="flex items-center gap-1.5 relative"><span class="font-mono text-slate-500 font-semibold cursor-pointer hover:text-brand-primary smooth-transition" onclick="showModalMov(${r.id})">${r.NroBaja}</span><button onclick="copyToClipboard('${r.NroBaja}', this, event)" class="opacity-0 group-hover:opacity-100 transition-all p-1 text-slate-400 hover:text-brand-primary hover:bg-slate-100 rounded outline-none" title="Copiar N°"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg></button></div>
                 </td>
-                <td class="font-medium text-slate-700">${r.sucursal || ''}</td>
-                <td class="truncate max-w-[250px]" title="${r.producto || ''}">
-                    <div class="font-medium text-slate-800">${r.producto}</div>
-                    <div class="text-xs text-slate-400 font-mono mt-0.5">${r.codebar}</div>
-                </td>
+                <td class="hidden md:table-cell font-medium text-slate-700 whitespace-nowrap">${r.sucursal || ''}</td>
+                <td class="truncate max-w-[150px] sm:max-w-[300px]" title="${r.producto || ''}"><div class="font-medium text-slate-800 truncate">${r.producto}</div><div class="text-xs text-slate-400 font-mono mt-0.5 truncate hidden sm:block">${r.codebar}</div></td>
                 <td class="text-right font-medium text-slate-700">${formatNumber(r.Unidades)}</td>
                 <td><span class="px-2.5 py-1 rounded border border-slate-200 font-medium text-xs whitespace-nowrap ${getRowColor(r)}">${capitalize(r.motivoRaw)}</span></td>
-                <td class="text-right font-bold text-slate-900">${formatCurrency(r.CostoNum)}</td>
+                <td class="hidden sm:table-cell text-right font-bold text-slate-900">${formatCurrency(r.CostoNum)}</td>
+                <td class="sm:hidden text-right text-slate-400 pr-2 no-print"><svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></td>
             </tr>`;
 
-        // --- DASHBOARD RENDER (Calcula KPIs y Totales) ---
         function renderDashboard() {
-            const mF = document.getElementById('motivoFilter').value;
-            const oF = document.getElementById('observacionFilter').value;
+            const mF = document.getElementById('motivoFilter').value; 
+            const oF = selectedObservation; 
             const allUnique = [...new Set(fullData.map(r => r.sucursal).filter(Boolean))];
             
             let data = fullData.filter(r => selectedSucursales.includes(r.sucursal));
             if (mF !== 'TODOS') data = data.filter(r => (r.motivoRaw || '').toLowerCase().trim() === mF.toLowerCase().trim());
             if (oF !== 'TODAS') data = data.filter(r => (r.observacion || '').trim() === oF.trim());
             
-            // KPIs
             const altasVal = data.filter(r => ALTAS.has((r.motivoRaw||'').toLowerCase().trim()) && !r.isTrazable).reduce((acc, r) => acc + r.CostoNum, 0);
             const bajasVal = data.filter(r => BAJAS.has((r.motivoRaw||'').toLowerCase().trim()) && !r.isTrazable).reduce((acc, r) => acc + r.CostoNum, 0);
             const trazabVal = data.filter(r => r.isTrazable || (r.motivoRaw||'').toLowerCase().includes('trazabilidad')).reduce((acc, r) => acc + r.CostoNum, 0);
             const balance = altasVal - bajasVal;
-            
-            applyDynamicFontSize('kpiAltas', formatCurrency(altasVal));
-            applyDynamicFontSize('kpiBajas', formatCurrency(bajasVal));
-            applyDynamicFontSize('kpiTrazables', formatCurrency(trazabVal));
-            applyDynamicFontSize('kpiBalance', formatCurrency(balance));
-            
-            document.getElementById('kpiBalance').classList.remove('text-emerald-600', 'text-red-600');
-            document.getElementById('kpiBalance').classList.add(balance >= 0 ? 'text-emerald-600' : 'text-red-600');
+            applyDynamicFontSize('kpiAltas', formatCurrency(altasVal)); applyDynamicFontSize('kpiBajas', formatCurrency(bajasVal)); applyDynamicFontSize('kpiTrazables', formatCurrency(trazabVal)); applyDynamicFontSize('kpiBalance', formatCurrency(balance)); document.getElementById('kpiBalance').style.color = balance >= 0 ? '#10B981' : '#EF4444';
 
-            // Tabla: Resumen por Motivo
-            const motivosAgg = {};
+            const motivosAgg = {}; const userAggMap = {}; const branchAggMap = {}; const prodAggMap = {};
             let totalUnidades = 0, totalMovs = 0, totalMonto = 0;
+
             data.forEach(r => { 
                 const m = capitalize(r.motivoRaw);
                 if(!motivosAgg[m]) motivosAgg[m] = { unid: 0, movs: 0, monto: 0 };
-                motivosAgg[m].unid += r.Unidades;
-                motivosAgg[m].movs += 1;
-                motivosAgg[m].monto += r.CostoNum;
-                totalUnidades += r.Unidades;
-                totalMovs += 1;
-                totalMonto += r.CostoNum;
-            });
-            const topMotivosArr = Object.entries(motivosAgg).sort((a,b) => b[1].monto - a[1].monto);
-            
-            let htmlMotivos = topMotivosArr.map(m => {
-                const name = m[0], d = m[1];
-                const pct = totalMonto > 0 ? ((d.monto / totalMonto) * 100).toFixed(2) : 0;
-                return `
-                <tr>
-                    <td class="font-medium text-slate-800">${name}</td>
-                    <td class="text-right text-slate-600 font-medium">${formatNumber(d.unid)}</td>
-                    <td class="text-right text-slate-600 font-medium">${formatNumber(d.movs)}</td>
-                    <td class="text-right font-semibold text-slate-900">${formatCurrency(d.monto)}</td>
-                    <td class="text-right text-slate-500 font-medium">${pct} %</td>
-                </tr>`;
-            }).join('');
-            
-            htmlMotivos += `
-                <tr class="total-row">
-                    <td>TOTAL</td>
-                    <td class="text-right">${formatNumber(totalUnidades)}</td>
-                    <td class="text-right">${formatNumber(totalMovs)}</td>
-                    <td class="text-right">${formatCurrency(totalMonto)}</td>
-                    <td class="text-right">100 %</td>
-                </tr>`;
-            
-            document.getElementById('motivosContainer').innerHTML = htmlMotivos;
-            document.getElementById('pdfMotivosContainer').innerHTML = htmlMotivos;
+                motivosAgg[m].unid += r.Unidades; motivosAgg[m].movs += 1; motivosAgg[m].monto += r.CostoNum;
+                totalUnidades += r.Unidades; totalMovs += 1; totalMonto += r.CostoNum;
 
-            // Anomalías
-            const anomSection = document.getElementById('anomaliasSection');
-            const pdfAnomSection = document.getElementById('pdfAnomaliasSection');
+                const uName = String(r.usuario || 'DESCONOCIDO').toUpperCase().trim();
+                const pName = r.producto || '-';
+                if(!userAggMap[uName]) userAggMap[uName] = { name: uName, movs: 0, monto:0, motivos: {}, productos: {}, rawMovs: [] };
+                userAggMap[uName].movs += 1; userAggMap[uName].monto += r.CostoNum;
+                userAggMap[uName].motivos[m] = { movs: (userAggMap[uName].motivos[m]?.movs || 0) + 1, monto: (userAggMap[uName].motivos[m]?.monto || 0) + r.CostoNum };
+                userAggMap[uName].rawMovs.push(r);
+                if(!userAggMap[uName].productos[pName]) userAggMap[uName].productos[pName] = { name: pName, unidades: 0, movs: 0, monto:0, motivos: {} };
+                userAggMap[uName].productos[pName].unidades += r.Unidades; userAggMap[uName].productos[pName].movs += 1; userAggMap[uName].productos[pName].monto += r.CostoNum;
+                userAggMap[uName].productos[pName].motivos[m] = (userAggMap[uName].productos[pName].motivos[m] || 0) + 1;
+
+                const sName = r.sucursal || '-';
+                if(!branchAggMap[sName]) branchAggMap[sName] = { name: sName, movs: 0, monto:0 };
+                branchAggMap[sName].movs += 1; branchAggMap[sName].monto += r.CostoNum;
+                if(!prodAggMap[pName]) prodAggMap[pName] = { name: pName, ean: r.codebar, movs: 0, unidades: 0, monto:0 };
+                prodAggMap[pName].movs += 1; prodAggMap[pName].unidades += r.Unidades; prodAggMap[pName].monto += r.CostoNum;
+            });
             
+            const topMotivosArr = Object.entries(motivosAgg).sort((a,b) => b[1].monto - a[1].monto);
+            let htmlMotivos = topMotivosArr.map(m => {
+                const name = m[0], d = m[1]; const pct = totalMonto > 0 ? ((d.monto / totalMonto) * 100).toFixed(1) : 0;
+                return `<tr><td class="font-medium text-slate-800">${name}</td><td class="text-right text-slate-600 font-medium">${formatNumber(d.unid)}</td><td class="text-right text-slate-600 font-medium">${formatNumber(d.movs)}</td><td class="text-right font-semibold text-slate-900">${formatCurrency(d.monto)}</td><td class="text-right text-slate-500 font-medium">${pct}%</td></tr>`;
+            }).join('');
+            htmlMotivos += `<tr class="total-row"><td>TOTAL</td><td class="text-right">${formatNumber(totalUnidades)}</td><td class="text-right">${formatNumber(totalMovs)}</td><td class="text-right">${formatCurrency(totalMonto)}</td><td class="text-right">100%</td></tr>`;
+            document.getElementById('motivosContainer').innerHTML = htmlMotivos; document.getElementById('pdfMotivosContainer').innerHTML = htmlMotivos;
+
+            globalUserAgg = Object.values(userAggMap).sort((a,b) => b.movs - a.movs);
+            globalUserAgg.forEach(u => u.pctGlobal = totalMovs > 0 ? ((u.movs / totalMovs) * 100).toFixed(1) : 0);
+            renderUsersSection();
+
+            const anomSection = document.getElementById('anomaliasSection');
             if (selectedSucursales.length === allUnique.length && selectedSucursales.length > 0) {
                 anomSection.classList.remove('hidden');
-                pdfAnomSection.classList.remove('hidden');
-                const topMonto = [...data].sort((a,b) => b.CostoNum - a.CostoNum).slice(0, 5);
-                const topCant = [...data].sort((a,b) => b.Unidades - a.Unidades).slice(0, 5);
-                const anomaliesMap = new Map();
-                topMonto.forEach(r => anomaliesMap.set(r.id, r));
-                topCant.forEach(r => anomaliesMap.set(r.id, r));
-                const anomaliesData = Array.from(anomaliesMap.values());
-                const anomHtml = anomaliesData.map(r => generateRowHtml(r)).join('');
-                document.getElementById('anomaliasContainer').innerHTML = anomHtml;
-                document.getElementById('pdfAnomaliasContainer').innerHTML = anomHtml;
-            } else {
-                anomSection.classList.add('hidden');
-                pdfAnomSection.classList.add('hidden');
-            }
+                const topMonto = [...data].sort((a,b) => b.CostoNum - a.CostoNum).slice(0, 5); const topCant = [...data].sort((a,b) => b.Unidades - a.Unidades).slice(0, 5);
+                const anomaliesMap = new Map(); topMonto.forEach(r => anomaliesMap.set(r.id, r)); topCant.forEach(r => anomaliesMap.set(r.id, r));
+                document.getElementById('anomaliasContainer').innerHTML = Array.from(anomaliesMap.values()).map(r => generateRowHtml(r)).join('');
+            } else { anomSection.classList.add('hidden'); }
 
-            // Almacenar data global para el buscador y PDF
-            globalTableData = data;
-            window.currentPdfData = { data, topMotivosArr, balance, altasVal, bajasVal, trazabVal, totalMonto, totalMovs };
-            
-            // Re-renderizar solo la tabla de movimientos
+            globalTableData = data; 
+            const topProductsGlobal = Object.values(prodAggMap).sort((a,b) => b.monto - a.monto);
+            const topBranchesGlobal = Object.values(branchAggMap).sort((a,b) => b.movs - a.movs);
+            window.currentPdfData = { data, topMotivosArr, balance, altasVal, bajasVal, trazabVal, totalMonto, totalMovs, topProductsGlobal, topBranchesGlobal };
             renderTableOnly();
         }
 
-        // --- LÓGICA DE RENDERIZADO EXCLUSIVO PARA LA TABLA (BUSCADOR RÁPIDO) ---
+        function generateUserRow(u) { return `<tr class="cursor-pointer hover:bg-slate-50 transition-colors" onclick="openUserDetail('${escapeHtml(u.name)}')"><td class="font-medium text-brand-primary underline-offset-2 hover:underline decoration-brand-primary/30"><div class="flex items-center gap-2"><div class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">${u.name.substring(0,2)}</div><span class="truncate max-w-[150px] sm:max-w-[200px]" title="${u.name}">${u.name}</span></div></td><td class="text-right text-slate-700 font-semibold">${formatNumber(u.movs)}</td><td class="text-right text-slate-500 font-medium"><div class="flex items-center justify-end gap-2"><span>${u.pctGlobal}%</span><div class="w-12 h-1.5 bg-slate-100 rounded-full overflow-hidden hidden sm:block"><div class="h-full bg-brand-primary rounded-full" style="width: ${Math.min(u.pctGlobal, 100)}%"></div></div></div></td></tr>`; }
+        function renderUsersSection(searchTerm = '') { let list = globalUserAgg; if(searchTerm) list = list.filter(u => u.name.toLowerCase().includes(searchTerm.toLowerCase())); const MAX = 22; const vis = list.slice(0, MAX); if (vis.length === 0) { document.getElementById('usuariosContainerMain').innerHTML = `<tr><td colspan="3" class="text-center py-6 text-slate-400 text-sm">No se encontraron usuarios</td></tr>`; } else { document.getElementById('usuariosContainerMain').innerHTML = vis.map(generateUserRow).join(''); } const wrap = document.getElementById('verTodosUsuariosWrapper'); if (list.length > MAX && !searchTerm) wrap.classList.remove('hidden'); else wrap.classList.add('hidden'); renderAllUsersModalTable(); }
+        document.getElementById('searchUserInputMain').addEventListener('input', (e) => { renderUsersSection(e.target.value.trim()); });
+        function openAllUsersModal() { document.getElementById('searchAllUsersInput').value = ''; renderAllUsersModalTable(''); openModal('modalAllUsers'); }
+        function renderAllUsersModalTable(term = '') { let list = globalUserAgg; if(term) list = list.filter(u => u.name.toLowerCase().includes(term.toLowerCase())); if(list.length === 0) { document.getElementById('allUsersContainer').innerHTML = `<tr><td colspan="3" class="text-center py-10 text-slate-400">No se encontraron usuarios coincidentes</td></tr>`; } else { document.getElementById('allUsersContainer').innerHTML = list.map(generateUserRow).join(''); } }
+        document.getElementById('searchAllUsersInput').addEventListener('input', (e) => { renderAllUsersModalTable(e.target.value.trim()); });
+
+        function openUserDetail(userName) {
+            const allUsersModal = document.getElementById('modalAllUsers'); if (allUsersModal && allUsersModal.classList.contains('fade-in')) { allUsersModal.classList.remove('fade-in'); allUsersModal.classList.add('hidden'); }
+            const u = globalUserAgg.find(x => x.name === userName); if(!u) return;
+            activeUserForPdf = u; 
+            document.getElementById('uDetName').innerText = u.name; document.getElementById('uDetTotalMovs').innerText = formatNumber(u.movs);
+            
+            const userBranches = [...new Set(u.rawMovs.map(r => r.sucursal).filter(Boolean))].sort();
+            let branchText = 'Sin sucursal';
+            if(userBranches.length > 0) {
+                branchText = userBranches.length > 2 ? `${userBranches.slice(0,2).join(', ')} +${userBranches.length - 2}` : userBranches.join(' / ');
+            }
+            document.getElementById('uDetBranchText').innerText = branchText;
+            document.getElementById('uDetBranchText').title = userBranches.join(', ');
+
+            const motivosArr = Object.entries(u.motivos).sort((a,b) => b[1].movs - a[1].movs);
+            document.getElementById('uDetTableBody').innerHTML = motivosArr.map(m => `<tr><td class="font-medium text-slate-700">${m[0]}</td><td class="text-right font-semibold">${formatNumber(m[1].movs)}</td><td class="text-right text-slate-500">${((m[1].movs / u.movs) * 100).toFixed(1)}%</td></tr>`).join('');
+            
+            if (userChartInstance) userChartInstance.destroy();
+            Chart.defaults.font.family = 'Inter, sans-serif'; Chart.defaults.color = '#64748B';
+            userChartInstance = new Chart(document.getElementById('uDetChart'), {
+                type: 'bar', data: { labels: motivosArr.slice(0, 5).map(m => m[0].length > 18 ? m[0].substring(0, 18)+'...' : m[0]), datasets: [{ label: 'Movimientos', data: motivosArr.slice(0, 5).map(m => m[1].movs), backgroundColor: '#1D4ED8', borderRadius: 4, barPercentage: 0.6 }] },
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: '#F1F5F9' }, beginAtZero: true }, y: { grid: { display: false } } } }
+            });
+
+            const topProds = Object.values(u.productos).sort((a, b) => b.movs - a.movs).slice(0, 4);
+            let topProdHtml = topProds.map(p => `<div class="flex justify-between items-center py-2.5 border-b border-slate-100 last:border-0"><div><p class="font-semibold text-slate-800 text-sm truncate max-w-[200px]" title="${p.name}">${p.name}</p><p class="text-[11px] text-slate-500 mt-0.5">Motivo más usado: <span class="font-medium text-slate-600">${Object.entries(p.motivos).sort((a,b)=>b[1]-a[1])[0][0]}</span></p></div><div class="text-right"><p class="font-bold text-brand-primary">${formatNumber(p.movs)} <span class="text-xs font-normal text-slate-500">movs</span></p><p class="text-[11px] text-slate-500">${formatNumber(p.unidades)} unid.</p></div></div>`).join('');
+            if (topProds.length === 0) topProdHtml = '<p class="text-sm text-slate-500">No hay datos suficientes.</p>';
+            const top1Prod = topProds[0]; const concentracion = top1Prod ? ((top1Prod.unidades / Object.values(u.productos).reduce((acc, p) => acc + p.unidades, 0)) * 100).toFixed(1) : 0;
+            let concentracionText = `El producto con mayor manipulación representa el <strong>${concentracion}%</strong> de todas las unidades ajustadas.`;
+            if (concentracion > 35) concentracionText += ` <span class="text-orange-600 font-semibold">(Alta, revisión sugerida)</span>`; else concentracionText += ` <span class="text-emerald-600 font-semibold">(Balanceada)</span>`;
+            
+            u.rawMovs.sort((a,b) => a.Fecha - b.Fecha); let alertas = [];
+            for(let i=0; i < u.rawMovs.length - 1; i++) { if (u.rawMovs[i].producto === u.rawMovs[i+1].producto && u.rawMovs[i].producto !== '-') { if (Math.ceil(Math.abs(u.rawMovs[i+1].Fecha - u.rawMovs[i].Fecha) / (1000 * 60 * 60 * 24)) <= 1) alertas.push(`Patrón: <strong>${u.rawMovs[i].producto}</strong> ajustado varias veces < 24h.`); } }
+            alertas = [...new Set(alertas)].slice(0, 3);
+            let alertasHtml = alertas.length > 0 ? alertas.map(a => `<div class="flex items-start gap-2 bg-orange-50/50 p-2.5 rounded-lg border border-orange-100 text-sm text-orange-800"><svg class="w-4 h-4 text-orange-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> ${a}</div>`).join('') : `<div class="flex items-center gap-2 bg-emerald-50/50 p-3 rounded-lg border border-emerald-100 text-emerald-700 text-sm"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Consistencia operativa estable.</div>`;
+            document.getElementById('uDetConsistency').innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-8"><div><h5 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Top Productos</h5><div class="flex flex-col gap-1">${topProdHtml}</div></div><div class="flex flex-col gap-5"><div><h5 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 border-b border-slate-100 pb-2">Nivel Concentración</h5><div class="bg-slate-50 p-3.5 rounded-lg border border-slate-100 text-sm text-slate-700 leading-relaxed">${concentracionText}</div></div><div><h5 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 border-b border-slate-100 pb-2">Evaluación Temporal (Alertas)</h5><div class="space-y-2">${alertasHtml}</div></div></div></div>`;
+            openModal('modalUserDetail');
+        }
+
+        function setSort(colName) { if (currentSort.col === colName) currentSort.asc = !currentSort.asc; else { currentSort.col = colName; currentSort.asc = false; } renderTableOnly(); }
+        
         function renderTableOnly() {
             let data = globalTableData;
-
-            // 1. Filtrar por el buscador en tiempo real
-            if (searchTableTerm !== '') {
-                data = data.filter(r => 
-                    String(r.NroBaja).toLowerCase().includes(searchTableTerm) || 
-                    String(r.producto).toLowerCase().includes(searchTableTerm)
-                );
-            }
-
-            // 2. Ordenamiento
-            if (currentSort.col) {
-                data.sort((a, b) => {
-                    let valA = a[currentSort.col], valB = b[currentSort.col];
-                    if (typeof valA === 'string') valA = valA.toLowerCase();
-                    if (typeof valB === 'string') valB = valB.toLowerCase();
-                    if (valA < valB) return currentSort.asc ? -1 : 1;
-                    if (valA > valB) return currentSort.asc ? 1 : -1;
-                    return 0;
-                });
-            }
-
-            // 3. Render
-            const tbody = document.getElementById('movimientosContainer');
+            if (searchTableTerm !== '') data = data.filter(r => String(r.NroBaja).toLowerCase().includes(searchTableTerm) || String(r.producto).toLowerCase().includes(searchTableTerm));
+            if (currentSort.col) data.sort((a, b) => { let valA = a[currentSort.col], valB = b[currentSort.col]; if (typeof valA === 'string') valA = valA.toLowerCase(); if (typeof valB === 'string') valB = valB.toLowerCase(); if (valA < valB) return currentSort.asc ? -1 : 1; if (valA > valB) return currentSort.asc ? 1 : -1; return 0; });
+            
+            const tbody = document.getElementById('movimientosContainer'); 
             const toggleBtn = document.getElementById('toggleViewBtn');
-
-            if (data.length === 0) {
-                // Estado Vacío Elegante
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="7" class="py-16 text-center">
-                            <div class="flex flex-col items-center justify-center text-slate-500">
-                                <div class="bg-slate-50 p-4 rounded-full mb-3 border border-slate-100">
-                                    <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                                </div>
-                                <p class="text-base font-semibold text-slate-800">No se encontraron movimientos</p>
-                                <p class="text-sm mt-1 mb-5">No hay resultados que coincidan con "<span class="font-medium text-slate-700">${searchTableTerm}</span>"</p>
-                                <button onclick="clearSearch()" class="px-4 py-2 bg-white border border-slate-200 text-brand-text text-sm font-medium rounded-lg hover:bg-slate-50 smooth-transition shadow-sm">Limpiar búsqueda</button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-                toggleBtn.style.display = 'none';
-            } else {
+            
+            if (data.length === 0) { 
+                tbody.innerHTML = `<tr><td colspan="8" class="py-16 text-center"><div class="flex flex-col items-center justify-center text-slate-500"><div class="bg-slate-50 p-4 rounded-full mb-3 border border-slate-100"><svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></div><p class="text-base font-semibold text-slate-800">No se encontraron movimientos</p><button onclick="clearSearch()" class="mt-4 px-4 py-2 bg-white border border-slate-200 text-brand-text text-sm font-medium rounded-lg hover:bg-slate-50 smooth-transition shadow-sm">Limpiar búsqueda</button></div></td></tr>`; 
+                toggleBtn.style.display = 'none'; 
+            } else { 
                 let renderData = viewAll ? data : data.slice(0, 50);
-                toggleBtn.style.display = 'inline-block';
-                toggleBtn.innerText = viewAll ? "Ocultar movimientos" : `Ver todos los movimientos (${formatNumber(data.length)})`;
-                tbody.innerHTML = renderData.map(r => generateRowHtml(r)).join('');
+                tbody.innerHTML = renderData.map(generateRowHtml).join(''); 
+                
+                if (data.length > 50 || viewAll) {
+                    toggleBtn.style.display = 'inline-block';
+                    toggleBtn.innerText = viewAll ? "Ocultar lista extensa" : `Ver todos (${formatNumber(data.length)})`;
+                } else {
+                    toggleBtn.style.display = 'none';
+                }
             }
-
-            // Actualizar tabla del PDF (Se imprimen los top 10 del subset filtrado)
-            document.getElementById('pdfMovimientosContainer').innerHTML = data.slice(0, 10).map(r => generateRowHtml(r)).join('');
         }
-
-        // Eventos del Buscador
-        document.getElementById('searchTableInput').addEventListener('input', (e) => {
-            searchTableTerm = e.target.value.toLowerCase().trim();
-            document.getElementById('clearSearchBtn').classList.toggle('hidden', searchTableTerm === '');
-            renderTableOnly();
-        });
-
-        function clearSearch() {
-            searchTableTerm = '';
-            const input = document.getElementById('searchTableInput');
-            input.value = '';
-            input.focus();
-            document.getElementById('clearSearchBtn').classList.add('hidden');
-            renderTableOnly();
-        }
-        document.getElementById('clearSearchBtn').addEventListener('click', clearSearch);
-
-        // --- BOTÓN LIMPIAR FILTROS GLOBALES ---
-        function updateResetButtonState() {
-            const allUnique = [...new Set(fullData.map(r => r.sucursal).filter(Boolean))];
-            const motivoActivo = document.getElementById('motivoFilter').value !== 'TODOS';
-            const observacionActiva = document.getElementById('observacionFilter').value !== 'TODAS';
-            const sucursalesActivas = selectedSucursales.length !== allUnique.length;
-
-            const hayFiltros = motivoActivo || observacionActiva || sucursalesActivas;
-            const btn = document.getElementById('btnResetFilters');
-            if (btn) btn.disabled = !hayFiltros;
-        }
-
-        function resetAllFilters() {
-            const allUnique = [...new Set(fullData.map(r => r.sucursal).filter(Boolean))];
-            selectedSucursales = [...allUnique];
-            document.querySelectorAll('.suc-chk').forEach(chk => chk.checked = true);
-            updateSelectAllState(allUnique);
-
-            document.getElementById('motivoFilter').value = 'TODOS';
-            updateObservationFilter();
-            document.getElementById('observacionFilter').value = 'TODAS';
-
-            renderDashboard();
-            updateResetButtonState();
-        }
-        document.getElementById('btnResetFilters').addEventListener('click', resetAllFilters);
-
-        // ==========================================
-        // EXPORTACIÓN PDF
-        // ==========================================
-        document.getElementById('btnPdf').addEventListener('click', () => {
-            const pdfData = window.currentPdfData;
-            if(!pdfData) return;
-            const dt = new Date();
-            const period = minDateGlobal ? `${formatDate(minDateGlobal)} → ${formatDate(maxDateGlobal)}` : 'N/A';
-            
-            document.getElementById('pdfCoverPeriodo').innerText = period;
-            document.getElementById('pdfCoverGenerated').innerText = `${dt.toLocaleDateString()} ${dt.getHours().toString().padStart(2,'0')}:${dt.getMinutes().toString().padStart(2,'0')}`;
-            document.getElementById('pdfCoverMovimientos').innerText = formatNumber(pdfData.totalMovs);
-            document.getElementById('pdfCoverImpacto').innerText = formatCurrency(pdfData.totalMonto);
-            
-            document.querySelectorAll('.pdfHeaderPeriod').forEach(el => el.innerText = `Período: ${period}`);
-            document.getElementById('pdfKpiAltas').innerText = formatCurrency(pdfData.altasVal);
-            document.getElementById('pdfKpiBajas').innerText = formatCurrency(pdfData.bajasVal);
-            document.getElementById('pdfKpiTrazables').innerText = formatCurrency(pdfData.trazabVal);
-            document.getElementById('pdfKpiBalance').innerText = formatCurrency(pdfData.balance);
-            document.getElementById('pdfKpiBalance').style.color = pdfData.balance >= 0 ? '#10B981' : '#EF4444';
-            
-            const topMonto = pdfData.topMotivosArr.length > 0 ? pdfData.topMotivosArr[0] : null;
-            const sortedByCount = [...pdfData.topMotivosArr].sort((a,b) => b[1].movs - a[1].movs);
-            const topCount = sortedByCount.length > 0 ? sortedByCount[0] : null;
-            
-            let insightsHtml = '';
-            insightsHtml += `<li style="margin-bottom: 8px;">El <strong>Balance Neto de Inventario</strong> del período analizado resulta en un ${pdfData.balance >= 0 ? 'incremento' : 'déficit'} de <strong>${formatCurrency(pdfData.balance)}</strong>.</li>`;
-            
-            if(topMonto) {
-                const pctM = ((topMonto[1].monto / pdfData.totalMonto) * 100).toFixed(1);
-                insightsHtml += `<li style="margin-bottom: 8px;">El motivo crítico con <strong>mayor impacto económico</strong> es "${topMonto[0]}", representando un total de ${formatCurrency(topMonto[1].monto)} (${pctM}% del total analizado).</li>`;
-            }
-            if(topCount) {
-                const pctC = ((topCount[1].movs / pdfData.totalMovs) * 100).toFixed(1);
-                insightsHtml += `<li style="margin-bottom: 8px;">El factor generador del <strong>mayor volumen operativo</strong> es "${topCount[0]}", con ${formatNumber(topCount[1].movs)} movimientos registrados (${pctC}% del volumen total).</li>`;
-            }
-            if(selectedSucursales.length > 1) {
-                const sucAgg = {};
-                pdfData.data.forEach(r => { sucAgg[r.sucursal] = (sucAgg[r.sucursal] || 0) + r.CostoNum; });
-                const topSuc = Object.entries(sucAgg).sort((a,b) => b[1] - a[1])[0];
-                if(topSuc) insightsHtml += `<li style="margin-bottom: 8px;">La sucursal con <strong>mayor desviación económica</strong> registrada es ${topSuc[0]} (${formatCurrency(topSuc[1])}).</li>`;
-            }
-            document.getElementById('pdfInsights').innerHTML = insightsHtml;
-            
-            generatePDFCharts(pdfData);
-        });
-        
-        function generatePDFCharts(pdfData) {
-            Chart.defaults.font.family = 'Inter, sans-serif';
-            Chart.defaults.color = '#64748B';
-            
-            const top5 = pdfData.topMotivosArr.slice(0, 5);
-            const labels = top5.map(m => m[0].length > 20 ? m[0].substring(0, 20) + '...' : m[0]);
-            const values = top5.map(m => m[1].monto);
-            const counts = top5.map(m => m[1].movs);
-            const commonOptions = { 
-                responsive: false, 
-                animation: false,  
-                plugins: { legend: { display: false } }, 
-                scales: { 
-                    y: { beginAtZero: true, grid: { color: '#F1F5F9' } }, 
-                    x: { grid: { display: false } } 
-                } 
-            };
-            
-            Object.values(hiddenCharts).forEach(c => c.destroy());
-            
-            const ctxImp = document.getElementById('hcImpacto');
-            ctxImp.width = 800; ctxImp.height = 400;
-            hiddenCharts.imp = new Chart(ctxImp, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Impacto ($)', data: values, backgroundColor: '#1D4ED8', borderRadius: 4 }] }, options: commonOptions });
-            
-            const ctxVol = document.getElementById('hcVolumen');
-            ctxVol.width = 800; ctxVol.height = 400;
-            hiddenCharts.vol = new Chart(ctxVol, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Movimientos', data: counts, backgroundColor: '#94A3B8', borderRadius: 4 }] }, options: commonOptions });
-            
-            const ctxDist = document.getElementById('hcDist');
-            ctxDist.width = 400; ctxDist.height = 400;
-            hiddenCharts.dist = new Chart(ctxDist, { type: 'doughnut', data: { labels: ['Altas', 'Bajas', 'Trazables'], datasets: [{ data: [pdfData.altasVal, pdfData.bajasVal, pdfData.trazabVal], backgroundColor: ['#10B981', '#EF4444', '#F59E0B'], borderWidth: 0 }] }, options: { responsive: false, animation: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 20 } } }, cutout: '75%' } });
-            
-            document.getElementById('imgImpacto').src = hiddenCharts.imp.toBase64Image();
-            document.getElementById('imgVolumen').src = hiddenCharts.vol.toBase64Image();
-            document.getElementById('imgDist').src = hiddenCharts.dist.toBase64Image();
-            
-            setTimeout(() => window.print(), 150);
-        }
-
-        // ==========================================
-        // FUNCIONES AUXILIARES Y MODAL
-        // ==========================================
-        function showModal(idx) {
-            const item = fullData.find(x => x.id === idx);
-            if(!item) return;
-
-            const field = (label, value) => `
-                <div class="border-b border-slate-50 pb-2.5">
-                    <p class="text-xs font-semibold text-brand-textSec mb-0.5">${label}</p>
-                    <p class="font-medium text-slate-800 break-words">${value}</p>
-                </div>`;
-
-            let html = '';
-            html += field('Fecha', formatDate(item.Fecha));
-            html += field('Usuario', String(item.usuario || '').toUpperCase());
-            html += field('ID Producto', item.IDProducto);
-            html += field('EAN', item.codebar);
-            html += field('Producto', item.producto);
-            html += field('Cantidad', item.Unidades);
-
-            if (item.proveedor !== '-') {
-                html += field('Proveedor', item.proveedor);
-            }
-
-            if (item.isTrazable) {
-                html += field('Lote', item.NroLote);
-                html += field('Vencimiento', formatDate(item.FechaVencimiento));
-                html += field('Serie', item.Serie);
-            }
-
-            document.getElementById('modalDynamicContent').innerHTML = html;
-            document.getElementById('modalContent').innerText = item.observacion || "No hay observaciones registradas.";
-            
-            const modal = document.getElementById('modal');
-            modal.classList.remove('hidden', 'fade-out');
-            modal.classList.add('fade-in');
-            document.body.style.overflow = 'hidden';
-        }
-        
-        function closeModal() {
-            const modal = document.getElementById('modal');
-            modal.classList.remove('fade-in');
-            modal.classList.add('fade-out');
-            setTimeout(() => {
-                modal.classList.remove('fade-out');
-                modal.classList.add('hidden');
-                document.body.style.overflow = '';
-            }, 150);
-        }
-
-        // Función para copiar el N° al portapapeles
-        function copyToClipboard(text, btn) {
-            event.stopPropagation(); 
-            navigator.clipboard.writeText(text).then(() => {
-                const originalSvg = btn.innerHTML;
-                btn.innerHTML = `<svg class="w-3.5 h-3.5 text-emerald-500 scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>`;
-                setTimeout(() => {
-                    btn.innerHTML = originalSvg;
-                }, 1500);
-            }).catch(err => console.error('Error al copiar al portapapeles: ', err));
-        }
-
-        document.getElementById('input').addEventListener('change', handleFile);
-        
-        document.getElementById('btnDelete').addEventListener('click', () => { 
-            fullData = []; selectedSucursales = [];
-            document.getElementById('input').value = ''; 
-            
-            document.getElementById('headerMainLabel').innerText = capitalize(defaultDateStr);
-            document.getElementById('headerSubLabel').innerText = "";
-            document.getElementById('btnUploadText').innerText = "📄 Importar archivo Excel";
-            document.getElementById('btnUploadLabel').classList.replace('bg-slate-700', 'bg-brand-primary');
-            ['dashboard', 'controls', 'btnPdf', 'btnDelete', 'errorBanner', 'resetFilterWrapper'].forEach(id => document.getElementById(id).classList.add('hidden'));
-        });
         
         document.getElementById('toggleViewBtn').addEventListener('click', () => { viewAll = !viewAll; renderTableOnly(); });
+        
+        document.getElementById('searchTableInput').addEventListener('input', (e) => { 
+            searchTableTerm = e.target.value.toLowerCase().trim(); 
+            document.getElementById('clearSearchBtn').classList.toggle('hidden', searchTableTerm === ''); 
+            renderTableOnly(); 
+        });
+        
+        function clearSearch() { searchTableTerm = ''; document.getElementById('searchTableInput').value = ''; document.getElementById('searchTableInput').focus(); document.getElementById('clearSearchBtn').classList.add('hidden'); renderTableOnly(); }
+        document.getElementById('clearSearchBtn').addEventListener('click', clearSearch);
+        
+        function updateResetButtonState() { 
+            const allUnique = [...new Set(fullData.map(r => r.sucursal).filter(Boolean))]; 
+            const selMot = document.getElementById('motivoFilter');
+            const btnObs = document.getElementById('obsBtn');
+            const btnSuc = document.getElementById('sucursalBtn');
+
+            const isObsFiltered = selectedObservation !== 'TODAS';
+            const isMotFiltered = selMot.value !== 'TODOS';
+            const isSucFiltered = selectedSucursales.length !== allUnique.length;
+            
+            const toggleActive = (el, isActive) => {
+                if (isActive) el.classList.add('bg-indigo-50', 'border-indigo-200', 'text-brand-primary');
+                else el.classList.remove('bg-indigo-50', 'border-indigo-200', 'text-brand-primary');
+            };
+
+            toggleActive(btnObs, isObsFiltered);
+            toggleActive(selMot, isMotFiltered);
+            toggleActive(btnSuc, isSucFiltered);
+
+            const hayFiltros = isMotFiltered || isObsFiltered || isSucFiltered; 
+            const btn = document.getElementById('btnResetFilters'); 
+            if (btn) btn.disabled = !hayFiltros; 
+        }
+
+        document.getElementById('btnResetFilters').addEventListener('click', () => { 
+            const allUnique = [...new Set(fullData.map(r => r.sucursal).filter(Boolean))]; 
+            selectedSucursales = [...allUnique]; 
+            
+            document.getElementById('branchSearch').value = '';
+            renderBranchCheckboxes(allUnique);
+            
+            document.querySelectorAll('.suc-chk').forEach(chk => chk.checked = true); 
+            updateSelectAllState(allUnique); 
+            document.getElementById('motivoFilter').value = 'TODOS'; 
+            
+            // Forzamos el estado inicial de observaciones y actualizamos la lista
+            selectedObservation = 'TODAS'; 
+            updateObservationFilter();
+
+            renderDashboard(); 
+            updateResetButtonState(); 
+        });
+
+        function showModalMov(idx) {
+            const item = fullData.find(x => x.id === idx); if(!item) return;
+            const field = (label, value) => `<div class="border-b border-slate-50 pb-2.5"><p class="text-xs font-semibold text-brand-textSec mb-0.5">${label}</p><p class="font-medium text-slate-800 break-words">${value}</p></div>`;
+            let html = field('Fecha', formatDate(item.Fecha)) + field('Usuario', String(item.usuario || '').toUpperCase()) + field('ID Producto', item.IDProducto) + field('EAN', item.codebar) + field('Producto', item.producto) + field('Cantidad', item.Unidades);
+            if (item.proveedor !== '-') html += field('Proveedor', item.proveedor); if (item.isTrazable) html += field('Lote', item.NroLote) + field('Vencimiento', formatDate(item.FechaVencimiento)) + field('Serie', item.Serie);
+            document.getElementById('modalDynamicContent').innerHTML = html; document.getElementById('modalContent').innerText = item.observacion || "No hay observaciones registradas."; openModal('modalMov');
+        }
+        
+        function copyToClipboard(text, btn, e) { 
+            e.stopPropagation(); 
+            navigator.clipboard.writeText(text).then(() => { 
+                const originalSvg = btn.innerHTML; 
+                btn.innerHTML = `<svg class="w-3.5 h-3.5 text-emerald-500 scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>`; 
+                btn.classList.add('bg-emerald-50');
+                
+                const tooltip = document.createElement('div');
+                tooltip.className = 'absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-1.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded shadow-sm whitespace-nowrap animate-tooltip pointer-events-none z-10';
+                tooltip.innerText = 'Copiado';
+                btn.parentElement.appendChild(tooltip);
+
+                setTimeout(() => { 
+                    btn.innerHTML = originalSvg; 
+                    btn.classList.remove('bg-emerald-50'); 
+                    if(tooltip.parentNode) tooltip.remove(); 
+                }, 1500); 
+            }).catch(err => console.error('Error:', err)); 
+        }
+        
+        document.getElementById('input').addEventListener('change', handleFile);
+        document.getElementById('btnDelete').addEventListener('click', () => { fullData = []; selectedSucursales = []; document.getElementById('input').value = ''; document.getElementById('headerMainLabel').innerText = capitalize(defaultDateStr); document.getElementById('headerSubLabel').innerText = ""; document.getElementById('btnUploadText').innerText = "📄 Importar Excel"; document.getElementById('btnUploadLabel').classList.replace('bg-slate-700', 'bg-brand-primary'); ['dashboard', 'controls', 'btnPdfGlobal', 'btnDelete', 'errorBanner', 'resetFilterWrapper'].forEach(id => document.getElementById(id).classList.add('hidden')); });
         document.getElementById('motivoFilter').addEventListener('change', () => { renderDashboard(); updateResetButtonState(); });
-        document.getElementById('observacionFilter').addEventListener('change', () => { renderDashboard(); updateResetButtonState(); });
+
+        function triggerPrint(reportId) {
+            document.querySelectorAll('.print-only').forEach(el => el.classList.remove('active-print-report'));
+            document.getElementById(reportId).classList.add('active-print-report');
+            setTimeout(() => window.print(), 300);
+        }
+
+        document.getElementById('btnPdfGlobal').addEventListener('click', () => {
+            const pdfData = window.currentPdfData; if(!pdfData) return; const dt = new Date();
+            const period = minDateGlobal ? `${formatDate(minDateGlobal)} → ${formatDate(maxDateGlobal)}` : 'N/A';
+            
+            document.getElementById('pdfCoverPeriodo').innerText = period; document.getElementById('pdfCoverGenerated').innerText = `${dt.toLocaleDateString()} ${dt.getHours().toString().padStart(2,'0')}:${dt.getMinutes().toString().padStart(2,'0')}`;
+            document.getElementById('pdfCoverMovimientos').innerText = formatNumber(pdfData.totalMovs); document.getElementById('pdfCoverImpacto').innerText = formatCurrency(pdfData.totalMonto);
+            document.getElementById('pdfKpiAltas').innerText = formatCurrency(pdfData.altasVal); document.getElementById('pdfKpiBajas').innerText = formatCurrency(pdfData.bajasVal);
+            document.getElementById('pdfKpiTrazables').innerText = formatCurrency(pdfData.trazabVal); document.getElementById('pdfKpiBalance').innerText = formatCurrency(pdfData.balance);
+            document.getElementById('pdfKpiBalance').style.color = pdfData.balance >= 0 ? '#10B981' : '#EF4444';
+            
+            const allUnique = [...new Set(fullData.map(r => r.sucursal).filter(Boolean))].sort();
+            const totalCount = allUnique.length;
+            const selCount = selectedSucursales.length;
+            
+            const countTextEl = document.getElementById('pdfCoverBranchCountText');
+            const listEl = document.getElementById('pdfCoverBranchList');
+
+            if (selCount === totalCount && totalCount > 0) {
+                countTextEl.innerHTML = `Todas las sucursales (${totalCount} de ${totalCount})`;
+                listEl.innerHTML = '';
+                listEl.style.columnCount = '1';
+            } else {
+                countTextEl.innerHTML = `${selCount} de ${totalCount} sucursales`;
+                listEl.style.columnCount = selCount > 15 ? '3' : (selCount > 5 ? '2' : '1');
+                listEl.innerHTML = selectedSucursales.sort().map(s => `<div style="margin-bottom: 6px; display: flex; gap: 4px;"><span>•</span> <span class="truncate">${s}</span></div>`).join('');
+            }
+
+            let insights = [];
+            insights.push(`El <strong>Balance Neto</strong> del período resulta en un ${pdfData.balance >= 0 ? 'incremento' : 'déficit'} de <strong>${formatCurrency(pdfData.balance)}</strong>.`);
+            if(pdfData.topMotivosArr.length > 0) insights.push(`El principal motivo de ajuste fue <strong>${pdfData.topMotivosArr[0][0]}</strong> con un impacto de ${formatCurrency(pdfData.topMotivosArr[0][1].monto)}.`);
+            if(pdfData.topBranchesGlobal.length > 0) insights.push(`La sucursal con mayor volumen operativo fue <strong>${pdfData.topBranchesGlobal[0].name}</strong> (${formatNumber(pdfData.topBranchesGlobal[0].movs)} movimientos).`);
+            if(globalUserAgg.length > 0) insights.push(`El operador <strong>${globalUserAgg[0].name}</strong> concentra el <strong>${globalUserAgg[0].pctGlobal}%</strong> de la actividad total.`);
+            document.getElementById('pdfInsightsGlobal').innerHTML = insights.map(i => `<li style="margin-bottom: 6px;">${i}</li>`).join('');
+
+            document.getElementById('pdfTopProductosContainer').innerHTML = pdfData.topProductsGlobal.slice(0, 10).map(p => `<tr><td>${p.name.substring(0,40)}</td><td>${p.ean}</td><td class="text-right">${formatNumber(p.movs)}</td><td class="text-right">${formatNumber(p.unidades)}</td><td class="text-right font-bold">${formatCurrency(p.monto)}</td></tr>`).join('');
+            document.getElementById('pdfTopUsuariosContainer').innerHTML = globalUserAgg.slice(0, 10).map(u => `<tr><td>${u.name}</td><td class="text-right">${formatNumber(u.movs)}</td><td class="text-right">${u.pctGlobal}%</td></tr>`).join('');
+            document.getElementById('pdfTopSucursalesContainer').innerHTML = pdfData.topBranchesGlobal.slice(0, 10).map(s => `<tr><td>${s.name}</td><td class="text-right">${formatNumber(s.movs)}</td><td class="text-right font-bold">${formatCurrency(s.monto)}</td></tr>`).join('');
+
+            Chart.defaults.font.family = 'Inter, sans-serif'; Chart.defaults.color = '#64748B';
+            Object.values(hiddenCharts).forEach(c => c.destroy());
+            const top5 = pdfData.topMotivosArr.slice(0, 5); const labels = top5.map(m => m[0].length > 25 ? m[0].substring(0, 25) + '...' : m[0]);
+            
+            const commonOpt = { indexAxis: 'y', responsive: false, animation: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, grid: { color: '#F1F5F9' } }, y: { grid: { display: false } } } };
+            const ctxImp = document.getElementById('hcImpacto'); ctxImp.width = 600; ctxImp.height = 300;
+            hiddenCharts.imp = new Chart(ctxImp, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Impacto ($)', data: top5.map(m => m[1].monto), backgroundColor: '#1D4ED8', borderRadius: 4 }] }, options: commonOpt });
+            const ctxDist = document.getElementById('hcDist'); ctxDist.width = 400; ctxDist.height = 300;
+            hiddenCharts.dist = new Chart(ctxDist, { type: 'doughnut', data: { labels: ['Altas', 'Bajas', 'Trazables'], datasets: [{ data: [pdfData.altasVal, pdfData.bajasVal, pdfData.trazabVal], backgroundColor: ['#10B981', '#EF4444', '#F59E0B'], borderWidth: 0 }] }, options: { responsive: false, animation: false, plugins: { legend: { position: 'bottom' } }, cutout: '75%' } });
+            
+            document.getElementById('imgImpacto').src = hiddenCharts.imp.toBase64Image();
+            document.getElementById('imgDist').src = hiddenCharts.dist.toBase64Image();
+            triggerPrint('pdf-report-global');
+        });
+
+        document.getElementById('btnPdfUser').addEventListener('click', () => {
+            if(!activeUserForPdf) return;
+            const u = activeUserForPdf; const dt = new Date();
+            const period = minDateGlobal ? `${formatDate(minDateGlobal)} → ${formatDate(maxDateGlobal)}` : 'N/A';
+            
+            document.getElementById('pdfU_Periodo').innerText = `Período: ${period}`;
+            document.getElementById('pdfU_Gen').innerText = `Impreso el: ${dt.toLocaleDateString()} ${dt.getHours().toString().padStart(2,'0')}:${dt.getMinutes().toString().padStart(2,'0')}`;
+            document.getElementById('pdfU_Nombre').innerText = u.name;
+
+            const userBranches = [...new Set(u.rawMovs.map(r => r.sucursal).filter(Boolean))].sort();
+            document.getElementById('pdfU_Sucursales').innerText = userBranches.length > 3 ? `${userBranches.slice(0,3).join(', ')} y ${userBranches.length - 3} más` : userBranches.join(', ');
+            
+            const totalUnidades = Object.values(u.productos).reduce((acc, p) => acc + p.unidades, 0);
+            const uniqueProducts = Object.keys(u.productos).length;
+
+            document.getElementById('pdfU_KPI_Movs').innerText = formatNumber(u.movs);
+            document.getElementById('pdfU_KPI_Unid').innerText = formatNumber(totalUnidades);
+            document.getElementById('pdfU_KPI_Imp').innerText = formatCurrency(u.monto);
+            document.getElementById('pdfU_KPI_Prod').innerText = formatNumber(uniqueProducts);
+
+            const mArrImp = Object.entries(u.motivos).sort((a,b) => b[1].monto - a[1].monto);
+            const mArrVol = Object.entries(u.motivos).sort((a,b) => b[1].movs - a[1].movs);
+            const topProdU = Object.values(u.productos).sort((a,b) => b.movs - a.movs);
+
+            let ins = [];
+            ins.push(`Gestionó <strong>${formatNumber(u.movs)}</strong> movimientos, representando el <strong>${u.pctGlobal}%</strong> de la actividad total.`);
+            if(mArrVol.length>0) ins.push(`Motivo más frecuente: <strong>${mArrVol[0][0]}</strong> (${mArrVol[0][1].movs} ocurrencias).`);
+            if(topProdU.length>0) ins.push(`Su mayor foco de actividad recae en el producto <strong>${topProdU[0].name.substring(0,30)}</strong>.`);
+            document.getElementById('pdfU_Insights').innerHTML = ins.map(i => `<li style="margin-bottom: 2px;">${i}</li>`).join('');
+
+            document.getElementById('pdfU_Prods').innerHTML = topProdU.slice(0, 10).map(p => `<tr><td title="${p.name}">${p.name.substring(0, 24)}...</td><td class="text-right">${formatNumber(p.movs)}</td><td class="text-right">${formatNumber(p.unidades)}</td><td class="text-right" title="${Object.entries(p.motivos).sort((a,b)=>b[1]-a[1])[0][0]}">${Object.entries(p.motivos).sort((a,b)=>b[1]-a[1])[0][0].substring(0,10)}...</td></tr>`).join('');
+            
+            u.rawMovs.sort((a,b) => b.Fecha - a.Fecha);
+            document.getElementById('pdfU_History').innerHTML = u.rawMovs.slice(0, 11).map(r => `<tr><td>${formatDate(r.Fecha)}</td><td>${r.NroBaja}</td><td title="${r.producto}">${r.producto.substring(0, 18)}...</td><td class="text-right">${formatNumber(r.Unidades)}</td><td title="${r.motivoRaw}">${capitalize(r.motivoRaw).substring(0,8)}...</td><td class="text-right font-bold">${formatCurrency(r.CostoNum)}</td></tr>`).join('');
+
+            Chart.defaults.font.family = 'Inter, sans-serif'; Chart.defaults.color = '#64748B';
+            Object.values(hiddenCharts).forEach(c => c.destroy());
+            const cOpt = { indexAxis: 'y', responsive: false, animation: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, grid: { color: '#F1F5F9' }, ticks: { font: { size: 9 } } }, y: { grid: { display: false }, ticks: { font: { size: 9 } } } } };
+            
+            const cvUser = document.getElementById('hcUserVol'); cvUser.width = 400; cvUser.height = 180;
+            hiddenCharts.userVol = new Chart(cvUser, { type: 'bar', data: { labels: mArrVol.slice(0,5).map(m => m[0].length > 18 ? m[0].substring(0,18)+'...' : m[0]), datasets: [{ data: mArrVol.slice(0,5).map(m => m[1].movs), backgroundColor: '#94A3B8', borderRadius: 4, barPercentage: 0.7 }] }, options: cOpt });
+            
+            const ciUser = document.getElementById('hcUserImpact'); ciUser.width = 400; ciUser.height = 180;
+            hiddenCharts.userImp = new Chart(ciUser, { type: 'bar', data: { labels: mArrImp.slice(0,5).map(m => m[0].length > 18 ? m[0].substring(0,18)+'...' : m[0]), datasets: [{ data: mArrImp.slice(0,5).map(m => m[1].monto), backgroundColor: '#4F46E5', borderRadius: 4, barPercentage: 0.7 }] }, options: cOpt });
+            
+            document.getElementById('imgUserVol').src = hiddenCharts.userVol.toBase64Image();
+            document.getElementById('imgUserImp').src = hiddenCharts.userImp.toBase64Image();
+            
+            triggerPrint('pdf-report-user');
+        });
     </script>
 </body>
 </html>
