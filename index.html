@@ -88,6 +88,36 @@
             .skeleton { position: relative; overflow: hidden; background: #f4f4f5; }
             .skeleton::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent); animation: shimmer 1.5s infinite; }
             @keyframes shimmer { 100% { transform: translateX(100%); } }
+
+            /* ================================================================
+               TOOLTIPS DE AYUDA (indicaciones de cada control)
+               Se muestran al pasar el mouse (o enfocar con Tab) sobre cualquier
+               elemento con atributo data-tip o title. El motor JS está al final
+               del script principal ("SISTEMA DE TOOLTIPS").
+               ================================================================ */
+            .app-tooltip {
+                position: fixed; z-index: 9999; max-width: 280px;
+                padding: 8px 12px; border-radius: 10px;
+                background: rgba(24, 24, 27, 0.96); color: #fafafa;
+                font-size: 11.5px; line-height: 1.5; font-weight: 500;
+                pointer-events: none; opacity: 0; transform: translateY(3px);
+                transition: opacity .15s ease, transform .15s ease;
+                box-shadow: 0 8px 24px -6px rgba(0,0,0,0.28);
+            }
+            .app-tooltip.visible { opacity: 1; transform: translateY(0); }
+            /* Flechita del globito (apunta al elemento) */
+            .app-tooltip::after {
+                content: ''; position: absolute; bottom: -4px; left: var(--arrow-x, 50%);
+                margin-left: -5px; width: 10px; height: 10px;
+                transform: rotate(45deg); background: inherit; border-radius: 2px;
+            }
+            .app-tooltip.below::after { bottom: auto; top: -4px; }
+            /* Variante para el tema oscuro Holo */
+            .theme-dark .app-tooltip {
+                background: rgba(8, 15, 30, 0.97); color: var(--holo-text);
+                border: 1px solid var(--holo-border-hi);
+                box-shadow: 0 8px 28px -6px rgba(0,0,0,0.6), 0 0 18px -6px var(--holo-glow);
+            }
         }
 
         /* ====================================================================
@@ -353,11 +383,11 @@
                 <button onclick="openModal('modalManual')" class="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-white border border-slate-200 text-brand-text font-medium rounded-xl text-sm hover:bg-slate-50 smooth-transition shadow-sm flex items-center gap-2 justify-center" title="Ver manual de usuario">
                     <svg class="w-4 h-4 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg> <span class="hidden sm:inline">Manual</span>
                 </button>
-                <button id="btnPdfGlobal" class="hidden flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-white border border-slate-200 text-brand-text font-medium rounded-xl text-sm hover:bg-slate-50 smooth-transition shadow-sm flex items-center gap-2 justify-center">
+                <button id="btnPdfGlobal" data-tip="Descargá un informe PDF ejecutivo con los indicadores y los filtros que tengas aplicados" class="hidden flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-white border border-slate-200 text-brand-text font-medium rounded-xl text-sm hover:bg-slate-50 smooth-transition shadow-sm flex items-center gap-2 justify-center">
                     <svg class="w-4 h-4 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> PDF General
                 </button>
-                <button id="btnDelete" class="hidden flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-white border border-slate-200 text-red-600 font-medium rounded-xl text-sm hover:bg-red-50 smooth-transition shadow-sm">Limpiar</button>
-                <label id="btnUploadLabel" class="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-brand-primary text-white font-semibold rounded-xl text-sm hover:bg-brand-primaryHover smooth-transition shadow-soft cursor-pointer flex items-center justify-center gap-2 relative overflow-hidden">
+                <button id="btnDelete" data-tip="Eliminá los datos cargados para empezar de nuevo con otro archivo" class="hidden flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-white border border-slate-200 text-red-600 font-medium rounded-xl text-sm hover:bg-red-50 smooth-transition shadow-sm">Limpiar</button>
+                <label id="btnUploadLabel" data-tip="Cargá el Excel de Bajas de Stock exportado desde Plex (Informes → Stock → Bajas de Stock)" class="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-brand-primary text-white font-semibold rounded-xl text-sm hover:bg-brand-primaryHover smooth-transition shadow-soft cursor-pointer flex items-center justify-center gap-2 relative overflow-hidden">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     <span id="btnUploadText" class="whitespace-nowrap">Importar Excel</span>
                     <input type="file" id="input" class="hidden" accept=".xlsx, .xls">
@@ -407,7 +437,7 @@
 
             <!-- Filtro Sucursales -->
             <div class="relative w-full">
-                <div id="sucursalBtn" onclick="toggleDropdown(event, 'sucursalDropdown')" class="px-4 min-h-[50px] bg-white border border-slate-200 rounded-xl shadow-sm w-full flex justify-between items-center cursor-pointer text-sm hover:border-brand-primary smooth-transition">
+                <div id="sucursalBtn" data-tip="Elegí una o varias sucursales: todo el tablero se recalcula con tu selección" onclick="toggleDropdown(event, 'sucursalDropdown')" class="px-4 min-h-[50px] bg-white border border-slate-200 rounded-xl shadow-sm w-full flex justify-between items-center cursor-pointer text-sm hover:border-brand-primary smooth-transition">
                     <span id="sucursalBtnText" class="truncate font-medium text-brand-text">Todas las sucursales</span>
                     <svg class="w-4 h-4 text-slate-400 shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                 </div>
@@ -424,13 +454,13 @@
             </div>
             
             <!-- Filtro Motivos -->
-            <select id="motivoFilter" class="px-4 min-h-[50px] bg-white border border-slate-200 rounded-xl shadow-sm w-full outline-none text-sm font-medium text-brand-text hover:border-brand-primary smooth-transition appearance-none">
+            <select id="motivoFilter" data-tip="Filtrá los datos por un motivo específico de alta o baja de stock" class="px-4 min-h-[50px] bg-white border border-slate-200 rounded-xl shadow-sm w-full outline-none text-sm font-medium text-brand-text hover:border-brand-primary smooth-transition appearance-none">
                 <option value="TODOS" class="text-slate-400">Todos los motivos</option>
             </select>
             
             <!-- Filtro Observaciones (MultiSelect) -->
             <div class="relative w-full">
-                <div id="obsBtn" onclick="toggleDropdown(event, 'obsDropdown')" class="px-3 min-h-[50px] bg-white border border-slate-200 rounded-xl shadow-sm w-full flex justify-between items-center cursor-pointer text-sm hover:border-brand-primary smooth-transition">
+                <div id="obsBtn" data-tip="Filtrá por el texto de la observación registrada; podés seleccionar varias a la vez" onclick="toggleDropdown(event, 'obsDropdown')" class="px-3 min-h-[50px] bg-white border border-slate-200 rounded-xl shadow-sm w-full flex justify-between items-center cursor-pointer text-sm hover:border-brand-primary smooth-transition">
                     <div id="obsChipsContainer" class="flex flex-wrap gap-1.5 flex-1 items-center overflow-hidden">
                         <span class="text-slate-500 font-medium px-1">Todas las observaciones</span>
                     </div>
@@ -466,7 +496,7 @@
                 <svg class="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 Control de Atípicos
             </button>
-            <button id="btnResetFilters" disabled class="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-brand-textSec border border-slate-200 rounded-lg hover:text-brand-primary hover:border-brand-primary smooth-transition disabled:opacity-40 disabled:cursor-not-allowed bg-white">
+            <button id="btnResetFilters" data-tip="Quitá todos los filtros aplicados y volvé a ver el período completo" disabled class="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-brand-textSec border border-slate-200 rounded-lg hover:text-brand-primary hover:border-brand-primary smooth-transition disabled:opacity-40 disabled:cursor-not-allowed bg-white">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Restablecer filtros
             </button>
         </div>
@@ -491,28 +521,28 @@
 
         <div id="dashboard" class="hidden space-y-6 sm:space-y-8">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 no-print">
-                <div class="kpi-card bg-white border border-zinc-200/80 rounded-2xl p-5 shadow-card flex flex-col justify-between smooth-transition hover:shadow-soft hover:border-zinc-300/80">
+                <div data-tip="Suma en $ de los ingresos de stock: bonificaciones, inventario, ingreso de mercadería, fraccionados y vales no retirados. No incluye trazabilidad." class="kpi-card bg-white border border-zinc-200/80 rounded-2xl p-5 shadow-card flex flex-col justify-between smooth-transition hover:shadow-soft hover:border-zinc-300/80">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="kpi-eyebrow">Total Altas</h3>
                         <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
                     </div>
                     <p class="text-brand-text kpi-value" id="kpiAltas">$0</p>
                 </div>
-                <div class="kpi-card bg-white border border-zinc-200/80 rounded-2xl p-5 shadow-card flex flex-col justify-between smooth-transition hover:shadow-soft hover:border-zinc-300/80">
+                <div data-tip="Suma en $ de las salidas de stock: vencidos, roturas, robo/hurto, faltantes, devoluciones y uso interno. No incluye trazabilidad." class="kpi-card bg-white border border-zinc-200/80 rounded-2xl p-5 shadow-card flex flex-col justify-between smooth-transition hover:shadow-soft hover:border-zinc-300/80">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="kpi-eyebrow">Total Bajas</h3>
                         <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>
                     </div>
                     <p class="text-brand-text kpi-value" id="kpiBajas">$0</p>
                 </div>
-                <div class="kpi-card bg-white border border-zinc-200/80 rounded-2xl p-5 shadow-card flex flex-col justify-between smooth-transition hover:shadow-soft hover:border-zinc-300/80">
+                <div data-tip="Monto total de los ajustes por trazabilidad. Se contabilizan por separado y no afectan el Balance Neto." class="kpi-card bg-white border border-zinc-200/80 rounded-2xl p-5 shadow-card flex flex-col justify-between smooth-transition hover:shadow-soft hover:border-zinc-300/80">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="kpi-eyebrow">Mov. Trazables</h3>
                         <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
                     </div>
                     <p class="text-brand-text kpi-value" id="kpiTrazables">$0</p>
                 </div>
-                <div class="kpi-card bg-white border border-zinc-200/80 rounded-2xl p-5 shadow-card flex flex-col justify-between smooth-transition hover:shadow-soft hover:border-zinc-300/80">
+                <div data-tip="Altas menos Bajas: el impacto neto en $ del período filtrado. Verde si es positivo, rojo si es negativo." class="kpi-card bg-white border border-zinc-200/80 rounded-2xl p-5 shadow-card flex flex-col justify-between smooth-transition hover:shadow-soft hover:border-zinc-300/80">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="kpi-eyebrow">Balance Neto</h3>
                         <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path></svg>
@@ -568,7 +598,7 @@
             <!-- MODIFICACIÓN: Clases de la cabecera actualizadas para evitar scroll horizontal -->
             <div id="anomaliasSection" class="bg-white rounded-2xl shadow-soft border border-red-200 overflow-hidden no-print hidden">
                 <div class="px-5 sm:px-6 py-4 bg-red-50/50 border-b border-red-100 flex justify-between items-center">
-                    <h2 class="text-base font-bold text-red-700 flex items-center gap-2 tracking-tight">
+                    <h2 data-tip="Movimientos que se destacan del resto por su monto o su cantidad de unidades. Conviene revisarlos primero en una auditoría." class="text-base font-bold text-red-700 flex items-center gap-2 tracking-tight">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                         Anomalías Detectadas (Top Monto y Volumen)
                     </h2>
@@ -611,7 +641,7 @@
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Limpiar filtros
                             </button>
                             
-                            <button id="toggleViewBtn" class="text-xs font-semibold text-brand-primary hover:text-brand-primaryHover transition whitespace-nowrap px-3 py-1.5 rounded-lg hover:bg-slate-50 border border-transparent">Ver todos</button>
+                            <button id="toggleViewBtn" data-tip="Alterná entre ver los primeros movimientos o el listado completo" class="text-xs font-semibold text-brand-primary hover:text-brand-primaryHover transition whitespace-nowrap px-3 py-1.5 rounded-lg hover:bg-slate-50 border border-transparent">Ver todos</button>
                             
                             <!-- Botón Informe Investigación -->
                             <button onclick="openModal('modalInvestigacion')" class="text-xs font-semibold text-slate-600 border border-slate-200 bg-white hover:text-brand-primary hover:border-brand-primary/50 transition whitespace-nowrap px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm" title="Investigar operación por ID">
@@ -3210,6 +3240,95 @@
             closeModal('modalInvestigacion');
             triggerPrint('pdf-report-investigacion');
         }
+        // ============================================================================
+        // SISTEMA DE TOOLTIPS (indicaciones de ayuda)
+        // ============================================================================
+        // Cualquier elemento con data-tip="..." (o title="...") muestra un globito
+        // explicativo al pasar el mouse o al enfocarlo con Tab. Los title existentes
+        // se convierten automáticamente a data-tip para reemplazar el tooltip nativo
+        // del navegador (lento y sin estilo) por uno instantáneo acorde a la app.
+        // Para agregar una indicación nueva basta con poner data-tip="texto" en el HTML.
+        (function initTooltips() {
+            // En pantallas táctiles no hay hover: se omite (el Manual cubre la ayuda)
+            if (window.matchMedia && window.matchMedia('(hover: none)').matches) return;
+
+            const tip = document.createElement('div');
+            tip.className = 'app-tooltip no-print';
+            tip.setAttribute('role', 'tooltip');
+            document.body.appendChild(tip);
+
+            let showTimer = null;
+            let currentEl = null;
+            const DELAY_MS = 320; // pequeña espera para no molestar al pasar rápido
+
+            function getTipText(el) {
+                // Migra title -> data-tip la primera vez (evita el doble tooltip nativo)
+                if (el.hasAttribute('title')) {
+                    el.dataset.tip = el.getAttribute('title');
+                    el.removeAttribute('title');
+                }
+                return el.dataset.tip || '';
+            }
+
+            function positionTip(el) {
+                const r = el.getBoundingClientRect();
+                const tr = tip.getBoundingClientRect();
+                let top = r.top - tr.height - 9;
+                let below = false;
+                if (top < 8) { top = r.bottom + 9; below = true; } // sin lugar arriba: abajo
+                let left = r.left + r.width / 2 - tr.width / 2;
+                left = Math.max(8, Math.min(left, window.innerWidth - tr.width - 8));
+                tip.style.top = `${Math.round(top)}px`;
+                tip.style.left = `${Math.round(left)}px`;
+                tip.classList.toggle('below', below);
+                // La flechita sigue apuntando al centro del elemento aunque el globo se corra
+                const arrowX = Math.max(14, Math.min(r.left + r.width / 2 - left, tr.width - 14));
+                tip.style.setProperty('--arrow-x', `${Math.round(arrowX)}px`);
+            }
+
+            function showTip(el) {
+                const text = getTipText(el);
+                if (!text) return;
+                currentEl = el;
+                tip.textContent = text;
+                tip.classList.add('visible');
+                positionTip(el);
+            }
+
+            function hideTip() {
+                clearTimeout(showTimer);
+                showTimer = null;
+                currentEl = null;
+                tip.classList.remove('visible');
+            }
+
+            document.addEventListener('mouseover', (e) => {
+                const el = e.target.closest && e.target.closest('[data-tip], [title]');
+                if (!el) return;
+                if (el === currentEl) return;
+                clearTimeout(showTimer);
+                showTimer = setTimeout(() => showTip(el), DELAY_MS);
+            });
+
+            document.addEventListener('mouseout', (e) => {
+                const el = e.target.closest && e.target.closest('[data-tip], [title]');
+                if (el && (!e.relatedTarget || !el.contains(e.relatedTarget))) hideTip();
+            });
+
+            // Accesibilidad: también aparece al navegar con Tab
+            document.addEventListener('focusin', (e) => {
+                const el = e.target.closest && e.target.closest('[data-tip], [title]');
+                if (el) showTip(el);
+            });
+            document.addEventListener('focusout', hideTip);
+
+            // Se oculta ante cualquier interacción que cambie el contexto
+            ['mousedown', 'wheel'].forEach(ev => document.addEventListener(ev, hideTip, { passive: true }));
+            document.addEventListener('keydown', (e) => { if (e.key !== 'Tab') hideTip(); });
+            window.addEventListener('scroll', hideTip, true);
+            window.addEventListener('resize', hideTip);
+        })();
+
         // ============================================================================
         // PROTECCIONES DE SESIÓN
         // ============================================================================
