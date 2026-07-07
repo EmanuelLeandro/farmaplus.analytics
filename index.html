@@ -10,18 +10,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- ============================================================================
-         CARGA DE LIBRERÍAS (modo local-first)
-         Primero intenta cargar copias locales desde la carpeta ./libs/ (funciona
-         sin internet). Si no existen, usa automáticamente los CDN online como
-         siempre. Para activar el modo sin internet, ejecutá una sola vez el
-         script "descargar_librerias" incluido junto a este archivo.
+         CARGA DE LIBRERÍAS (desde CDN, requiere conexión a internet)
          ============================================================================ -->
-    <script src="libs/tailwind.js"></script>
-    <script>if (typeof tailwind === 'undefined') document.write('<script src="https://cdn.tailwindcss.com"><\/script>');</script>
-    <script src="libs/xlsx.full.min.js"></script>
-    <script>if (typeof XLSX === 'undefined') document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>');</script>
-    <script src="libs/chart.umd.js"></script>
-    <script>if (typeof Chart === 'undefined') document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>');</script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <script>
         // Tema guardado: se aplica antes del primer render para evitar parpadeo
@@ -1339,7 +1332,7 @@
                     <h2 class="text-lg font-bold text-slate-900 mb-4 pb-2 border-b border-slate-200">💾 Respaldo y modo sin internet</h2>
                     <div class="space-y-3 mb-10 text-sm leading-relaxed">
                         <p><strong>Configuración compartida:</strong> desde Gestión de Zonales podés <strong>Exportar configuración</strong> (descarga un archivo con las zonales y los atípicos configurados) e <strong>Importar configuración</strong> en otra computadora. Recomendado como respaldo: la configuración vive en el navegador y una limpieza de caché la borra.</p>
-                        <p><strong>Modo sin internet:</strong> ejecutando una sola vez el script <code class="bg-slate-100 px-1.5 py-0.5 rounded text-xs">descargar_librerias</code> (incluido junto a la aplicación), se crea una carpeta <code class="bg-slate-100 px-1.5 py-0.5 rounded text-xs">libs</code> y la aplicación pasa a funcionar sin conexión. Si la carpeta no existe, usa internet como siempre.</p>
+                        <p><strong>Conexión a internet:</strong> la aplicación necesita conexión para cargar sus componentes al abrirse. Una vez abierta, todo el análisis de datos se hace en tu equipo: el Excel nunca se sube a ningún servidor.</p>
                     </div>
 
                     <h2 class="text-lg font-bold text-slate-900 mb-4 pb-2 border-b border-slate-200">💡 Consejos útiles</h2>
@@ -3332,13 +3325,13 @@
         // ============================================================================
         // PROTECCIONES DE SESIÓN
         // ============================================================================
-        // Aviso si faltan librerías (sin internet y sin carpeta libs/)
+        // Aviso si faltan librerías (por ejemplo, si no hay conexión a internet)
         window.addEventListener('load', () => {
             const faltantes = [];
             if (typeof XLSX === 'undefined') faltantes.push('SheetJS (lectura de Excel)');
             if (typeof Chart === 'undefined') faltantes.push('Chart.js (gráficos)');
             if (faltantes.length > 0) {
-                document.getElementById('errorText').innerText = `No se pudieron cargar las librerías: ${faltantes.join(' y ')}. Verificá tu conexión a internet, o ejecutá el script "descargar_librerias" para habilitar el modo sin conexión.`;
+                document.getElementById('errorText').innerText = `No se pudieron cargar las librerías: ${faltantes.join(' y ')}. Verificá tu conexión a internet y recargá la página.`;
                 document.getElementById('errorBanner').classList.remove('hidden');
             }
         });
