@@ -1726,19 +1726,67 @@
                 <button onclick="closeModal('modalManual')" class="absolute top-6 right-6 md:top-8 md:right-8 bg-white p-2 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-100 shadow-sm border border-slate-200 smooth-transition z-50">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
-                <div class="max-w-3xl mx-auto pb-10">
+                <div class="max-w-3xl mx-auto pb-10" id="manualScrollArea">
                     <h1 class="text-3xl font-extrabold text-slate-900 leading-tight mb-2">Manual de Usuario</h1>
-                    <p class="text-slate-500 mb-10">Guía completa de FarmaPlus Analytics: auditoría y análisis de bajas de stock.</p>
+                    <p class="text-slate-500 mb-6">Guía completa de FarmaPlus Analytics.</p>
+
+                    <div class="mb-8 p-4 bg-slate-100 border border-slate-200 rounded-xl text-sm leading-relaxed">
+                        <p><strong>¿Qué hace esta aplicación?</strong> Convierte los Excel que ya exportás desde Plex en tableros de control listos para leer: te dice dónde hay <strong>errores de carga</strong>, dónde hay <strong>stock negativo</strong> (imposible en la realidad, señal de un problema), y qué sucursales necesitan atención — sin que tengas que revisar fila por fila. No hace falta saber nada de análisis de datos: solo importar el Excel correcto en el módulo correcto.</p>
+                    </div>
+
+                    <div class="mb-8 p-4 bg-brand-primary/5 border border-brand-primary/20 rounded-xl text-sm leading-relaxed">
+                        <p><strong>La aplicación tiene dos módulos independientes</strong>, elegibles con las pestañas debajo del encabezado. Cada uno tiene su propio botón de importar Excel, y son archivos distintos: no comparten datos entre sí.</p>
+                        <p class="mt-2"><strong>📊 Movimientos</strong> — analiza las <em>bajas de stock</em>: los ajustes que se cargaron (faltantes, vencidos, ingresos, correcciones...). Responde "¿qué pasó y por qué?".</p>
+                        <p class="mt-2"><strong>📦 Stock</strong> — analiza el <em>stock actual</em> de cada sucursal, en un momento dado. Responde "¿cuánto tengo hoy, y está bien cargado?".</p>
+                    </div>
+
+                    <div class="mb-10 p-4 border border-slate-200 rounded-xl text-sm">
+                        <p class="font-bold text-slate-800 mb-2">📑 Contenido</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+                            <a href="#m-glosario" onclick="return scrollManualTo('m-glosario')" class="text-brand-primary hover:underline cursor-pointer">Glosario rápido</a>
+                            <a href="#m-zonales" onclick="return scrollManualTo('m-zonales')" class="text-brand-primary hover:underline cursor-pointer">Gestión de Zonales</a>
+                            <a href="#m-inicio" onclick="return scrollManualTo('m-inicio')" class="text-brand-primary hover:underline cursor-pointer">Parte 1 · Movimientos: inicio rápido</a>
+                            <a href="#m-costos" onclick="return scrollManualTo('m-costos')" class="text-brand-primary hover:underline cursor-pointer">Auditoría de Costos</a>
+                            <a href="#m-compensatorios" onclick="return scrollManualTo('m-compensatorios')" class="text-brand-primary hover:underline cursor-pointer">Ajustes Compensatorios</a>
+                            <a href="#m-codigos" onclick="return scrollManualTo('m-codigos')" class="text-brand-primary hover:underline cursor-pointer">Cambios de Código</a>
+                            <a href="#m-stock" onclick="return scrollManualTo('m-stock')" class="text-brand-primary hover:underline cursor-pointer">Parte 2 · Módulo de Stock</a>
+                            <a href="#m-informes" onclick="return scrollManualTo('m-informes')" class="text-brand-primary hover:underline cursor-pointer">Informes y exportación</a>
+                            <a href="#m-respaldo" onclick="return scrollManualTo('m-respaldo')" class="text-brand-primary hover:underline cursor-pointer">Respaldo y modo sin internet</a>
+                            <a href="#m-consejos" onclick="return scrollManualTo('m-consejos')" class="text-brand-primary hover:underline cursor-pointer">Consejos útiles</a>
+                        </div>
+                    </div>
+
+                    <h2 id="m-glosario" class="text-lg font-bold text-slate-900 mb-4 pb-2 border-b border-slate-200 scroll-mt-4">📖 Glosario rápido</h2>
+                    <div class="space-y-2 mb-10 text-sm leading-relaxed">
+                        <p><strong>SKU:</strong> un producto del catálogo (por su código). "8.913 SKU con stock" = 8.913 productos distintos tienen unidades cargadas.</p>
+                        <p><strong>Zonal:</strong> la persona responsable de un grupo de sucursales. Cada sucursal pertenece a un zonal, igual que en el organigrama real de la empresa.</p>
+                        <p><strong>Atípico:</strong> un movimiento tan grande o raro que, si lo dejás adentro, distorsiona los promedios generales. No se borra, solo se puede excluir de las cuentas.</p>
+                        <p><strong>Foto diaria:</strong> el Listado de Stock no es un historial — muestra cómo está el stock <em>en el momento en que lo exportaste</em>. Si importás uno nuevo, reemplaza al anterior por completo.</p>
+                        <p><strong>Stock negativo:</strong> el sistema dice que tenés, por ejemplo, "-14 unidades" de un producto. Es físicamente imposible (no podés tener menos que cero) — siempre significa que algo se cargó mal en algún momento.</p>
+                    </div>
+
+                    <h2 id="m-zonales" class="text-lg font-bold text-slate-900 mb-4 pb-2 border-b border-slate-200 scroll-mt-4">🗺️ Gestión de Zonales</h2>
+                    <div class="space-y-3 mb-10 text-sm leading-relaxed">
+                        <p>Este concepto se usa en <strong>los dos módulos</strong> (Movimientos y Stock), por eso se explica primero. Cada sucursal pertenece a un <strong>zonal</strong>. Desde el botón <strong>Gestión de Zonales</strong> podés crear, renombrar o eliminar zonales, y asignar o mover sucursales entre ellos con un selector. Los cambios se aplican al instante y quedan guardados para la próxima vez que abras la aplicación.</p>
+                        <p>Cuando un Excel trae una <strong>sucursal nueva</strong> que todavía no le asignaste a nadie, aparece marcada como <span class="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] rounded font-bold border border-amber-200">SIN ASIGNAR</span>, y un número en el botón te avisa cuántas quedan pendientes. No hace falta escribir el nombre exactamente igual siempre: la aplicación reconoce la misma sucursal aunque cambie de mayúsculas, acentos o espacios.</p>
+                        <p class="text-slate-500">💡 Una vez configurado, el zonal de cada sucursal aparece como información al pasar el mouse en varias tablas (ver "Consejos útiles"), y podés generar informes PDF acotados a un solo zonal.</p>
+                    </div>
+
+                    <div class="mb-10 pt-6 border-t-4 border-brand-primary/20">
+                        <p class="text-xs font-bold text-brand-primary uppercase tracking-widest mb-1">Parte 1</p>
+                        <h2 id="m-inicio" class="text-2xl font-extrabold text-slate-900 scroll-mt-4">📊 Módulo Movimientos</h2>
+                        <p class="text-sm text-slate-500 mt-1">Analiza las bajas de stock: qué se ajustó, quién lo hizo, y si hay errores de carga.</p>
+                    </div>
 
                     <h2 class="text-lg font-bold text-slate-900 mb-5 pb-2 border-b border-slate-200">🚀 Inicio rápido</h2>
                     <div class="mb-10">
                         <div class="manual-step">
                             <div class="w-10 h-10 bg-brand-primary text-white rounded-full flex items-center justify-center font-bold shrink-0 z-10">1</div>
-                            <div><p class="font-bold text-slate-800 mb-1">Descargá el Excel desde Plex</p><p class="text-sm leading-relaxed">Ingresá a <strong>Plex → Informes → Stock → Bajas de Stock</strong> y descargá el archivo del período que quieras analizar. No modifiques el archivo: la aplicación valida que tenga el formato original.</p></div>
+                            <div><p class="font-bold text-slate-800 mb-1">Descargá el Excel desde Plex</p><p class="text-sm leading-relaxed">Ingresá a <strong>Plex → Informes → Stock → Bajas de Stock</strong> y descargá el archivo del período que quieras analizar. No modifiques el archivo: la aplicación valida que tenga el formato original y avisa si algo no coincide.</p></div>
                         </div>
                         <div class="manual-step">
                             <div class="w-10 h-10 bg-brand-primary text-white rounded-full flex items-center justify-center font-bold shrink-0 z-10">2</div>
-                            <div><p class="font-bold text-slate-800 mb-1">Importalo en la aplicación</p><p class="text-sm leading-relaxed">Hacé clic en <strong>Importar Excel</strong> (arriba a la derecha). El archivo se procesa una sola vez y todo el análisis queda disponible al instante. Las sucursales nuevas se detectan automáticamente.</p></div>
+                            <div><p class="font-bold text-slate-800 mb-1">Importalo en la aplicación</p><p class="text-sm leading-relaxed">Hacé clic en <strong>Importar Excel</strong> (arriba a la derecha, en la pestaña Movimientos). El archivo se procesa una sola vez y todo el análisis queda disponible al instante — KPIs, gráficos, auditorías, todo junto. Las sucursales nuevas se detectan solas.</p></div>
                         </div>
                         <div class="manual-step">
                             <div class="w-10 h-10 bg-brand-primary text-white rounded-full flex items-center justify-center font-bold shrink-0 z-10">3</div>
@@ -1748,66 +1796,112 @@
 
                     <h2 class="text-lg font-bold text-slate-900 mb-4 pb-2 border-b border-slate-200">🔍 Filtros</h2>
                     <div class="space-y-3 mb-10 text-sm leading-relaxed">
-                        <p>La barra de filtros tiene cuatro controles que se <strong>combinan entre sí</strong>: los resultados siempre cumplen todos los criterios a la vez.</p>
-                        <p><strong>📅 Fecha:</strong> por defecto se analiza <em>todo el período</em> del Excel. Si seleccionás un día específico, <strong>toda la aplicación</strong> (KPIs, tablas, gráficos, rankings y PDFs) se recalcula usando únicamente los movimientos de esa fecha. Un banner azul te recuerda qué estás viendo, y podés volver con "Ver todo el período". Solo aparecen fechas que existen en el archivo.</p>
-                        <p><strong>Sucursales:</strong> selección múltiple con buscador. <strong>Motivos:</strong> filtra por un motivo de ajuste. <strong>Observaciones:</strong> selección múltiple de las observaciones registradas.</p>
-                        <p>El botón <strong>Restablecer filtros</strong> vuelve a mostrar toda la información. En la tabla de movimientos también hay un buscador libre por producto, código, usuario o número de baja.</p>
+                        <p>La barra de filtros tiene cuatro controles que se <strong>combinan entre sí</strong>: un resultado tiene que cumplir todos los criterios activos a la vez, no alguno de ellos.</p>
+                        <p><strong>📅 Fecha:</strong> por defecto se analiza <em>todo el período</em> del Excel. Si elegís un día específico, <strong>toda la aplicación</strong> (KPIs, tablas, gráficos, rankings y PDFs) se recalcula usando únicamente los movimientos de esa fecha. Un banner azul te recuerda qué estás viendo, y "Ver todo el período" te devuelve a la vista completa.</p>
+                        <p><strong>Sucursales:</strong> selección múltiple con buscador. <strong>Motivos:</strong> filtra por un motivo de ajuste puntual. <strong>Observaciones:</strong> selección múltiple de las observaciones registradas por los usuarios.</p>
+                        <p>El botón <strong>Restablecer filtros</strong> (aparece solo cuando hay algo filtrado) vuelve a mostrar todo. En la tabla de movimientos también hay un buscador libre por producto, código, usuario o número de baja.</p>
                     </div>
 
                     <h2 class="text-lg font-bold text-slate-900 mb-4 pb-2 border-b border-slate-200">📊 Indicadores principales (KPIs)</h2>
                     <div class="space-y-2 mb-10 text-sm leading-relaxed">
-                        <p><strong class="text-emerald-700">Altas:</strong> valor de los ajustes que incrementan stock (inventario, ingreso de mercadería, bonificaciones, etc.).</p>
-                        <p><strong class="text-red-700">Bajas:</strong> valor de los ajustes que reducen stock (faltantes, vencidos, roturas, robos, devoluciones, etc.).</p>
-                        <p><strong class="text-orange-600">Trazables:</strong> ajustes por trazabilidad, contabilizados por separado.</p>
-                        <p><strong>Balance Neto:</strong> Altas menos Bajas. En verde si es positivo, en rojo si es déficit.</p>
+                        <p><strong class="text-emerald-700">Altas:</strong> valor de los ajustes que <em>suman</em> stock (inventario, ingreso de mercadería, bonificaciones, etc.).</p>
+                        <p><strong class="text-red-700">Bajas:</strong> valor de los ajustes que <em>restan</em> stock (faltantes, vencidos, roturas, robos, devoluciones, etc.).</p>
+                        <p><strong class="text-orange-600">Trazables:</strong> ajustes por trazabilidad, contabilizados aparte porque no son ni una venta ni una pérdida real.</p>
+                        <p><strong>Balance Neto:</strong> Altas menos Bajas. Verde si el saldo es positivo, rojo si es negativo.</p>
                     </div>
 
-                    <h2 class="text-lg font-bold text-slate-900 mb-4 pb-2 border-b border-slate-200">🗺️ Gestión de Zonales</h2>
+                    <h2 class="text-lg font-bold text-slate-900 mb-4 pb-2 border-b border-slate-200">🧭 Centro de Auditoría</h2>
                     <div class="space-y-3 mb-10 text-sm leading-relaxed">
-                        <p>Cada sucursal pertenece a una <strong>zonal</strong> (responsable de zona). Desde el botón <strong>Gestión de Zonales</strong> podés: crear, renombrar o eliminar zonales, y asignar o mover sucursales entre ellas con un selector. Los cambios se aplican al instante y quedan guardados para futuras sesiones.</p>
-                        <p>Cuando un Excel trae una <strong>sucursal nueva</strong>, se detecta sola y aparece como <span class="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] rounded font-bold border border-amber-200">SIN ASIGNAR</span>. Un contador en el botón te avisa cuántas hay pendientes. La aplicación reconoce las sucursales aunque estén escritas distinto (mayúsculas, acentos o espacios de más).</p>
+                        <p>Apenas importás el Excel, la aplicación corre <strong>tres auditorías automáticas</strong> y las resume en una tarjeta fija debajo de los filtros, con un chip por cada una: <strong class="text-red-600">⚠ Auditoría de Costos</strong>, <strong class="text-emerald-600">🟢 Ajustes Compensatorios</strong> y <strong class="text-indigo-600">🔀 Cambios de Código</strong>. Cada chip te lleva directo a su detalle con un clic. Si una auditoría no encontró nada, lo dice igual ("sin casos ✓") — no desaparece, para que sepas que sí se revisó.</p>
+                    </div>
+
+                    <h2 id="m-costos" class="text-lg font-bold text-slate-900 mb-4 pb-2 border-b border-slate-200 scroll-mt-4">⚠️ Auditoría de Costos</h2>
+                    <div class="space-y-3 mb-10 text-sm leading-relaxed">
+                        <p><strong>Qué detecta:</strong> productos donde el costo cargado es mayor al precio de venta — imposible en una operación sana (vender a pérdida sistemática no tiene sentido de negocio). La causa más frecuente: el proveedor facturó la <em>caja completa</em> pero el sistema vende por unidad.</p>
+                        <p class="p-3 bg-slate-100 rounded-lg"><strong>Ejemplo:</strong> un producto que viene "X 50" (caja de 50 unidades) se carga con el costo de la caja entera, $50.000, pero el sistema lo vende de a uno a $1.500. La auditoría detecta el "X 50" en el nombre, divide $50.000 ÷ 50 = $1.000, y confirma que ese número sí es un costo unitario razonable (por debajo del precio de venta) antes de sugerir el ajuste.</p>
+                        <p>Ese "antes de sugerir" es la parte importante: la aplicación no confía ciegamente en el "X 50" del nombre. Solo lo confirma como <strong class="text-amber-600">Ajuste Sugerido</strong> si el costo dividido coincide con lo que ese mismo producto cuesta normalmente en otras filas del archivo, o si el desfase es tan grande (3 veces el precio o más) que no puede ser otra cosa. Sin esa prueba, el caso queda en rojo como <strong class="text-red-600">Requiere Revisión</strong>, con un mensaje explicando por qué no se pudo confirmar.</p>
+                        <p>Cada fila sugerida tiene dos botones: <strong>Aceptar</strong> (aplica la división) o <strong>Capear</strong> (si preferís simplemente igualar el costo al precio de venta en vez de dividir). Todo es reversible con <strong>Deshacer</strong>. Cada corrección aplicada queda registrada en la columna <em>Ajuste_Auditoria</em> del Excel que exportes, para que quede constancia de qué se cambió.</p>
+                    </div>
+
+                    <h2 id="m-compensatorios" class="text-lg font-bold text-slate-900 mb-4 pb-2 border-b border-slate-200 scroll-mt-4">🟢 Ajustes Compensatorios</h2>
+                    <div class="space-y-3 mb-10 text-sm leading-relaxed">
+                        <p><strong>Qué detecta:</strong> un movimiento que probablemente sea la corrección de <em>otro movimiento anterior</em> del mismo producto. Por ejemplo, alguien carga un ingreso de mercadería mal, y más tarde otro movimiento (un "error de ingreso") lo corrige.</p>
+                        <p class="p-3 bg-slate-100 rounded-lg"><strong>Ejemplo:</strong> el 3 de julio se cargó un "Ingreso de mercadería" de 50 unidades de un producto. El 5 de julio aparece un "Error de ingreso" de esas mismas 50 unidades, mismo producto, misma sucursal, mismo precio. La aplicación los relaciona como un posible par: probablemente el segundo movimiento corrigió al primero.</p>
+                        <p>Para relacionar dos movimientos, tienen que coincidir en producto, sucursal, cantidad, código de barras y precio, con motivos que tengan sentido como corrección uno del otro. También reconoce el caso donde la <strong>cantidad</strong> se cargó mal pero el <strong>monto total</strong> coincide igual entre los dos movimientos (se marca con el chip "≈ Coincidencia por valor").</p>
+                        <p>Cada caso se etiqueta como <strong>🟢 Posible Ajuste Compensatorio</strong> — nunca como algo confirmado. Esto es deliberado: el Excel de Plex no incluye cuánto stock había antes y después de cada movimiento, así que no hay forma de asegurar al 100% que la corrección haya sido perfecta. Es una pista fuerte para el analista, no una certeza matemática.</p>
+                        <p>Los motivos se pintan de verde (alta) o rojo (baja) para que se lea de un vistazo qué entró y qué salió; "Ajuste por inventario" queda neutro porque puede ser cualquiera de las dos. Si la corrección aparece fechada <em>antes</em> que el ingreso original, se marca "⚠ Secuencia invertida" en vez de descartarse, porque puede tratarse de la corrección de algo cargado antes del período que estás mirando. Se puede filtrar por fecha, producto, sucursal, usuario y motivo, y exportar a Excel o PDF.</p>
+                    </div>
+
+                    <h2 id="m-codigos" class="text-lg font-bold text-slate-900 mb-4 pb-2 border-b border-slate-200 scroll-mt-4">🔀 Cambios de Código</h2>
+                    <div class="space-y-3 mb-10 text-sm leading-relaxed">
+                        <p><strong>Qué detecta:</strong> un producto que pasó de un código a otro — por ejemplo, cuando una cadena migra un producto a su marca propia, o recodifica algo en el sistema. A diferencia de los Ajustes Compensatorios, acá los dos movimientos son de <strong>productos distintos</strong> (distinto código), así que el criterio para relacionarlos es más exigente.</p>
+                        <p class="p-3 bg-slate-100 rounded-lg"><strong>Ejemplo:</strong> "GASA CAJA N°5" sale de un código con la observación "cambio de código", y el mismo día entra "FARMAPLUS GASA N°5" en otro código, misma sucursal, misma cantidad. Como la observación lo dice explícitamente y los nombres son casi el mismo producto, se relacionan como un posible cambio de código.</p>
+                        <p>Se exigen <strong>dos condiciones a la vez</strong>, no una sola: la observación tiene que declararlo explícitamente (menciona "cruce", "cambio de código", "migración", etc.) <strong>y</strong> los nombres de los dos productos tienen que ser casi idénticos. Que sea el mismo usuario, o que el precio sea parecido, ayuda a confirmar el caso pero nunca alcanza por sí solo — así se evitan falsos positivos entre productos que simplemente se parecen en el nombre sin ser el mismo caso real.</p>
                     </div>
 
                     <h2 class="text-lg font-bold text-slate-900 mb-4 pb-2 border-b border-slate-200">⚙️ Control de Atípicos</h2>
                     <div class="space-y-3 mb-10 text-sm leading-relaxed">
-                        <p>Permite <strong>excluir movimientos excepcionales</strong> de las estadísticas (por ejemplo, un ajuste gigante que distorsiona los promedios) sin borrarlos: siguen visibles en la tabla marcados como <span class="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] rounded font-bold border border-amber-200">ATÍPICO</span>.</p>
-                        <p>Podés definir un <strong>umbral de monto</strong> (todo movimiento igual o mayor se excluye) o excluir <strong>movimientos puntuales</strong> desde su detalle. Un banner ámbar indica cuántos movimientos y qué monto quedaron fuera del análisis, y los PDFs lo aclaran en una nota de depuración.</p>
+                        <p>Permite <strong>excluir movimientos excepcionales</strong> de las estadísticas (por ejemplo, un ajuste gigante que distorsiona los promedios) sin borrarlos: siguen visibles en la tabla, marcados como <span class="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] rounded font-bold border border-amber-200">ATÍPICO</span>.</p>
+                        <p>Podés definir un <strong>umbral de monto</strong> (cualquier movimiento igual o mayor queda excluido automáticamente) o marcar <strong>movimientos puntuales</strong> desde su detalle. Un banner ámbar indica cuántos movimientos y qué monto quedaron fuera del análisis en cada momento, y los PDF lo aclaran en una nota, para que nunca sea un dato escondido.</p>
                     </div>
 
                     <h2 class="text-lg font-bold text-slate-900 mb-4 pb-2 border-b border-slate-200">👤 Análisis por usuario y por motivo</h2>
                     <div class="space-y-3 mb-10 text-sm leading-relaxed">
-                        <p>Hacé clic en cualquier <strong>usuario</strong> del ranking para abrir su ficha: movimientos por motivo, <strong>Impacto Económico de los Ajustes</strong> (cuánto dinero representa cada motivo), productos más manipulados, nivel de concentración y alertas de patrones sospechosos (mismo producto ajustado varias veces en menos de 24 hs). Desde la ficha podés generar su <strong>PDF individual</strong>.</p>
-                        <p>Hacé clic en cualquier <strong>motivo</strong> de la tabla principal para ver su detalle por sucursal, con gráfico y acceso directo a filtrar el dashboard.</p>
+                        <p>Hacé clic en cualquier <strong>usuario</strong> del ranking para abrir su ficha completa: sus movimientos por motivo, el <strong>Impacto Económico</strong> de cada tipo de ajuste que hizo, los productos que más manipuló, qué tan concentrada está su actividad, y alertas si el mismo producto aparece ajustado varias veces en menos de 24 horas (un patrón que conviene revisar). Desde ahí podés generar su <strong>PDF individual</strong>.</p>
+                        <p>Hacé clic en cualquier <strong>motivo</strong> de la tabla principal para ver su detalle por sucursal, con gráfico y acceso directo para filtrar todo el dashboard por ese motivo.</p>
                     </div>
 
-                    <h2 class="text-lg font-bold text-slate-900 mb-4 pb-2 border-b border-slate-200">📄 Informes y exportación</h2>
+                    <div class="mb-10 pt-6 border-t-4 border-brand-primary/20">
+                        <p class="text-xs font-bold text-brand-primary uppercase tracking-widest mb-1">Parte 2</p>
+                        <h2 id="m-stock" class="text-2xl font-extrabold text-slate-900 scroll-mt-4">📦 Módulo Stock</h2>
+                        <p class="text-sm text-slate-500 mt-1">Analiza cuánto stock hay HOY en cada sucursal — no movimientos, una foto del presente.</p>
+                    </div>
+
                     <div class="space-y-3 mb-10 text-sm leading-relaxed">
-                        <p><strong>PDF General:</strong> al hacer clic se abre el modal <em>Exportar Informe</em> con dos opciones: <strong>🌎 Toda la empresa</strong> (informe completo de 3 páginas: portada, resumen ejecutivo y rankings) o <strong>🗺️ Por Zonal</strong>, donde todas las métricas se recalculan usando únicamente las sucursales del zonal elegido. Ambos respetan los filtros activos, incluido el de fecha.</p>
-                        <p><strong>Informe de Investigación:</strong> buscá un movimiento por <em>ID de operación</em> o <em>número de baja</em> y generá un documento con todos los renglones de esa operación, ideal para auditorías puntuales.</p>
-                        <p><strong>Exportar CSV:</strong> descarga la tabla de movimientos visible (con los filtros aplicados) para trabajarla en Excel.</p>
-                        <p class="text-slate-500 text-xs">💡 Los PDF se generan con el diálogo de impresión del navegador: elegí "Guardar como PDF" como destino.</p>
+                        <p><strong>Cómo empezar:</strong> desde Plex, andá a <strong>Informes → Stock → Listado de Stock</strong> y descargalo. Importalo con el botón de la pestaña Stock (es un botón distinto al de Movimientos). Es una <strong>foto diaria</strong>: no hay que preocuparse por acumular datos de días anteriores, cada importación reemplaza a la anterior por completo.</p>
+                        <p>Podés traer el archivo de <strong>todas las sucursales juntas</strong>, el de <strong>una sola sucursal</strong> (por ejemplo, si cada local exporta el suyo), o el recorte de un zonal. No hay que configurar nada: la aplicación detecta sola cuántas sucursales trae el archivo y adapta la pantalla.</p>
+
+                        <p class="font-bold text-slate-800 mt-4">Si el archivo trae varias sucursales — Vista Balance</p>
+                        <p>Es la pantalla de aterrizaje: te muestra el estado de <strong>toda la cadena</strong> junto. El KPI central es el <strong>% de déficit</strong> — qué porcentaje del inventario total tiene stock negativo — comparado contra el objetivo del negocio de mantenerlo <strong>por debajo del 1%</strong>. Debajo, un ranking ordena las sucursales de peor a mejor, con las que superan el objetivo resaltadas en rojo. Hacé clic en "Ver detalle" para entrar a una sucursal puntual, y "← Volver al Balance" para regresar al ranking completo.</p>
+                        <p class="p-3 bg-slate-100 rounded-lg">💡 Un número bajo a nivel de toda la cadena puede esconder problemas puntuales: es común que el promedio general cumpla el objetivo mientras 1 o 2 sucursales concentran casi todo el déficit. El ranking existe justamente para que eso no se te escape.</p>
+
+                        <p class="font-bold text-slate-800 mt-4">Vista de detalle de una sucursal</p>
+                        <p>Muestra el <strong>catálogo total</strong> de esa sucursal (contando también los productos en cero, no solo los que tienen stock cargado), el % de déficit con un indicador claro de si cumple o no el objetivo del 1%, y un segundo indicador que cambia según el caso: <strong>% de sobre-stock</strong> (si hay más sucursales para comparar — mide productos con muchísimo más stock de lo normal para ese mismo producto en otros locales) o <strong>% de cobertura de catálogo</strong> (si el archivo trae una sola sucursal, ya que ahí no hay con qué comparar). Abajo, dos tablas: los productos con mayor stock positivo y los de mayor stock negativo.</p>
+
+                        <p class="font-bold text-slate-800 mt-4">Informe PDF e impresión</p>
+                        <p>El botón <strong>Informe PDF</strong> genera un informe gerencial con tres alcances posibles: <strong>🌎 toda la cadena</strong>, <strong>🗺️ por zonal</strong> (usa la misma configuración de zonales de Movimientos) o <strong>🏬 una sucursal puntual</strong>. Si el archivo ya es de una sola sucursal, la aplicación no pregunta: genera directamente ese informe.</p>
+                        <p>El botón <strong>Negativos</strong> (junto al buscador, solo en la vista de detalle) es distinto: no es un informe gerencial, es un <strong>checklist para imprimir y recorrer el local</strong> con los productos en negativo, su código de barras y el stock del sistema, dejando columnas en blanco para anotar a mano el stock físico real, la diferencia, y una observación — más una línea de firma al pie. Sirve para el control físico en el punto de venta, no para presentar a gerencia.</p>
                     </div>
 
-                    <h2 class="text-lg font-bold text-slate-900 mb-4 pb-2 border-b border-slate-200">💾 Respaldo y modo sin internet</h2>
+                    <h2 id="m-informes" class="text-lg font-bold text-slate-900 mb-4 pb-2 border-b border-slate-200 scroll-mt-4">📄 Informes y exportación (Movimientos)</h2>
                     <div class="space-y-3 mb-10 text-sm leading-relaxed">
-                        <p><strong>Configuración compartida:</strong> desde Gestión de Zonales podés <strong>Exportar configuración</strong> (descarga un archivo con las zonales y los atípicos configurados) e <strong>Importar configuración</strong> en otra computadora. Recomendado como respaldo: la configuración vive en el navegador y una limpieza de caché la borra.</p>
-                        <p><strong>Conexión a internet:</strong> la aplicación necesita conexión para cargar sus componentes al abrirse. Una vez abierta, todo el análisis de datos se hace en tu equipo: el Excel nunca se sube a ningún servidor.</p>
+                        <p><strong>PDF General:</strong> al hacer clic se abre el modal <em>Exportar Informe</em> con dos opciones: <strong>🌎 Toda la empresa</strong> (informe completo de 3 páginas: portada, resumen ejecutivo y rankings) o <strong>🗺️ Por Zonal</strong>, donde todas las métricas se recalculan usando únicamente las sucursales del zonal elegido. Ambos respetan los filtros que tengas activos, incluido el de fecha.</p>
+                        <p><strong>Informe de Investigación:</strong> buscá un movimiento por <em>ID de operación</em> o <em>número de baja</em> y generá un documento con todos los renglones de esa operación puntual — ideal cuando necesitás auditar un caso específico.</p>
+                        <p><strong>Exportar CSV:</strong> descarga la tabla de movimientos visible (respetando los filtros aplicados) para seguir trabajándola en Excel.</p>
+                        <p class="text-slate-500 text-xs">💡 Los PDF se generan con el diálogo de impresión del navegador: elegí "Guardar como PDF" como destino en vez de una impresora física.</p>
                     </div>
 
-                    <h2 class="text-lg font-bold text-slate-900 mb-4 pb-2 border-b border-slate-200">💡 Consejos útiles</h2>
+                    <h2 id="m-respaldo" class="text-lg font-bold text-slate-900 mb-4 pb-2 border-b border-slate-200 scroll-mt-4">💾 Respaldo y modo sin internet</h2>
+                    <div class="space-y-3 mb-10 text-sm leading-relaxed">
+                        <p><strong>Configuración compartida:</strong> desde Gestión de Zonales podés <strong>Exportar configuración</strong> (descarga un archivo con las zonales y los atípicos configurados) e <strong>Importar configuración</strong> en otra computadora. Se recomienda como respaldo, porque la configuración vive guardada en el navegador y una limpieza de caché la borra.</p>
+                        <p><strong>Conexión a internet:</strong> hace falta estar conectado para abrir la aplicación (carga sus componentes desde internet la primera vez). Una vez abierta, todo el análisis de los Excel se hace en tu propia computadora: los archivos nunca se suben a ningún servidor.</p>
+                    </div>
+
+                    <h2 id="m-consejos" class="text-lg font-bold text-slate-900 mb-4 pb-2 border-b border-slate-200 scroll-mt-4">💡 Consejos útiles</h2>
                     <div class="space-y-2 mb-4 text-sm leading-relaxed">
-                        <p>• El botón con el ícono de sol/luna del encabezado alterna entre el <strong>tema oscuro</strong> (predeterminado) y el <strong>tema claro</strong>. Tu elección queda guardada. Los informes PDF siempre se imprimen en formato claro institucional, sin importar el tema en pantalla.</p>
+                        <p>• El botón con el ícono de sol/luna del encabezado alterna entre <strong>tema oscuro</strong> (predeterminado) y <strong>tema claro</strong>. Tu elección queda guardada. Los informes PDF siempre se imprimen en formato claro institucional, sin importar el tema que tengas activo en pantalla.</p>
                         <p>• La tecla <strong>Escape</strong> cierra cualquier ventana abierta.</p>
-                        <p>• Si intentás cerrar o recargar la pestaña con datos cargados, la aplicación te pide confirmación para evitar pérdidas accidentales.</p>
+                        <p>• Si intentás cerrar o recargar la pestaña con datos cargados, la aplicación pide confirmación para evitar que pierdas el trabajo sin querer.</p>
                         <p>• Los números de baja se pueden copiar al portapapeles con el ícono que aparece al pasar el mouse.</p>
-                        <p>• Si un archivo es rechazado, verificá que sea el original de Plex sin columnas modificadas.</p>
+                        <p>• Si un archivo es rechazado, verificá que sea el original exportado desde Plex, sin columnas agregadas ni modificadas.</p>
+                        <p>• Pasá el mouse sobre el nombre de una sucursal (en la tabla de movimientos o en el filtro) para ver a qué <strong>zonal</strong> pertenece, sin necesidad de abrir Gestión de Zonales.</p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- MODAL: EXPORTAR INFORME (PDF General) -->
+<!-- MODAL: EXPORTAR INFORME (PDF General) -->
     <!-- MODAL: EXPORTAR INFORME PDF DE STOCK -->
     <div id="modalExportStockPdf" class="fixed inset-0 z-[140] hidden items-center justify-center p-4 no-print bg-slate-900/50 backdrop-blur-sm modal-overlay" onclick="if(event.target === this) closeModal('modalExportStockPdf')">
         <div class="bg-white rounded-2xl shadow-floating border border-slate-100 w-full max-w-md overflow-hidden flex flex-col modal-content" onclick="event.stopPropagation()">
@@ -2109,6 +2203,13 @@
             if(id === 'modalOutliers') renderOutliersSettings();
             if(id === 'modalZonales') { document.getElementById('zonalSearch').value = ''; renderZonalesAdmin(); }
         }
+        // Navegación del índice del Manual de Usuario: hace scroll suave a la sección elegida
+        function scrollManualTo(id) {
+            const el = document.getElementById(id);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return false;
+        }
+
         function closeModal(id) {
             const modal = document.getElementById(id); modal.classList.remove('fade-in'); modal.classList.add('fade-out');
             setTimeout(() => {
