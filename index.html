@@ -461,7 +461,7 @@
                     <label id="btnStockUploadLabel" data-tip="Cargá el Listado de Stock exportado desde Plex (Informes → Stock → Listado de Stock)" class="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-brand-primary text-white font-semibold rounded-xl text-sm hover:bg-brand-primaryHover smooth-transition shadow-soft cursor-pointer flex items-center justify-center gap-2 relative overflow-hidden">
                         <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                         <span id="btnStockUploadText" class="whitespace-nowrap">Importar Stock</span>
-                        <input type="file" class="hidden" accept=".xlsx,.xls" onchange="handleStockFile(event)">
+                        <input type="file" class="hidden" accept=".xlsx,.xls" multiple onchange="handleStockFile(event)">
                     </label>
                 </div>
             </div>
@@ -803,13 +803,14 @@
                     <svg class="w-12 h-12 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                 </div>
                 <h2 class="text-2xl font-semibold text-brand-text tracking-tight mb-2">Importá tu Listado de Stock</h2>
-                <p class="text-sm text-brand-textSec max-w-md leading-relaxed mb-8">Cargá el <strong class="font-semibold text-slate-700">Listado de Stock</strong> exportado desde Plex y elegí tu sucursal para ver de un vistazo los productos con mayor stock positivo y negativo, con su porcentaje sobre el total.</p>
+                <p class="text-sm text-brand-textSec max-w-md leading-relaxed mb-8">Cargá el <strong class="font-semibold text-slate-700">Listado de Stock</strong> exportado desde Plex — de todas las sucursales, de una sola, o varios a la vez — y mirá de un vistazo los productos con mayor stock positivo y negativo, con su porcentaje sobre el total.</p>
                 <label class="px-6 py-3 bg-brand-primary text-white font-semibold rounded-xl text-sm hover:bg-brand-primaryHover smooth-transition shadow-soft flex items-center gap-2 cursor-pointer">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
                     Importar Stock
-                    <input type="file" class="hidden" accept=".xlsx,.xls" onchange="handleStockFile(event)">
+                    <input type="file" class="hidden" accept=".xlsx,.xls" multiple onchange="handleStockFile(event)">
                 </label>
                 <p class="text-[11px] text-slate-400 mt-4 font-medium tracking-wide">Plex &rarr; Informes &rarr; Stock &rarr; Listado de Stock</p>
+                <p class="text-[11px] text-slate-400 mt-1.5 max-w-sm leading-relaxed">💡 Podés seleccionar varios archivos juntos: si subís el consolidado de todas las sucursales junto con el archivo propio de una en particular, esa sucursal usa su catálogo real en vez del aproximado.</p>
             </div>
 
             <!-- Loader -->
@@ -1384,6 +1385,44 @@
     </div>
     
     <!-- Modal: Detalle de Movimiento -->
+    <!-- Modal: Detalle de Ajustes (usuario + motivo, lista de movimientos) -->
+    <div id="modalUserMotivoDetail" class="fixed inset-0 z-[125] hidden items-center justify-center p-4 no-print bg-slate-900/50 backdrop-blur-sm modal-overlay" onclick="if(event.target === this) closeModal('modalUserMotivoDetail')">
+        <div class="bg-white rounded-2xl shadow-floating border border-slate-100 w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col modal-content" onclick="event.stopPropagation()">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center px-6 py-4 border-b border-slate-100 bg-white shrink-0 gap-2">
+                <div>
+                    <h3 class="text-base font-bold text-brand-text tracking-tight">Detalle de Ajustes</h3>
+                    <p class="text-xs text-slate-500 mt-0.5"><span id="umdUsuario" class="font-semibold text-slate-700"></span> · <span id="umdMotivo" class="font-semibold text-slate-700"></span> · <span id="umdCantidad"></span> movimiento(s)</p>
+                </div>
+                <div class="relative w-full sm:w-56">
+                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <input type="text" id="umdSearch" oninput="filtrarUserMotivoDetail()" placeholder="Buscar producto o sucursal..." class="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg outline-none focus:border-brand-primary bg-slate-50 focus:bg-white" autocomplete="off">
+                </div>
+                <button onclick="closeModal('modalUserMotivoDetail')" class="text-slate-400 hover:text-slate-700 smooth-transition p-1.5 rounded-lg hover:bg-slate-100 outline-none shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="overflow-x-auto overflow-y-auto custom-scrollbar flex-1 bg-white">
+                <table class="w-full text-left erp-table dark-header-table">
+                    <thead class="sticky top-0 z-10 shadow-sm">
+                        <tr>
+                            <th class="whitespace-nowrap">Fecha</th>
+                            <th>N°</th>
+                            <th class="hidden md:table-cell">Sucursal</th>
+                            <th>Producto y EAN</th>
+                            <th class="text-right">Cant.</th>
+                            <th class="min-w-[140px]">Motivo</th>
+                            <th class="hidden sm:table-cell text-right">Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody id="umdTableBody"></tbody>
+                </table>
+            </div>
+            <div class="px-6 py-3 border-t border-slate-100 bg-slate-50 shrink-0">
+                <button onclick="exportarUserMotivoDetail()" class="text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg font-semibold text-xs smooth-transition">Exportar a Excel</button>
+            </div>
+        </div>
+    </div>
+
     <div id="modalMov" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 no-print bg-slate-900/50 backdrop-blur-sm modal-overlay" onclick="if(event.target === this) closeModal('modalMov')">
         <div class="bg-white rounded-2xl shadow-floating border border-slate-100 w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col modal-content" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-white shrink-0">
@@ -1439,6 +1478,10 @@
                                 <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                                 <span id="uDetBranchText" class="truncate max-w-[200px]">Sucursal</span>
                             </div>
+                            <div id="uDetZonalWrap" class="hidden items-center gap-1 text-violet-700 bg-violet-50 px-2 py-0.5 rounded text-xs font-bold border border-violet-100 w-fit">
+                                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                <span id="uDetZonalText" class="truncate max-w-[160px]"></span>
+                            </div>
                         </div>
                         <p class="text-xs font-medium text-slate-500 mt-1">Análisis detallado de actividad</p>
                     </div>
@@ -1463,7 +1506,10 @@
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                     <div class="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden flex flex-col h-full max-h-[350px]">
-                        <div class="px-5 py-3 border-b border-slate-100 bg-slate-50/80"><h4 class="text-sm font-bold text-slate-700">Desglose por Motivo</h4></div>
+                        <div class="px-5 py-3 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between">
+                            <h4 class="text-sm font-bold text-slate-700">Desglose por Motivo</h4>
+                            <p class="text-[10px] text-slate-400">Clic en un motivo para ver el detalle</p>
+                        </div>
                         <div class="overflow-x-auto overflow-y-auto custom-scrollbar flex-1">
                             <table class="w-full text-left erp-table"><thead class="bg-white sticky top-0 shadow-sm z-10"><tr><th>Motivo</th><th class="text-right">Cantidad</th><th class="text-right">%</th></tr></thead><tbody id="uDetTableBody"></tbody></table>
                         </div>
@@ -1860,6 +1906,7 @@
                     <div class="space-y-3 mb-10 text-sm leading-relaxed">
                         <p><strong>Cómo empezar:</strong> desde Plex, andá a <strong>Informes → Stock → Listado de Stock</strong> y descargalo. Importalo con el botón de la pestaña Stock (es un botón distinto al de Movimientos). Es una <strong>foto diaria</strong>: no hay que preocuparse por acumular datos de días anteriores, cada importación reemplaza a la anterior por completo.</p>
                         <p>Podés traer el archivo de <strong>todas las sucursales juntas</strong>, el de <strong>una sola sucursal</strong> (por ejemplo, si cada local exporta el suyo), o el recorte de un zonal. No hay que configurar nada: la aplicación detecta sola cuántas sucursales trae el archivo y adapta la pantalla.</p>
+                        <p class="p-3 bg-slate-100 rounded-lg">📐 <strong>Precisión por sucursal:</strong> podés seleccionar <strong>varios archivos a la vez</strong> al importar. Si subís el consolidado de todas las sucursales junto con el archivo propio de una en particular, esa sucursal usa su <strong>catálogo real</strong> (solo sus productos) en vez del catálogo universal de toda la empresa — esto importa porque no todas las sucursales manejan los mismos productos, algunas tienen mucho surtido y otras muchísimo. Las sucursales con catálogo exacto se marcan con <span class="text-brand-primary font-bold">📐 exacto</span> en el ranking del Balance.</p>
 
                         <p class="font-bold text-slate-800 mt-4">Si el archivo trae varias sucursales — Vista Balance</p>
                         <p>Es la pantalla de aterrizaje: te muestra el estado de <strong>toda la cadena</strong> junto. El KPI central es el <strong>% de déficit</strong> — qué porcentaje del inventario total tiene stock negativo — comparado contra el objetivo del negocio de mantenerlo <strong>por debajo del 1%</strong>. Debajo, un ranking ordena las sucursales de peor a mejor, con las que superan el objetivo resaltadas en rojo. Hacé clic en "Ver detalle" para entrar a una sucursal puntual, y "← Volver al Balance" para regresar al ranking completo.</p>
@@ -2186,7 +2233,7 @@
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 closeDropdowns();
-                ['modalUserDetail', 'modalAllUsers', 'modalMov', 'modalValidationError', 'modalManual', 'modalInvestigacion', 'modalOutliers', 'modalMotivo', 'modalZonales', 'modalExportPdf', 'modalExportStockPdf', 'modalCostAudit', 'modalCompensa'].forEach(id => {
+                ['modalUserDetail', 'modalAllUsers', 'modalMov', 'modalUserMotivoDetail', 'modalValidationError', 'modalManual', 'modalInvestigacion', 'modalOutliers', 'modalMotivo', 'modalZonales', 'modalExportPdf', 'modalExportStockPdf', 'modalCostAudit', 'modalCompensa'].forEach(id => {
                     const m = document.getElementById(id);
                     if (m && m.classList.contains('fade-in')) closeModal(id);
                 });
@@ -4086,6 +4133,12 @@
         let stockCodigosSuc = [];     // [{cod, nombre}] presentes en ESTE archivo, ordenados por nombre
         let stockCurrentSuc = null;   // código de sucursal actualmente seleccionado
         let stockVistaBalance = false; // true = viendo el Balance de toda la cadena
+        // Catálogo EXACTO por sucursal: cuando subís el archivo propio de una sucursal (no el
+        // consolidado de todas), esa sucursal solo maneja los productos que realmente aparecen
+        // en su archivo — el consolidado no distingue "no le corresponde" de "tiene 0", así que
+        // usar su archivo propio es la única forma de saber su catálogo real (ver conversación:
+        // Caballito IV tiene 20.753 productos propios, no los 28.244 del consolidado).
+        let stockCatalogoExacto = new Map(); // cod -> Set(IDProducto)
         let stockVistaActual = { positivos: [], negativos: [] };
 
         function parseStockWorkbook(binary) {
@@ -4161,9 +4214,18 @@
             document.getElementById('skeletonStock').classList.add('hidden');
         }
 
-        function handleStockFile(e) {
-            const file = e.target.files[0]; if (!file) return;
-            const reader = new FileReader();
+        // Lee un único archivo como ArrayBuffer, envuelto en Promise para poder leer varios en paralelo
+        function leerArchivoComoBuffer(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (evt) => resolve(evt.target.result);
+                reader.onerror = () => reject(new Error('No se pudo leer ' + file.name));
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        async function handleStockFile(e) {
+            const files = Array.from(e.target.files || []); if (!files.length) return;
             const uploadBtn = document.getElementById('btnStockUploadLabel');
             const uploadText = document.getElementById('btnStockUploadText');
             uploadText.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Procesando...`;
@@ -4173,59 +4235,92 @@
             document.getElementById('stockDashboard').classList.add('hidden');
             showStockLoader();
 
-            reader.onerror = function() {
-                hideStockLoader();
+            try {
+                const buffers = await Promise.all(files.map(leerArchivoComoBuffer));
+                const parseados = buffers.map(b => parseStockWorkbook(b));
+                const validos = parseados.filter(p => p.valid);
+                if (!validos.length) {
+                    document.getElementById('modalValidationErrorText').innerHTML = 'Ninguno de los archivos corresponde al formato del Listado de Stock. Recordá descargarlos desde <strong class="font-semibold text-slate-800">Plex → Informes → Stock → Listado de Stock</strong> e intentá nuevamente.';
+                    openModal('modalValidationError');
+                    document.getElementById('stockEmptyState').classList.toggle('hidden', stockProductos.length > 0);
+                    if (stockProductos.length > 0) document.getElementById('stockDashboard').classList.remove('hidden');
+                    return;
+                }
+
+                // FUSIÓN: los archivos de UNA sola sucursal son la fuente de verdad para esa
+                // sucursal (catálogo Y cantidades) — nunca se mezclan con el consolidado para
+                // la misma sucursal. El consolidado solo cubre las sucursales sin archivo propio.
+                const individuales = validos.filter(p => p.codigosSuc.length === 1);
+                const consolidados = validos.filter(p => p.codigosSuc.length > 1);
+
+                const catalogoExacto = new Map();   // cod -> Set(IDProducto)
+                const productosPorId = new Map();   // IDProducto -> objeto producto fusionado
+                const codigosSucMap = new Map();    // cod -> nombre
+
+                // Base: todos los consolidados primero (dan el universo más amplio de productos)
+                consolidados.forEach(p => {
+                    p.productos.forEach(prod => {
+                        const existente = productosPorId.get(prod.IDProducto);
+                        if (!existente) { productosPorId.set(prod.IDProducto, prod); }
+                        else { prod.stockPorSuc.forEach((v, cod) => existente.stockPorSuc.set(cod, v)); }
+                    });
+                    p.codigosSuc.forEach(s => codigosSucMap.set(s.cod, s.nombre));
+                });
+
+                // Archivos individuales: SOBRESCRIBEN el catálogo y las cantidades de esa sucursal
+                individuales.forEach(p => {
+                    const cod = p.codigosSuc[0].cod;
+                    codigosSucMap.set(cod, p.codigosSuc[0].nombre);
+                    const idsDeEstaSuc = new Set();
+                    p.productos.forEach(prod => {
+                        idsDeEstaSuc.add(prod.IDProducto);
+                        let master = productosPorId.get(prod.IDProducto);
+                        if (!master) { master = prod; productosPorId.set(prod.IDProducto, master); }
+                        // La cantidad de ESTA sucursal viene siempre del archivo individual (más preciso)
+                        if (prod.stockPorSuc.has(cod)) master.stockPorSuc.set(cod, prod.stockPorSuc.get(cod));
+                        else master.stockPorSuc.delete(cod);
+                    });
+                    catalogoExacto.set(cod, idsDeEstaSuc);
+                });
+
+                stockProductos = [...productosPorId.values()];
+                // Recalcula medianas entre sucursales sobre el catálogo ya fusionado
+                stockProductos.forEach(p => {
+                    const positivos = [...p.stockPorSuc.values()].filter(c => c > 0).sort((a, b) => a - b);
+                    p.medianaStock = positivos.length ? positivos[Math.floor(positivos.length / 2)] : null;
+                });
+                stockCodigosSuc = [...codigosSucMap.entries()].map(([cod, nombre]) => ({ cod, nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre));
+                stockCatalogoExacto = catalogoExacto;
+
+                stockCurrentSuc = stockCodigosSuc.length ? stockCodigosSuc[0].cod : null;
+                stockVistaBalance = stockCodigosSuc.length > 1;
+                poblarSelectorSucursalStock();
+                const now = new Date();
+                document.getElementById('stockHeaderMainLabel').innerText =
+                    stockCodigosSuc.length > 1 ? `Stock: ${stockCodigosSuc.length} sucursales` : `Stock: ${stockCodigosSuc[0]?.nombre || ''}`;
+                const nExactas = catalogoExacto.size;
+                document.getElementById('stockHeaderSubLabel').innerText = `Listado del ${now.toLocaleDateString('es-AR')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')} · foto diaria` + (nExactas ? ` · ${nExactas} sucursal(es) con catálogo exacto` : '');
+                document.getElementById('stockHeaderDateContainer').classList.remove('hidden');
+                document.getElementById('btnStockExport').classList.remove('hidden');
+                document.getElementById('btnStockPdf').classList.remove('hidden');
+                document.getElementById('btnStockDelete').classList.remove('hidden');
+                document.getElementById('stockDashboard').classList.remove('hidden');
+                if (stockVistaBalance) renderStockBalance(); else renderStockSucursal();
+            } catch (err) {
+                console.error(err);
                 document.getElementById('stockEmptyState').classList.toggle('hidden', stockProductos.length > 0);
-                if (stockProductos.length > 0) document.getElementById('stockDashboard').classList.remove('hidden');
+                document.getElementById('stockErrorText').innerText = 'No se pudo leer alguno de los archivos. Verificá que no estén abiertos en Excel ni dañados, e intentá de nuevo.';
+                document.getElementById('stockErrorBanner').classList.remove('hidden');
+            } finally {
+                hideStockLoader();
                 uploadText.innerText = stockProductos.length > 0 ? 'Cambiar Excel' : 'Importar Stock';
                 uploadBtn.classList.remove('opacity-80', 'pointer-events-none');
-                document.getElementById('stockErrorText').innerText = 'No se pudo leer el archivo desde el disco. Verificá que no esté abierto en Excel ni dañado, e intentá de nuevo.';
-                document.getElementById('stockErrorBanner').classList.remove('hidden');
-            };
-            reader.onload = function(evt) {
-                setTimeout(() => {
-                    try {
-                        document.getElementById('stockErrorBanner').classList.add('hidden');
-                        const parsed = parseStockWorkbook(evt.target.result);
-                        if (!parsed.valid) {
-                            document.getElementById('modalValidationErrorText').innerHTML = 'Este archivo está manipulado o no corresponde al formato del Listado de Stock. Recordá descargar el archivo desde <strong class="font-semibold text-slate-800">Plex → Informes → Stock → Listado de Stock</strong> e intentá nuevamente.';
-                            openModal('modalValidationError');
-                            document.getElementById('stockEmptyState').classList.toggle('hidden', stockProductos.length > 0);
-                            if (stockProductos.length > 0) document.getElementById('stockDashboard').classList.remove('hidden');
-                            return;
-                        }
-                        stockProductos = parsed.productos;
-                        stockCodigosSuc = parsed.codigosSuc;
-                        stockCurrentSuc = stockCodigosSuc.length ? stockCodigosSuc[0].cod : null;
-                        stockVistaBalance = stockCodigosSuc.length > 1;
-                        poblarSelectorSucursalStock();
-                        const now = new Date();
-                        document.getElementById('stockHeaderMainLabel').innerText =
-                            stockCodigosSuc.length > 1 ? `Stock: ${stockCodigosSuc.length} sucursales` : `Stock: ${stockCodigosSuc[0]?.nombre || ''}`;
-                        document.getElementById('stockHeaderSubLabel').innerText = `Listado del ${now.toLocaleDateString('es-AR')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')} · foto diaria`;
-                        document.getElementById('stockHeaderDateContainer').classList.remove('hidden');
-                        document.getElementById('btnStockExport').classList.remove('hidden');
-                        document.getElementById('btnStockPdf').classList.remove('hidden');
-                        document.getElementById('btnStockDelete').classList.remove('hidden');
-                        document.getElementById('stockDashboard').classList.remove('hidden');
-                        if (stockVistaBalance) renderStockBalance(); else renderStockSucursal();
-                    } catch (err) {
-                        console.error(err);
-                        document.getElementById('stockEmptyState').classList.toggle('hidden', stockProductos.length > 0);
-                        document.getElementById('modalValidationErrorText').innerHTML = 'Este archivo está manipulado o no corresponde al formato del Listado de Stock. Recordá descargar el archivo desde <strong class="font-semibold text-slate-800">Plex → Informes → Stock → Listado de Stock</strong> e intentá nuevamente.';
-                        openModal('modalValidationError');
-                    } finally {
-                        hideStockLoader();
-                        uploadText.innerText = stockProductos.length > 0 ? 'Cambiar Excel' : 'Importar Stock';
-                        uploadBtn.classList.remove('opacity-80', 'pointer-events-none');
-                    }
-                }, 50);
-            };
-            reader.readAsArrayBuffer(file); e.target.value = '';
+                e.target.value = '';
+            }
         }
 
         function limpiarStock() {
-            stockProductos = []; stockCodigosSuc = []; stockCurrentSuc = null;
+            stockProductos = []; stockCodigosSuc = []; stockCurrentSuc = null; stockCatalogoExacto = new Map();
             document.getElementById('stockDashboard').classList.add('hidden');
             document.getElementById('stockEmptyState').classList.remove('hidden');
             document.getElementById('stockHeaderDateContainer').classList.add('hidden');
@@ -4280,20 +4375,17 @@
             const OBJETIVO_NEG_MAX = 1;
             let totalCombosNeg = 0, totalCombosStock = 0, valorTotalCadena = 0, valorDeficitCadena = 0;
             const porSucursal = stockCodigosSuc.map(s => {
-                let neg = 0, val = 0, valDef = 0, conStock = 0;
-                stockProductos.forEach(p => {
-                    const c = p.stockPorSuc.get(s.cod);
-                    if (c === undefined) return;
-                    conStock++;
-                    if (c < 0) { neg++; valDef += Math.abs(c) * p.costo; } else { val += c * p.costo; }
-                });
-                totalCombosNeg += neg; totalCombosStock += conStock;
-                valorTotalCadena += val; valorDeficitCadena += valDef;
-                const pct = totalCatalogo ? (neg / totalCatalogo * 100) : 0;
-                return { nombre: s.nombre, cod: s.cod, neg, conStock, pct, val, valDef };
+                const st = calcularStatsSucursal(s.cod);
+                totalCombosNeg += st.neg; totalCombosStock += st.conStock;
+                valorTotalCadena += st.val; valorDeficitCadena += st.valDef;
+                return { nombre: s.nombre, cod: s.cod, neg: st.neg, conStock: st.conStock, pct: st.pct, val: st.val, valDef: st.valDef, esExacto: st.esExacto };
             });
             porSucursal.sort((a, b) => b.pct - a.pct);
 
+            const nExactas = stockCatalogoExacto.size;
+            // El % global de la cadena usa el catálogo universal como aproximación razonable
+            // (mezclar denominadores exactos y aproximados no daría un número consistente);
+            // cada fila del ranking, en cambio, sí usa su catálogo exacto cuando está disponible.
             const pctNegGlobal = (stockCodigosSuc.length && totalCatalogo) ? (totalCombosNeg / (totalCatalogo * stockCodigosSuc.length) * 100) : 0;
             const cumpleGlobal = pctNegGlobal < OBJETIVO_NEG_MAX;
             const peorSuc = porSucursal[0];
@@ -4306,8 +4398,8 @@
                     ${sub ? `<p class="text-[10px] text-slate-400 mt-0.5 truncate">${escapeHtml(sub)}</p>` : ''}
                 </div>`;
             document.getElementById('stockBalanceKpis').innerHTML =
-                card('Productos del catálogo × cantidad de sucursales cargadas: el universo total que se audita.', 'Catálogo × sucursales', `${totalCatalogo.toLocaleString('es-AR')} × ${stockCodigosSuc.length}`, `${totalCombosStock.toLocaleString('es-AR')} combinaciones con stock declarado`) +
-                card('Objetivo del negocio: mantener el stock negativo por debajo del 1% del inventario total, medido sobre TODA la cadena (catálogo × sucursales).', '% déficit — toda la cadena', pctNegGlobal.toFixed(2) + '%', `objetivo <1% ${cumpleGlobal ? '✔ cumple' : '✗ no cumple'}`, cumpleGlobal ? 'text-emerald-600' : 'text-red-600') +
+                card('Productos del catálogo universal × cantidad de sucursales cargadas: el universo total que se audita. Las sucursales con archivo propio cargado usan su catálogo real en el ranking, no este número universal.', 'Catálogo × sucursales', `${totalCatalogo.toLocaleString('es-AR')} × ${stockCodigosSuc.length}`, `${totalCombosStock.toLocaleString('es-AR')} combinaciones con stock declarado${nExactas ? ` · ${nExactas} con catálogo exacto` : ''}`) +
+                card('Objetivo del negocio: mantener el stock negativo por debajo del 1% del inventario total, medido sobre TODA la cadena (aproximado con el catálogo universal).', '% déficit — toda la cadena', pctNegGlobal.toFixed(2) + '%', `objetivo <1% ${cumpleGlobal ? '✔ cumple' : '✗ no cumple'}`, cumpleGlobal ? 'text-emerald-600' : 'text-red-600') +
                 card('Cantidad de sucursales cuyo propio % de déficit ya supera el objetivo del 1%.', 'Fuera de objetivo', `${sucursalesFueraObjetivo} de ${stockCodigosSuc.length}`, sucursalesFueraObjetivo ? 'requieren atención' : 'todas dentro del objetivo', sucursalesFueraObjetivo ? 'text-red-600' : 'text-emerald-600') +
                 card('Valorización del stock positivo de toda la cadena combinada.', 'Valor del stock (cadena)', formatCurrencyCompact(valorTotalCadena), '') +
                 card('Costo teórico de reponer todo el déficit de toda la cadena combinada.', 'Valor del déficit (cadena)', formatCurrencyCompact(valorDeficitCadena), peorSuc ? `peor: ${peorSuc.nombre}` : '', 'text-red-600');
@@ -4315,7 +4407,7 @@
             document.getElementById('stockBalanceRanking').innerHTML = porSucursal.map((s, i) => `
                 <tr class="${s.pct >= OBJETIVO_NEG_MAX ? 'bg-red-50/60' : ''}">
                     <td class="px-3 py-2.5 text-xs text-slate-400 text-center">${i + 1}</td>
-                    <td class="px-3 py-2.5 text-xs font-semibold text-slate-800">${escapeHtml(s.nombre)}</td>
+                    <td class="px-3 py-2.5 text-xs font-semibold text-slate-800">${escapeHtml(s.nombre)} ${s.esExacto ? `<span class="text-[9px] font-bold text-brand-primary bg-brand-primary/10 px-1 py-0.5 rounded" title="Catálogo real: esta sucursal tiene su propio archivo cargado, no usa el catálogo universal aproximado">📐 exacto</span>` : ''}</td>
                     <td class="px-3 py-2.5 text-xs text-right tabular-nums text-slate-600">${s.conStock.toLocaleString('es-AR')}</td>
                     <td class="px-3 py-2.5 text-xs text-right tabular-nums font-bold ${s.neg ? 'text-red-600' : 'text-slate-800'}">${s.neg}</td>
                     <td class="px-3 py-2.5 text-xs text-right tabular-nums font-bold ${s.pct >= OBJETIVO_NEG_MAX ? 'text-red-600' : 'text-emerald-600'}">${s.pct.toFixed(2)}%</td>
@@ -4337,12 +4429,16 @@
             btnVolver.classList.toggle('flex', stockCodigosSuc.length > 1);
             const cod = stockCurrentSuc;
             const term = normTxt((document.getElementById('stockSearch') || {}).value || '');
-            // "Inventario total" = TODOS los productos del catálogo cargado, estén en 0,
-            // positivo o negativo. Antes se usaba solo "productos con stock != 0" como base,
-            // lo que inflaba artificialmente el % de déficit (a más ceros excluidos, mayor
-            // el porcentaje resultante) — un error serio para un objetivo con umbral estricto.
-            const total = stockProductos.length;
-            const conStock = stockProductos.filter(p => p.stockPorSuc.has(cod));
+            // "Inventario total" = TODOS los productos del catálogo de esta sucursal, estén en 0,
+            // positivo o negativo. Si subiste el archivo PROPIO de esta sucursal, se usa su
+            // catálogo exacto (no el universal de todas las sucursales, que le sumaría productos
+            // que no le corresponden — ver conversación: Caballito IV tiene 20.753 productos
+            // propios, no los 28.244 del consolidado, que no distingue "no le corresponde" de "0").
+            const catalogoExacto = stockCatalogoExacto.get(cod);
+            const esExacto = !!catalogoExacto;
+            const total = esExacto ? catalogoExacto.size : stockProductos.length;
+            const universo = esExacto ? stockProductos.filter(p => catalogoExacto.has(p.IDProducto)) : stockProductos;
+            const conStock = universo.filter(p => p.stockPorSuc.has(cod));
 
             const negativos = conStock.filter(p => p.stockPorSuc.get(cod) < 0);
             // "Sobre-stock" compara contra la mediana de OTRAS sucursales: con un archivo de
@@ -4368,8 +4464,8 @@
                     ${sub ? `<p class="text-[10px] text-slate-400 mt-0.5 truncate">${escapeHtml(sub)}</p>` : ''}
                 </div>`;
             document.getElementById('stockKpis').innerHTML =
-                card('Cantidad TOTAL de productos del catálogo de esta sucursal, estén en 0, en positivo o en negativo.', 'SKU (catálogo total)', total.toLocaleString('es-AR'), `${conStock.length.toLocaleString('es-AR')} con stock declarado`) +
-                card(`Objetivo del negocio: mantener el stock negativo por debajo del 1% del inventario total. Calculado sobre el catálogo completo (${total.toLocaleString('es-AR')} productos), no solo los que tienen stock declarado.`, '% con déficit (negativo)', pctNeg.toFixed(2) + '%', `${negativos.length} producto(s) · objetivo <1% ${cumpleObjetivo ? '✔ cumple' : '✗ no cumple'}`, cumpleObjetivo ? 'text-emerald-600' : 'text-red-600') +
+                card(esExacto ? 'Cantidad TOTAL de productos del catálogo REAL de esta sucursal (su propio archivo), estén en 0, en positivo o en negativo.' : 'Cantidad TOTAL de productos del catálogo cargado, estén en 0, en positivo o en negativo. Aproximado: usa el catálogo universal del archivo porque esta sucursal no tiene un archivo propio cargado.', esExacto ? '📐 SKU (catálogo exacto)' : '≈ SKU (catálogo aprox.)', total.toLocaleString('es-AR'), `${conStock.length.toLocaleString('es-AR')} con stock declarado`) +
+                card(`Objetivo del negocio: mantener el stock negativo por debajo del 1% del inventario total. Calculado sobre el catálogo ${esExacto ? 'real' : 'aproximado'} (${total.toLocaleString('es-AR')} productos), no solo los que tienen stock declarado.`, '% con déficit (negativo)', pctNeg.toFixed(2) + '%', `${negativos.length} producto(s) · objetivo <1% ${cumpleObjetivo ? '✔ cumple' : '✗ no cumple'}`, cumpleObjetivo ? 'text-emerald-600' : 'text-red-600') +
                 (comparableEntreSucursales
                     ? card('Productos cuyo stock en esta sucursal es 3 veces o más la mediana de stock que ese mismo producto tiene en las demás sucursales — posible sobre-stock o inmovilizado. Calculado sobre el catálogo completo.', '% con sobre-stock', pctSobre.toFixed(2) + '%', `${sobreStock.length} producto(s)`, sobreStock.length ? 'text-amber-600' : 'text-slate-900')
                     : (() => {
@@ -4460,10 +4556,15 @@
         // sucursal), reutilizando el mismo mecanismo de impresión que Movimientos.
         // ============================================================================
         function calcularStatsSucursal(cod) {
-            const total = stockProductos.length;
+            const catalogoExacto = stockCatalogoExacto.get(cod); // Set(IDProducto) o undefined
+            const esExacto = !!catalogoExacto;
+            const total = esExacto ? catalogoExacto.size : stockProductos.length;
             let neg = 0, pos = 0, val = 0, valDef = 0, conStock = 0;
             const negativosDet = [], positivosDet = [];
             stockProductos.forEach(p => {
+                // Con catálogo exacto, solo cuentan los productos que realmente son de esta
+                // sucursal — el resto ni siquiera se evalúa, aunque el consolidado tuviera un 0.
+                if (esExacto && !catalogoExacto.has(p.IDProducto)) return;
                 const c = p.stockPorSuc.get(cod);
                 if (c === undefined) return;
                 conStock++;
@@ -4472,7 +4573,7 @@
             });
             negativosDet.sort((a, b) => a.c - b.c);
             positivosDet.sort((a, b) => b.c - a.c);
-            return { total, conStock, neg, pos, val, valDef, pct: total ? (neg / total * 100) : 0, negativosDet, positivosDet };
+            return { total, conStock, neg, pos, val, valDef, pct: total ? (neg / total * 100) : 0, negativosDet, positivosDet, esExacto };
         }
 
         function openExportStockModal() {
@@ -4722,7 +4823,7 @@
         // re-renderice solo) y el foco vuelve al campo.
         // ====================================================================
         function initClearableSearchInputs() {
-            const ids = ['branchSearch', 'obsSearch', 'searchUserInputMain', 'searchAllUsersInput', 'costAuditSearch', 'zonalSearch', 'compSearch'];
+            const ids = ['branchSearch', 'obsSearch', 'searchUserInputMain', 'searchAllUsersInput', 'costAuditSearch', 'zonalSearch', 'compSearch', 'umdSearch'];
             ids.forEach(id => {
                 const input = document.getElementById(id);
                 if (!input || input.dataset.clearable) return;
@@ -4875,8 +4976,20 @@
             document.getElementById('uDetBranchText').innerText = branchText;
             document.getElementById('uDetBranchText').title = userBranches.join(', ');
 
+            // Zonal: se calcula en vivo con getZonalForSucursal(), así que si después cambiás
+            // la asignación en Gestión de Zonales, la próxima vez que abras esta ficha ya
+            // muestra el zonal actualizado, sin guardar nada aparte.
+            const zonalWrap = document.getElementById('uDetZonalWrap');
+            const zonalesDeEsteUsuario = [...new Set(userBranches.map(getZonalForSucursal).filter(Boolean))];
+            if (zonalesDeEsteUsuario.length === 1) {
+                document.getElementById('uDetZonalText').innerText = zonalesDeEsteUsuario[0];
+                zonalWrap.classList.remove('hidden'); zonalWrap.classList.add('flex');
+            } else {
+                zonalWrap.classList.add('hidden'); zonalWrap.classList.remove('flex');
+            }
+
             const motivosArr = Object.entries(u.motivos).sort((a,b) => b[1].movs - a[1].movs);
-            document.getElementById('uDetTableBody').innerHTML = motivosArr.map(m => `<tr><td class="font-medium text-slate-700">${escapeHtml(m[0])}</td><td class="text-right font-semibold">${formatNumber(m[1].movs)}</td><td class="text-right text-slate-500">${((m[1].movs / u.movs) * 100).toFixed(1)}%</td></tr>`).join('');
+            document.getElementById('uDetTableBody').innerHTML = motivosArr.map(m => `<tr class="cursor-pointer hover:bg-slate-50 smooth-transition" onclick="openUserMotivoDetail('${escapeHtml(m[0]).replace(/'/g, "\\'")}')"><td class="font-medium text-brand-primary hover:underline underline-offset-2">${escapeHtml(m[0])}</td><td class="text-right font-semibold">${formatNumber(m[1].movs)}</td><td class="text-right text-slate-500">${((m[1].movs / u.movs) * 100).toFixed(1)}%</td></tr>`).join('');
             
             if (userChartInstance) userChartInstance.destroy();
             Chart.defaults.font.family = 'Inter, sans-serif'; Chart.defaults.color = T().chartText;
@@ -4902,6 +5015,41 @@
             let alertasHtml = alertas.length > 0 ? alertas.map(a => `<div class="flex items-start gap-2 bg-orange-50/50 p-2.5 rounded-lg border border-orange-100 text-sm text-orange-800"><svg class="w-4 h-4 text-orange-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> ${a}</div>`).join('') : `<div class="flex items-center gap-2 bg-emerald-50/50 p-3 rounded-lg border border-emerald-100 text-emerald-700 text-sm"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Consistencia operativa estable.</div>`;
             document.getElementById('uDetConsistency').innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-8"><div><h5 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Top Productos</h5><div class="flex flex-col gap-1">${topProdHtml}</div></div><div class="flex flex-col gap-5"><div><h5 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 border-b border-slate-100 pb-2">Nivel Concentración</h5><div class="bg-slate-50 p-3.5 rounded-lg border border-slate-100 text-sm text-slate-700 leading-relaxed">${concentracionText}</div></div><div><h5 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 border-b border-slate-100 pb-2">Evaluación Temporal (Alertas)</h5><div class="space-y-2">${alertasHtml}</div></div></div></div>`;
             openModal('modalUserDetail');
+        }
+
+        // --- Detalle de Ajustes: lista de movimientos de un usuario + motivo puntual ---
+        let umdMovimientos = []; // lista completa (sin filtrar) del usuario+motivo actualmente abierto
+        function openUserMotivoDetail(motivoKey) {
+            const u = activeUserForPdf; if (!u) return;
+            umdMovimientos = u.rawMovs.filter(r => capitalize(r.motivoRaw) === motivoKey).sort((a, b) => b.Fecha - a.Fecha);
+            document.getElementById('umdUsuario').innerText = u.name;
+            document.getElementById('umdMotivo').innerText = motivoKey;
+            document.getElementById('umdSearch').value = '';
+            openModal('modalUserMotivoDetail');
+            filtrarUserMotivoDetail();
+        }
+
+        function filtrarUserMotivoDetail() {
+            const term = normTxt(document.getElementById('umdSearch').value);
+            const lista = term ? umdMovimientos.filter(r => normTxt(r.producto).includes(term) || normTxt(r.sucursal).includes(term)) : umdMovimientos;
+            document.getElementById('umdCantidad').innerText = lista.length;
+            document.getElementById('umdTableBody').innerHTML = lista.length
+                ? lista.map(r => generateRowHtml(r)).join('')
+                : `<tr><td colspan="7" class="text-center py-8 text-slate-400 text-sm">Ningún movimiento coincide con la búsqueda.</td></tr>`;
+        }
+
+        function exportarUserMotivoDetail() {
+            if (!umdMovimientos.length) return;
+            const rows = umdMovimientos.map(r => ({
+                'Fecha': formatDate(r.Fecha), 'N° Baja': r.NroBaja, 'Sucursal': r.sucursal, 'Producto': r.producto,
+                'Código de Barras': r.codebar, 'Cantidad': r.Unidades, 'Motivo': r.motivoRaw, 'Usuario': r.usuario,
+                'Observación': r.observacion || '', 'Monto': r.CostoNum
+            }));
+            const ws = XLSX.utils.json_to_sheet(rows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Detalle de Ajustes');
+            const nombreArchivo = `${document.getElementById('umdUsuario').innerText}_${document.getElementById('umdMotivo').innerText}`.replace(/[^\w]+/g, '_');
+            XLSX.writeFile(wb, `FarmaPlus_${nombreArchivo}_${new Date().getTime()}.xlsx`);
         }
 
         // --- LÓGICA MODAL MOTIVO (DRILL-DOWN) ---
