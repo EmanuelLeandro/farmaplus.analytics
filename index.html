@@ -3451,7 +3451,6 @@
             // actuando como corrección de bajas/altas previas (el par Faltante↔Inventario
             // resultó ser el más frecuente de todo el archivo: 211 grupos)
             ['faltante', 'ajuste por inventario'],
-            ['vencido', 'ajuste por inventario'],
             ['ajuste por ingreso de mercaderia', 'ajuste por inventario'],
             ['ajuste por inventario', 'ajuste por error de ingreso']
         ];
@@ -3698,13 +3697,16 @@
             renderAuditHub();
         }
 
-        // Colorea los motivos según su efecto en el stock: rojo = baja (Faltante,
-        // Vencido, error de ingreso...), verde = alta (ingresos), gris = ambiguo
-        // (Ajuste por inventario puede sumar o restar; el Excel no trae el signo).
+        // Colorea los motivos según su efecto en el stock: rojo = baja, verde = alta.
+        // Usa la MISMA clasificación autorizada que los KPIs principales (los Sets ALTAS/
+        // BAJAS), para que nunca se desalinee con ellos. "Ajuste por trazabilidad" es el
+        // único motivo genuinamente ambiguo (puede ser alta o baja según el caso) — por
+        // eso los KPIs ya lo separan en su propio balde "Trazables", y acá se deja neutro.
         function claseMotivo(m) {
-            const x = normTxt(m);
-            if (/(faltante|vencido|roto|mal estado|error de ingreso|uso interno|devoluc|robo|hurto|vale no retirado|trazabilidad)/.test(x)) return 'text-red-600';
-            if (/ingreso/.test(x)) return 'text-emerald-600';
+            const mLow = String(m || '').toLowerCase().trim();
+            if (mLow.includes('trazabilidad')) return 'text-slate-500';
+            if (ALTAS.has(mLow)) return 'text-emerald-600';
+            if (BAJAS.has(mLow)) return 'text-red-600';
             return 'text-slate-500';
         }
 
