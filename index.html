@@ -458,7 +458,7 @@
                         <svg class="w-4 h-4 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> Informe PDF
                     </button>
                     <button id="btnStockDelete" data-tip="Eliminá el listado cargado para empezar de nuevo con otro archivo" class="hidden flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-white border border-slate-200 text-red-600 font-medium rounded-xl text-sm hover:bg-red-50 smooth-transition shadow-sm" onclick="limpiarStock()">Limpiar</button>
-                    <label id="btnStockUploadLabel" data-tip="Cargá el Listado de Stock exportado desde Plex (Informes → Stock → Listado de Stock)" class="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-brand-primary text-white font-semibold rounded-xl text-sm hover:bg-brand-primaryHover smooth-transition shadow-soft cursor-pointer flex items-center justify-center gap-2 relative overflow-hidden">
+                    <label id="btnStockUploadLabel" data-tip="Cargá el Listado de Stock exportado desde Plex (Stock → Listado de Stock)" class="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-brand-primary text-white font-semibold rounded-xl text-sm hover:bg-brand-primaryHover smooth-transition shadow-soft cursor-pointer flex items-center justify-center gap-2 relative overflow-hidden">
                         <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                         <span id="btnStockUploadText" class="whitespace-nowrap">Importar Stock</span>
                         <input type="file" class="hidden" accept=".xlsx,.xls" multiple onchange="handleStockFile(event)">
@@ -809,7 +809,7 @@
                     Importar Stock
                     <input type="file" class="hidden" accept=".xlsx,.xls" multiple onchange="handleStockFile(event)">
                 </label>
-                <p class="text-[11px] text-slate-400 mt-4 font-medium tracking-wide">Plex &rarr; Informes &rarr; Stock &rarr; Listado de Stock</p>
+                <p class="text-[11px] text-slate-400 mt-4 font-medium tracking-wide">Plex &rarr; Stock &rarr; Listado de Stock</p>
                 <p class="text-[11px] text-slate-400 mt-1.5 max-w-sm leading-relaxed">💡 Podés seleccionar varios archivos juntos: si subís el consolidado de todas las sucursales junto con el archivo propio de una en particular, esa sucursal usa su catálogo real en vez del aproximado.</p>
             </div>
 
@@ -4300,7 +4300,7 @@
                 const parseados = buffers.map(b => parseStockWorkbook(b));
                 const validos = parseados.filter(p => p.valid);
                 if (!validos.length) {
-                    document.getElementById('modalValidationErrorText').innerHTML = 'Ninguno de los archivos corresponde al formato del Listado de Stock. Recordá descargarlos desde <strong class="font-semibold text-slate-800">Plex → Informes → Stock → Listado de Stock</strong> e intentá nuevamente.';
+                    document.getElementById('modalValidationErrorText').innerHTML = 'Ninguno de los archivos corresponde al formato del Listado de Stock. Recordá descargarlos desde <strong class="font-semibold text-slate-800">Plex → Stock → Listado de Stock</strong> e intentá nuevamente.';
                     openModal('modalValidationError');
                     document.getElementById('stockEmptyState').classList.toggle('hidden', stockProductos.length > 0);
                     if (stockProductos.length > 0) document.getElementById('stockDashboard').classList.remove('hidden');
