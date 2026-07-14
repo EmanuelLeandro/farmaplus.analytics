@@ -826,6 +826,14 @@
 
             <!-- Dashboard de Stock -->
             <div id="stockDashboard" class="hidden no-print space-y-6 sm:space-y-8">
+                <!-- Auditoría de Costos del catálogo de Stock: costo > precio -->
+                <div id="stockCostAuditBanner" class="hidden bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl text-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-sm">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span id="stockCostAuditBannerText"></span>
+                    </div>
+                    <button onclick="openStockCostAuditModal()" class="text-red-700 hover:text-red-900 bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-lg font-semibold text-xs transition-colors whitespace-nowrap outline-none">Revisar conflictos</button>
+                </div>
                 <div class="bg-white rounded-2xl shadow-soft border border-slate-100 p-4 sm:p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
                         <button id="stockBtnVolverBalance" onclick="cambiarSucursalStock('BALANCE')" class="hidden items-center gap-1.5 px-3 py-2 text-xs font-semibold text-brand-primary bg-white border border-slate-200 rounded-xl hover:bg-slate-50 smooth-transition shadow-sm shrink-0" data-tip="Volver al Balance de todas las sucursales">
@@ -851,7 +859,7 @@
                 </div>
 
                 <div id="stockVistaDetalle" class="space-y-6 sm:space-y-8">
-                    <div id="stockKpis" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3"></div>
+                    <div id="stockKpis" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3"></div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
                         <div class="bg-white rounded-2xl shadow-soft border border-emerald-200 overflow-hidden">
@@ -904,7 +912,8 @@
                                         <th class="px-3 py-2">Sucursal</th>
                                         <th class="px-3 py-2 text-right">SKU con stock</th>
                                         <th class="px-3 py-2 text-right">Negativos</th>
-                                        <th class="px-3 py-2 text-right">% déficit</th>
+                                        <th class="px-3 py-2 text-right" title="% de déficit contando unidades en vez de productos">% déficit unid.</th>
+                                        <th class="px-3 py-2 text-right">% déficit SKU</th>
                                         <th class="px-3 py-2 text-right">Valor déficit</th>
                                         <th class="px-3 py-2 text-center">Detalle</th>
                                     </tr>
@@ -1950,6 +1959,55 @@
 
 <!-- MODAL: EXPORTAR INFORME (PDF General) -->
     <!-- MODAL: EXPORTAR INFORME PDF DE STOCK -->
+    <!-- MODAL: AUDITORÍA DE COSTOS DEL CATÁLOGO DE STOCK -->
+    <div id="modalStockCostAudit" class="fixed inset-0 z-[145] hidden items-center justify-center p-4 no-print bg-slate-900/50 backdrop-blur-sm modal-overlay" onclick="if(event.target === this) closeModal('modalStockCostAudit')">
+        <div class="bg-white rounded-2xl shadow-floating border border-slate-100 w-full max-w-4xl h-[85vh] overflow-hidden flex flex-col modal-content" onclick="event.stopPropagation()">
+            <div class="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between sm:items-center gap-3 bg-white shrink-0">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3-2 2 2 2-2 2 2 2-2 3 2z"></path></svg>
+                        Auditoría de Costos del Catálogo
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-1">Productos donde el costo supera al precio de venta. A diferencia de Movimientos, acá el costo es por producto (compartido por todas las sucursales que lo tienen), no por movimiento — corregirlo actualiza el "Valor del stock" en todas partes donde ese producto aparezca.</p>
+                </div>
+                <button onclick="closeModal('modalStockCostAudit')" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 outline-none smooth-transition shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="px-6 py-2.5 bg-slate-50 border-b border-slate-100 shrink-0">
+                <div id="stockCostAuditSummary" class="text-[11.5px] text-slate-600 mb-2"></div>
+                <div class="relative w-full sm:w-64">
+                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <input type="text" id="stockCostAuditSearch" oninput="renderStockCostAuditTable()" placeholder="Buscar producto..." class="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg outline-none bg-white focus:border-slate-400" autocomplete="off">
+                </div>
+            </div>
+            <div class="overflow-y-auto flex-1">
+                <details class="border-b border-slate-100 group">
+                    <summary class="px-6 py-3 text-xs font-bold text-slate-700 cursor-pointer hover:bg-slate-50 smooth-transition flex items-center gap-2 select-none list-none">
+                        <svg class="w-4 h-4 text-slate-400 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        ¿Cómo funciona esta auditoría?
+                    </summary>
+                    <div class="px-6 pb-5 pt-1 text-xs text-slate-600 leading-relaxed space-y-3 bg-slate-50/50">
+                        <p>Un costo mayor al precio de venta es imposible de forma sostenida — casi siempre significa que el proveedor facturó la <strong>caja o bulto completo</strong> mientras el producto se vende por unidad. Se busca el multiplicador en la columna <em>UnidadesProd</em> o en el nombre ("X 50", "CAJA", "DISPLAY"...).</p>
+                        <p>A diferencia de la Auditoría de Costos de Movimientos, acá <strong>no hay historial</strong> de ese mismo producto para confirmar el costo dividido (el Listado de Stock trae un solo costo por producto, no varios a lo largo del tiempo). Por eso la división solo se sugiere cuando el desfase es <strong>muy notorio</strong> (5 veces el precio o más — más exigente que en Movimientos, para compensar la falta de historial) y el resultado cae en una banda de margen sana (20%–80% del precio). Sin esa confirmación, queda como <strong>Requiere Revisión</strong> para capear al precio en vez de dividir a ciegas.</p>
+                        <p><strong>Aceptar</strong> divide el costo por el multiplicador. <strong>Capear</strong> lo iguala al precio de venta. Ambos son reversibles con <strong>Deshacer</strong>, y como el costo es del producto (no de la sucursal), la corrección se refleja en el Balance y en cualquier sucursal que tenga ese producto.</p>
+                    </div>
+                </details>
+                <table class="w-full text-left erp-table">
+                    <thead><tr><th class="px-3 py-3">Producto / Diagnóstico</th><th class="px-3 py-3 text-right">Costo</th><th class="px-3 py-3 text-right">Precio</th><th class="px-3 py-3 text-center">Mult.</th><th class="px-3 py-3 text-center">Estado</th><th class="px-3 py-3 text-right">Acción</th></tr></thead>
+                    <tbody id="stockCostAuditTableBody"></tbody>
+                </table>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
+                <p class="text-[11px] text-slate-400 italic">Los ajustes solo modifican los datos cargados en este tablero; el archivo original no se toca.</p>
+                <div class="flex items-center gap-2">
+                    <button id="btnSanearAnomaliasStock" onclick="sanearTodasLasAnomaliasStock()" data-tip="Para los productos en rojo (typos, precios rotos): reemplaza el costo anómalo por el precio de venta como estimación conservadora. Reversible producto por producto." class="bg-slate-700 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none text-white text-xs font-bold px-4 py-2 rounded-lg smooth-transition whitespace-nowrap">Capear anomalías al precio</button>
+                    <button id="btnAplicarTodosAjustesStock" onclick="aplicarTodosLosAjustesStock()" class="bg-brand-primary hover:bg-brand-primaryHover disabled:opacity-40 disabled:pointer-events-none text-white text-xs font-bold px-4 py-2 rounded-lg smooth-transition whitespace-nowrap">Aceptar todas las sugerencias</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="modalExportStockPdf" class="fixed inset-0 z-[140] hidden items-center justify-center p-4 no-print bg-slate-900/50 backdrop-blur-sm modal-overlay" onclick="if(event.target === this) closeModal('modalExportStockPdf')">
         <div class="bg-white rounded-2xl shadow-floating border border-slate-100 w-full max-w-md overflow-hidden flex flex-col modal-content" onclick="event.stopPropagation()">
             <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/80">
@@ -2233,7 +2291,7 @@
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 closeDropdowns();
-                ['modalUserDetail', 'modalAllUsers', 'modalMov', 'modalUserMotivoDetail', 'modalValidationError', 'modalManual', 'modalInvestigacion', 'modalOutliers', 'modalMotivo', 'modalZonales', 'modalExportPdf', 'modalExportStockPdf', 'modalCostAudit', 'modalCompensa'].forEach(id => {
+                ['modalUserDetail', 'modalAllUsers', 'modalMov', 'modalUserMotivoDetail', 'modalValidationError', 'modalManual', 'modalInvestigacion', 'modalOutliers', 'modalMotivo', 'modalZonales', 'modalExportPdf', 'modalExportStockPdf', 'modalStockCostAudit', 'modalCostAudit', 'modalCompensa'].forEach(id => {
                     const m = document.getElementById(id);
                     if (m && m.classList.contains('fade-in')) closeModal(id);
                 });
@@ -4307,6 +4365,7 @@
                 document.getElementById('btnStockPdf').classList.remove('hidden');
                 document.getElementById('btnStockDelete').classList.remove('hidden');
                 document.getElementById('stockDashboard').classList.remove('hidden');
+                runStockCostAudit();
                 if (stockVistaBalance) renderStockBalance(); else renderStockSucursal();
             } catch (err) {
                 console.error(err);
@@ -4323,7 +4382,9 @@
 
         function limpiarStock() {
             stockProductos = []; stockCodigosSuc = []; stockCurrentSuc = null; stockCatalogoExacto = new Map();
+            stockCostAuditResults = []; stockCostAuditByProductId.clear();
             document.getElementById('stockDashboard').classList.add('hidden');
+            document.getElementById('stockCostAuditBanner').classList.add('hidden');
             document.getElementById('stockEmptyState').classList.remove('hidden');
             document.getElementById('stockHeaderDateContainer').classList.add('hidden');
             document.getElementById('btnStockExport').classList.add('hidden');
@@ -4376,22 +4437,26 @@
             const totalCatalogo = stockProductos.length;
             const OBJETIVO_NEG_MAX = 1;
             let totalCombosNeg = 0, totalCombosStock = 0, valorTotalCadena = 0, valorDeficitCadena = 0;
+            let totalUnidadesNegCadena = 0, totalUnidadesCadena = 0;
             const porSucursal = stockCodigosSuc.map(s => {
                 const st = calcularStatsSucursal(s.cod);
                 totalCombosNeg += st.neg; totalCombosStock += st.conStock;
                 valorTotalCadena += st.val; valorDeficitCadena += st.valDef;
-                return { nombre: s.nombre, cod: s.cod, neg: st.neg, conStock: st.conStock, pct: st.pct, val: st.val, valDef: st.valDef, esExacto: st.esExacto };
+                totalUnidadesNegCadena += st.unidadesNeg; totalUnidadesCadena += (st.unidadesNeg + st.unidadesPos);
+                return { nombre: s.nombre, cod: s.cod, neg: st.neg, conStock: st.conStock, pct: st.pct, pctUnidades: st.pctUnidades, val: st.val, valDef: st.valDef, esExacto: st.esExacto };
             });
-            porSucursal.sort((a, b) => b.pct - a.pct);
+            porSucursal.sort((a, b) => b.pctUnidades - a.pctUnidades);
 
             const nExactas = stockCatalogoExacto.size;
             // El % global de la cadena usa el catálogo universal como aproximación razonable
             // (mezclar denominadores exactos y aproximados no daría un número consistente);
             // cada fila del ranking, en cambio, sí usa su catálogo exacto cuando está disponible.
             const pctNegGlobal = (stockCodigosSuc.length && totalCatalogo) ? (totalCombosNeg / (totalCatalogo * stockCodigosSuc.length) * 100) : 0;
+            const pctUnidadesGlobal = totalUnidadesCadena ? (totalUnidadesNegCadena / totalUnidadesCadena * 100) : 0;
             const cumpleGlobal = pctNegGlobal < OBJETIVO_NEG_MAX;
+            const cumpleGlobalUnidades = pctUnidadesGlobal < OBJETIVO_NEG_MAX;
             const peorSuc = porSucursal[0];
-            const sucursalesFueraObjetivo = porSucursal.filter(s => s.pct >= OBJETIVO_NEG_MAX).length;
+            const sucursalesFueraObjetivo = porSucursal.filter(s => s.pctUnidades >= OBJETIVO_NEG_MAX).length;
 
             const card = (tip, eyebrow, valor, sub, colorClass) => `
                 <div data-tip="${escapeHtml(tip)}" class="kpi-card bg-white border border-zinc-200/80 rounded-2xl p-4 shadow-card flex flex-col justify-between smooth-transition hover:shadow-soft">
@@ -4401,17 +4466,19 @@
                 </div>`;
             document.getElementById('stockBalanceKpis').innerHTML =
                 card('Productos del catálogo universal × cantidad de sucursales cargadas: el universo total que se audita. Las sucursales con archivo propio cargado usan su catálogo real en el ranking, no este número universal.', 'Catálogo × sucursales', `${totalCatalogo.toLocaleString('es-AR')} × ${stockCodigosSuc.length}`, `${totalCombosStock.toLocaleString('es-AR')} combinaciones con stock declarado${nExactas ? ` · ${nExactas} con catálogo exacto` : ''}`) +
-                card('Objetivo del negocio: mantener el stock negativo por debajo del 1% del inventario total, medido sobre TODA la cadena (aproximado con el catálogo universal).', '% déficit — toda la cadena', pctNegGlobal.toFixed(2) + '%', `objetivo <1% ${cumpleGlobal ? '✔ cumple' : '✗ no cumple'}`, cumpleGlobal ? 'text-emerald-600' : 'text-red-600') +
-                card('Cantidad de sucursales cuyo propio % de déficit ya supera el objetivo del 1%.', 'Fuera de objetivo', `${sucursalesFueraObjetivo} de ${stockCodigosSuc.length}`, sucursalesFueraObjetivo ? 'requieren atención' : 'todas dentro del objetivo', sucursalesFueraObjetivo ? 'text-red-600' : 'text-emerald-600') +
+                card('Mismo objetivo (<1%), pero contando UNIDADES en vez de productos: puede revelar sucursales donde pocos productos concentran un desfase enorme, invisible en el % por SKU.', '% déficit por unidades', pctUnidadesGlobal.toFixed(2) + '%', `objetivo <1% ${cumpleGlobalUnidades ? '✔ cumple' : '✗ no cumple'}`, cumpleGlobalUnidades ? 'text-emerald-600' : 'text-red-600') +
+                card('Objetivo del negocio: mantener el stock negativo por debajo del 1% del inventario total, contando PRODUCTOS distintos (aproximado con el catálogo universal).', '% déficit por SKU', pctNegGlobal.toFixed(2) + '%', `objetivo <1% ${cumpleGlobal ? '✔ cumple' : '✗ no cumple'}`, cumpleGlobal ? 'text-emerald-600' : 'text-red-600') +
+                card('Cantidad de sucursales cuyo propio % de déficit por unidades ya supera el objetivo del 1%.', 'Fuera de objetivo', `${sucursalesFueraObjetivo} de ${stockCodigosSuc.length}`, sucursalesFueraObjetivo ? 'requieren atención' : 'todas dentro del objetivo', sucursalesFueraObjetivo ? 'text-red-600' : 'text-emerald-600') +
                 card('Valorización del stock positivo de toda la cadena combinada.', 'Valor del stock (cadena)', formatCurrencyCompact(valorTotalCadena), '') +
                 card('Costo teórico de reponer todo el déficit de toda la cadena combinada.', 'Valor del déficit (cadena)', formatCurrencyCompact(valorDeficitCadena), peorSuc ? `peor: ${peorSuc.nombre}` : '', 'text-red-600');
 
             document.getElementById('stockBalanceRanking').innerHTML = porSucursal.map((s, i) => `
-                <tr class="${s.pct >= OBJETIVO_NEG_MAX ? 'bg-red-50/60' : ''}">
+                <tr class="${s.pctUnidades >= OBJETIVO_NEG_MAX ? 'bg-red-50/60' : ''}">
                     <td class="px-3 py-2.5 text-xs text-slate-400 text-center">${i + 1}</td>
                     <td class="px-3 py-2.5 text-xs font-semibold text-slate-800">${escapeHtml(s.nombre)} ${s.esExacto ? `<span class="text-[9px] font-bold text-brand-primary bg-brand-primary/10 px-1 py-0.5 rounded" title="Catálogo real: esta sucursal tiene su propio archivo cargado, no usa el catálogo universal aproximado">📐 exacto</span>` : ''}</td>
                     <td class="px-3 py-2.5 text-xs text-right tabular-nums text-slate-600">${s.conStock.toLocaleString('es-AR')}</td>
                     <td class="px-3 py-2.5 text-xs text-right tabular-nums font-bold ${s.neg ? 'text-red-600' : 'text-slate-800'}">${s.neg}</td>
+                    <td class="px-3 py-2.5 text-xs text-right tabular-nums font-bold ${s.pctUnidades >= OBJETIVO_NEG_MAX ? 'text-red-600' : 'text-emerald-600'}" title="% de déficit contando unidades en vez de productos">${s.pctUnidades.toFixed(2)}%</td>
                     <td class="px-3 py-2.5 text-xs text-right tabular-nums font-bold ${s.pct >= OBJETIVO_NEG_MAX ? 'text-red-600' : 'text-emerald-600'}">${s.pct.toFixed(2)}%</td>
                     <td class="px-3 py-2.5 text-xs text-right tabular-nums text-slate-600">${formatCurrency(s.valDef)}</td>
                     <td class="px-3 py-2.5 text-center"><button onclick="irASucursalDesdeBalance(${s.cod})" class="text-brand-primary hover:text-brand-primaryHover text-xs font-semibold underline underline-offset-2">Ver detalle</button></td>
@@ -4443,6 +4510,14 @@
             const conStock = universo.filter(p => p.stockPorSuc.has(cod));
 
             const negativos = conStock.filter(p => p.stockPorSuc.get(cod) < 0);
+            // % de déficit POR UNIDADES: complementa al % por SKU. Un solo producto con un
+            // desfase de miles de unidades (ej. TABE 60 con -38.960 en San Isidro II) apenas
+            // mueve el % por cantidad de productos, pero domina el % por unidades — revela
+            // problemas graves que el conteo de SKU puede esconder.
+            let unidadesNeg = 0, unidadesPos = 0;
+            conStock.forEach(p => { const c = p.stockPorSuc.get(cod); if (c < 0) unidadesNeg += Math.abs(c); else unidadesPos += c; });
+            const totalUnidadesSuc = unidadesPos + unidadesNeg;
+            const pctUnidades = totalUnidadesSuc ? (unidadesNeg / totalUnidadesSuc * 100) : 0;
             // "Sobre-stock" compara contra la mediana de OTRAS sucursales: con un archivo de
             // una sola sucursal no hay con qué comparar (la mediana sería el mismo valor),
             // así que se muestra "N/A" en vez de un 0% que insinuaría "verificado, sin sobre-stock".
@@ -4458,6 +4533,7 @@
             const pctSobre = total ? (sobreStock.length / total * 100) : 0;
             const OBJETIVO_NEG_MAX = 1; // Objetivo del negocio: negativos < 1% del inventario total
             const cumpleObjetivo = pctNeg < OBJETIVO_NEG_MAX;
+            const cumpleObjetivoUnidades = pctUnidades < OBJETIVO_NEG_MAX;
 
             const card = (tip, eyebrow, valor, sub, colorClass) => `
                 <div data-tip="${escapeHtml(tip)}" class="kpi-card bg-white border border-zinc-200/80 rounded-2xl p-4 shadow-card flex flex-col justify-between smooth-transition hover:shadow-soft">
@@ -4467,7 +4543,8 @@
                 </div>`;
             document.getElementById('stockKpis').innerHTML =
                 card(esExacto ? 'Cantidad TOTAL de productos del catálogo REAL de esta sucursal (su propio archivo), estén en 0, en positivo o en negativo.' : 'Cantidad TOTAL de productos del catálogo cargado, estén en 0, en positivo o en negativo. Aproximado: usa el catálogo universal del archivo porque esta sucursal no tiene un archivo propio cargado.', esExacto ? '📐 SKU (catálogo exacto)' : '≈ SKU (catálogo aprox.)', total.toLocaleString('es-AR'), `${conStock.length.toLocaleString('es-AR')} con stock declarado`) +
-                card(`Objetivo del negocio: mantener el stock negativo por debajo del 1% del inventario total. Calculado sobre el catálogo ${esExacto ? 'real' : 'aproximado'} (${total.toLocaleString('es-AR')} productos), no solo los que tienen stock declarado.`, '% con déficit (negativo)', pctNeg.toFixed(2) + '%', `${negativos.length} producto(s) · objetivo <1% ${cumpleObjetivo ? '✔ cumple' : '✗ no cumple'}`, cumpleObjetivo ? 'text-emerald-600' : 'text-red-600') +
+                card(`Mismo objetivo (<1%), pero contando UNIDADES en vez de productos: unidades negativas sobre el total de unidades en juego (positivas + negativas). Un solo producto con un desfase grande puede pasar casi inadvertido en el % por SKU y dominar acá.`, '% déficit por unidades', pctUnidades.toFixed(2) + '%', `${formatNumber(unidadesNeg)} de ${formatNumber(totalUnidadesSuc)} unidades · objetivo <1% ${cumpleObjetivoUnidades ? '✔ cumple' : '✗ no cumple'}`, cumpleObjetivoUnidades ? 'text-emerald-600' : 'text-red-600') +
+                card(`Objetivo del negocio: mantener el stock negativo por debajo del 1% del inventario total, contando PRODUCTOS distintos. Calculado sobre el catálogo ${esExacto ? 'real' : 'aproximado'} (${total.toLocaleString('es-AR')} productos), no solo los que tienen stock declarado.`, '% déficit por SKU', pctNeg.toFixed(2) + '%', `${negativos.length} producto(s) · objetivo <1% ${cumpleObjetivo ? '✔ cumple' : '✗ no cumple'}`, cumpleObjetivo ? 'text-emerald-600' : 'text-red-600') +
                 (comparableEntreSucursales
                     ? card('Productos cuyo stock en esta sucursal es 3 veces o más la mediana de stock que ese mismo producto tiene en las demás sucursales — posible sobre-stock o inmovilizado. Calculado sobre el catálogo completo.', '% con sobre-stock', pctSobre.toFixed(2) + '%', `${sobreStock.length} producto(s)`, sobreStock.length ? 'text-amber-600' : 'text-slate-900')
                     : (() => {
@@ -4557,11 +4634,207 @@
         // INFORME GERENCIAL DE STOCK — PDF con 3 alcances (toda la cadena, zonal, una
         // sucursal), reutilizando el mismo mecanismo de impresión que Movimientos.
         // ============================================================================
+        // ====================================================================
+        // AUDITORÍA DE COSTOS — STOCK
+        // Mismo principio que en Movimientos (costo > precio es imposible en una
+        // operación sana, casi siempre por caja/bulto facturado como unidad), adaptado
+        // a que acá el costo y el precio son POR PRODUCTO (un solo valor compartido
+        // por todas las sucursales que lo tienen), no por movimiento. Al no existir
+        // "historial de costos sanos" del mismo producto (solo hay un costo, no varios
+        // a lo largo del tiempo), la confirmación se apoya en dos señales: el propio
+        // multiplicador de presentación (columna UnidadesProd, más confiable que el
+        // nombre) y que el desfase sea muy notorio (5 veces el precio o más, más exigente
+        // que el 3x de Movimientos, para compensar la falta de historial) con el
+        // resultado cayendo en una banda de margen plausible.
+        // ====================================================================
+        let stockCostAuditResults = [];
+        let stockCostAuditByProductId = new Map();
+
+        function auditarProductoStock(p) {
+            const base = { id: p.IDProducto, producto: p.producto, estado_resolucion: 'OK', tipo_conflicto: 'Ninguno', multiplicador_detectado: null, costo_unitario_real_calculado: null, mensaje_ui: '' };
+            const costo = p.costo, precio = p.precio;
+            if (!(precio > 0 && costo > precio)) return base;
+            const ratio = costo / precio;
+
+            // Desfase leve (<1.5x): más probable un precio de lista desactualizado que
+            // una caja mal facturada — capear al precio, no inventar una división.
+            if (ratio < 1.5) {
+                return { ...base, estado_resolucion: 'Requiere Revision', tipo_conflicto: 'Anomalia de Precio',
+                    mensaje_ui: `🔎 El costo (${formatCurrency(costo)}) supera al precio (${formatCurrency(precio)}) por poco (x${ratio.toFixed(2)}): más probable un precio de lista desactualizado que una caja mal facturada. Sugerencia: capear al precio.` };
+            }
+
+            const candidatos = [];
+            if (p.unidadesProd > 1 && p.unidadesProd <= 1000) candidatos.push({ mult: p.unidadesProd, origen: 'la columna UnidadesProd' });
+            extraerMultiplicadores(p.producto).forEach(n => { if (!candidatos.some(c => c.mult === n)) candidatos.push({ mult: n, origen: 'el nombre del producto' }); });
+
+            for (const c of candidatos) {
+                const unitario = costo / c.mult;
+                // Umbral 5x (más exigente que el 3x de Movimientos): al no existir historial
+                // de costos del propio producto en el Listado de Stock, se compensa pidiendo
+                // un desfase todavía más notorio antes de confirmar la división.
+                if (unitario < precio && unitario >= precio * 0.15 && ratio >= 5 && unitario >= precio * 0.20 && unitario <= precio * 0.80) {
+                    return { ...base, estado_resolucion: 'Ajuste Sugerido', tipo_conflicto: 'Costo por Caja / Venta por Unidad',
+                        multiplicador_detectado: c.mult, costo_unitario_real_calculado: Math.round(unitario * 100) / 100, origen_multiplicador: c.origen,
+                        mensaje_ui: `⚠️ El proveedor factura por caja/bulto (x${c.mult}, detectado en ${c.origen}). Desfase notorio (x${ratio.toFixed(1)}) con el resultado en banda de margen sana. Sugerencia: ajustar el costo a ${formatCurrency(unitario)} por unidad.` };
+                }
+            }
+            const primero = candidatos.length ? candidatos[0] : null;
+            return { ...base, estado_resolucion: 'Requiere Revision', tipo_conflicto: 'Anomalia de Precio',
+                multiplicador_detectado: primero ? primero.mult : null,
+                mensaje_ui: primero
+                    ? `🔎 El nombre sugiere x${primero.mult}, pero no se pudo confirmar (sin historial de costos del producto para validar, y el desfase no es lo bastante notorio o no cae en banda de margen plausible). Sugerencia: capear al precio y verificar en el sistema de gestión.`
+                    : `🚨 El costo (${formatCurrency(costo)}) supera al precio (${formatCurrency(precio)}) y no se detectó presentación por caja/bulto. Revisar manualmente.` };
+        }
+
+        function runStockCostAudit() {
+            stockCostAuditResults = []; stockCostAuditByProductId.clear();
+            stockProductos.forEach(p => {
+                const res = auditarProductoStock(p);
+                if (res.estado_resolucion !== 'OK') { stockCostAuditResults.push(res); stockCostAuditByProductId.set(p.IDProducto, res); }
+            });
+            stockCostAuditResults.sort((a, b) => (a.estado_resolucion === b.estado_resolucion) ? 0 : (a.estado_resolucion === 'Ajuste Sugerido' ? -1 : 1));
+            renderStockCostAuditBanner();
+        }
+
+        function openStockCostAuditModal() { renderStockCostAuditTable(); openModal('modalStockCostAudit'); }
+
+        function renderStockCostAuditTable() {
+            const MAX = 300;
+            const term = normTxt((document.getElementById('stockCostAuditSearch') || {}).value || '');
+            const lista = term ? stockCostAuditResults.filter(x => normTxt(x.producto).includes(term)) : stockCostAuditResults;
+            const body = document.getElementById('stockCostAuditTableBody');
+            if (!stockCostAuditResults.length) {
+                body.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-slate-400 text-sm">No hay conflictos de costo/precio en este catálogo. ✔️</td></tr>`;
+            } else if (!lista.length) {
+                body.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-slate-400 text-sm">Ningún producto coincide con "${escapeHtml(term)}".</td></tr>`;
+            } else {
+                body.innerHTML = lista.slice(0, MAX).map(res => {
+                    const p = stockProductos.find(pp => pp.IDProducto === res.id) || {};
+                    const esAjuste = res.estado_resolucion === 'Ajuste Sugerido';
+                    const pill = res.aplicado
+                        ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Aplicado</span>`
+                        : esAjuste ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">Ajuste Sugerido</span>`
+                        : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-red-50 text-red-700 border border-red-200">Requiere Revisión</span>`;
+                    const accion = res.aplicado
+                        ? `<button onclick="deshacerAjusteCostoStock('${res.id}')" class="text-slate-500 hover:text-slate-800 text-xs font-semibold underline underline-offset-2">Deshacer</button>`
+                        : esAjuste
+                            ? `<div class="flex items-center justify-end gap-1.5"><button onclick="aplicarAjusteCostoStock('${res.id}')" class="bg-brand-primary hover:bg-brand-primaryHover text-white text-xs font-bold px-3 py-1.5 rounded-lg smooth-transition whitespace-nowrap">Aceptar</button><button onclick="capearCostoStock('${res.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold px-2.5 py-1.5 rounded-lg smooth-transition whitespace-nowrap border border-slate-200">Capear</button></div>`
+                            : `<button onclick="capearCostoStock('${res.id}')" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg smooth-transition whitespace-nowrap">Capear</button>`;
+                    const costoOriginal = res.original ? res.original.costo : p.costo;
+                    const celdaCosto = res.aplicado
+                        ? `<div class="line-through text-slate-400">${formatCurrency(costoOriginal)}</div><div class="font-bold text-emerald-600 mt-0.5">${formatCurrency(p.costo)}</div>`
+                        : formatCurrency(p.costo);
+                    return `<tr class="${!esAjuste && !res.aplicado ? 'bg-red-50/60' : ''}">
+                        <td class="px-3 py-3 text-xs font-semibold text-slate-800 max-w-[240px]"><div class="truncate" title="${escapeHtml(res.producto)}">${escapeHtml(res.producto)}</div><div class="text-[10px] text-slate-400 font-normal mt-0.5" title="${escapeHtml(res.mensaje_ui)}">${escapeHtml(res.mensaje_ui)}</div></td>
+                        <td class="px-3 py-3 text-xs text-right tabular-nums text-slate-700">${celdaCosto}</td>
+                        <td class="px-3 py-3 text-xs text-right tabular-nums text-slate-700">${formatCurrency(p.precio)}</td>
+                        <td class="px-3 py-3 text-xs text-center tabular-nums font-bold text-slate-800">${res.multiplicador_detectado ? 'x' + res.multiplicador_detectado : '—'}</td>
+                        <td class="px-3 py-3 text-center">${pill}</td>
+                        <td class="px-3 py-3 text-right">${accion}</td>
+                    </tr>`;
+                }).join('');
+                if (lista.length > MAX) body.innerHTML += `<tr><td colspan="6" class="text-center py-4 text-slate-400 text-xs italic">Vista limitada a ${MAX} filas — los botones y el recalculo operan sobre los ${lista.length} conflictos filtrados.</td></tr>`;
+            }
+            const pendAjustes = stockCostAuditResults.filter(x => x.estado_resolucion === 'Ajuste Sugerido' && !x.aplicado).length;
+            const btnAll = document.getElementById('btnAplicarTodosAjustesStock');
+            btnAll.disabled = pendAjustes === 0;
+            btnAll.innerText = pendAjustes ? `Aceptar todas las sugerencias (${pendAjustes})` : 'Sin sugerencias pendientes';
+            const pendAnom = stockCostAuditResults.filter(x => x.estado_resolucion === 'Requiere Revision' && !x.aplicado).length;
+            const btnSan = document.getElementById('btnSanearAnomaliasStock');
+            btnSan.disabled = pendAnom === 0;
+            btnSan.innerText = pendAnom ? `Capear anomalías al precio (${pendAnom})` : 'Sin anomalías pendientes';
+
+            // Resumen vivo: estado global de la auditoría (aplica a TODOS los conflictos, no solo a los visibles)
+            const nAjustados = stockCostAuditResults.filter(x => x.aplicado && !x.saneado).length;
+            const nCapeados = stockCostAuditResults.filter(x => x.saneado).length;
+            const nPend = pendAjustes + pendAnom;
+            document.getElementById('stockCostAuditSummary').innerHTML =
+                `<strong>${stockCostAuditResults.length}</strong> conflictos detectados en ${stockProductos.length.toLocaleString('es-AR')} productos del catálogo · ` +
+                `<span class="text-emerald-600 font-semibold">${nAjustados} corregidos por caja/bulto</span> · ` +
+                `<span class="text-sky-600 font-semibold">${nCapeados} capeados al precio</span> · ` +
+                `<span class="${nPend ? 'text-red-600' : 'text-slate-400'} font-semibold">${nPend} pendientes</span>`;
+        }
+
+        function aplicarTodosLosAjustesStock() {
+            stockCostAuditResults.filter(x => x.estado_resolucion === 'Ajuste Sugerido' && !x.aplicado).forEach(x => {
+                const res = stockCostAuditByProductId.get(x.id);
+                const p = stockProductos.find(pp => pp.IDProducto === x.id);
+                if (!res || !p || !res.multiplicador_detectado) return;
+                res.original = { costo: p.costo };
+                p.costo = Math.round((p.costo / res.multiplicador_detectado) * 100) / 100;
+                res.aplicado = true;
+            });
+            renderStockCostAuditTable(); renderStockCostAuditBanner();
+            if (stockVistaBalance) renderStockBalance(); else if (stockCurrentSuc) renderStockSucursal();
+        }
+
+        // Saneo de anomalías críticas: capea el costo al precio de venta, como estimación
+        // conservadora. Un costo real nunca supera sostenidamente al precio: si lo hace, es
+        // un typo (ej: código de barras pegado en el campo costo) y contamina el Valor del stock.
+        function sanearAnomaliaStock(id) {
+            const res = stockCostAuditByProductId.get(id);
+            const p = stockProductos.find(pp => pp.IDProducto === id);
+            if (!res || !p || res.aplicado || !(p.precio > 0)) return false;
+            res.original = { costo: p.costo };
+            p.costo = Math.round(p.precio * 100) / 100;
+            res.aplicado = true; res.saneado = true;
+            return true;
+        }
+
+        function sanearTodasLasAnomaliasStock() {
+            let n = 0;
+            stockCostAuditResults.filter(x => x.estado_resolucion === 'Requiere Revision' && !x.aplicado).forEach(x => { if (sanearAnomaliaStock(x.id)) n++; });
+            if (n) {
+                renderStockCostAuditTable(); renderStockCostAuditBanner();
+                if (stockVistaBalance) renderStockBalance(); else if (stockCurrentSuc) renderStockSucursal();
+            }
+        }
+
+        function renderStockCostAuditBanner() {
+            const banner = document.getElementById('stockCostAuditBanner');
+            if (!banner) return;
+            const pendientes = stockCostAuditResults.filter(x => !x.aplicado);
+            banner.classList.toggle('hidden', pendientes.length === 0);
+            if (pendientes.length) {
+                const nAjuste = pendientes.filter(x => x.estado_resolucion === 'Ajuste Sugerido').length;
+                document.getElementById('stockCostAuditBannerText').innerHTML = `Auditoría de Costos: <strong>${pendientes.length}</strong> producto(s) del catálogo con el costo por encima del precio${nAjuste ? ` · <strong>${nAjuste}</strong> con ajuste confirmado` : ''}.`;
+            }
+        }
+
+        function aplicarAjusteCostoStock(id) {
+            const res = stockCostAuditByProductId.get(id);
+            const p = stockProductos.find(pp => pp.IDProducto === id);
+            if (!res || !p || res.aplicado || !res.multiplicador_detectado) return;
+            res.original = { costo: p.costo };
+            p.costo = Math.round((p.costo / res.multiplicador_detectado) * 100) / 100;
+            res.aplicado = true;
+            renderStockCostAuditTable(); renderStockCostAuditBanner();
+            if (stockVistaBalance) renderStockBalance(); else if (stockCurrentSuc) renderStockSucursal();
+        }
+
+        function capearCostoStock(id) {
+            if (sanearAnomaliaStock(id)) {
+                renderStockCostAuditTable(); renderStockCostAuditBanner();
+                if (stockVistaBalance) renderStockBalance(); else if (stockCurrentSuc) renderStockSucursal();
+            }
+        }
+
+        function deshacerAjusteCostoStock(id) {
+            const res = stockCostAuditByProductId.get(id);
+            const p = stockProductos.find(pp => pp.IDProducto === id);
+            if (!res || !p || !res.aplicado) return;
+            p.costo = res.original.costo;
+            res.aplicado = false; delete res.original; delete res.saneado;
+            renderStockCostAuditTable(); renderStockCostAuditBanner();
+            if (stockVistaBalance) renderStockBalance(); else if (stockCurrentSuc) renderStockSucursal();
+        }
+
         function calcularStatsSucursal(cod) {
             const catalogoExacto = stockCatalogoExacto.get(cod); // Set(IDProducto) o undefined
             const esExacto = !!catalogoExacto;
             const total = esExacto ? catalogoExacto.size : stockProductos.length;
             let neg = 0, pos = 0, val = 0, valDef = 0, conStock = 0;
+            let unidadesNeg = 0, unidadesPos = 0; // % de déficit POR UNIDADES, no por cantidad de productos
             const negativosDet = [], positivosDet = [];
             stockProductos.forEach(p => {
                 // Con catálogo exacto, solo cuentan los productos que realmente son de esta
@@ -4570,12 +4843,17 @@
                 const c = p.stockPorSuc.get(cod);
                 if (c === undefined) return;
                 conStock++;
-                if (c < 0) { neg++; valDef += Math.abs(c) * p.costo; negativosDet.push({ p, c }); }
-                else { pos++; val += c * p.costo; positivosDet.push({ p, c }); }
+                if (c < 0) { neg++; valDef += Math.abs(c) * p.costo; unidadesNeg += Math.abs(c); negativosDet.push({ p, c }); }
+                else { pos++; val += c * p.costo; unidadesPos += c; positivosDet.push({ p, c }); }
             });
             negativosDet.sort((a, b) => a.c - b.c);
             positivosDet.sort((a, b) => b.c - a.c);
-            return { total, conStock, neg, pos, val, valDef, pct: total ? (neg / total * 100) : 0, negativosDet, positivosDet, esExacto };
+            const totalUnidades = unidadesPos + unidadesNeg;
+            return {
+                total, conStock, neg, pos, val, valDef, pct: total ? (neg / total * 100) : 0,
+                unidadesNeg, unidadesPos, pctUnidades: totalUnidades ? (unidadesNeg / totalUnidades * 100) : 0,
+                negativosDet, positivosDet, esExacto
+            };
         }
 
         function openExportStockModal() {
@@ -4631,21 +4909,22 @@
                 scopeLabel = `Sucursal: ${nombre}`;
                 const s = calcularStatsSucursal(cod);
                 const cumple = s.pct < OBJ;
+                const cumpleUnid = s.pctUnidades < OBJ;
                 const fila = (d) => `<tr><td>${escapeHtml(d.p.producto)}</td><td class="text-right" style="font-weight:700;">${formatNumber(d.c)}</td><td class="text-right">${formatCurrency(Math.abs(d.c)*d.p.costo)}</td></tr>`;
 
                 coverStats = [
                     ['Sucursal', nombre], ['Catálogo total', s.total.toLocaleString('es-AR')],
-                    ['Productos negativos', s.neg], ['Estado del objetivo', cumple ? 'Cumple ✓' : 'No cumple ✗']
+                    ['% déficit por unidades', s.pctUnidades.toFixed(2) + '%'], ['% déficit por SKU', s.pct.toFixed(2) + '%']
                 ];
                 pagina2 = `
                     <div class="avoid-break pdf-insight-box">
                         <h3 style="font-size: 16px; font-weight: 700; color: #0F172A; margin: 0 0 12px 0;">💡 Diagnóstico</h3>
-                        <p style="margin:0;font-size:13px;line-height:1.6;color:#334155;">La sucursal <strong>${escapeHtml(nombre)}</strong> tiene un catálogo de <strong>${s.total.toLocaleString('es-AR')}</strong> productos, de los cuales <strong>${s.neg}</strong> presentan stock negativo (<strong>${s.pct.toFixed(2)}%</strong> del inventario total). Objetivo del negocio: mantener el stock negativo por debajo del 1%. Estado: <strong style="color:${cumple?'#059669':'#DC2626'}">${cumple ? 'CUMPLE ✓' : 'NO CUMPLE ✗'}</strong>.</p>
+                        <p style="margin:0;font-size:13px;line-height:1.6;color:#334155;">La sucursal <strong>${escapeHtml(nombre)}</strong> tiene un catálogo de <strong>${s.total.toLocaleString('es-AR')}</strong> productos, de los cuales <strong>${s.neg}</strong> presentan stock negativo: <strong>${s.pctUnidades.toFixed(2)}%</strong> contando unidades (${formatNumber(s.unidadesNeg)} de ${formatNumber(s.unidadesNeg + s.unidadesPos)}), y <strong>${s.pct.toFixed(2)}%</strong> del catálogo contando productos. Objetivo del negocio en ambos casos: mantener el stock negativo por debajo del 1%. Estado por unidades: <strong style="color:${cumpleUnid?'#059669':'#DC2626'}">${cumpleUnid ? 'CUMPLE ✓' : 'NO CUMPLE ✗'}</strong> · Estado por SKU: <strong style="color:${cumple?'#059669':'#DC2626'}">${cumple ? 'CUMPLE ✓' : 'NO CUMPLE ✗'}</strong>.</p>
                     </div>
                     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:8px;">
                         ${kpiCard('SKU (catálogo)', s.total.toLocaleString('es-AR'))}
-                        ${kpiCard('% déficit', s.pct.toFixed(2)+'%', cumple)}
-                        ${kpiCard('Productos negativos', s.neg)}
+                        ${kpiCard('% déficit unidades', s.pctUnidades.toFixed(2)+'%', cumpleUnid)}
+                        ${kpiCard('% déficit SKU', s.pct.toFixed(2)+'%', cumple)}
                         ${kpiCard('Valor del stock', formatCurrency(s.val))}
                         ${kpiCard('Valor del déficit', formatCurrency(s.valDef), s.valDef===0)}
                     </div>`;
@@ -4675,27 +4954,32 @@
                     scopeLabel = 'Toda la cadena';
                     sucsEnAlcance = stockCodigosSuc;
                 }
-                const filas = sucsEnAlcance.map(s => ({ nombre: s.nombre, ...calcularStatsSucursal(s.cod) })).sort((a, b) => b.pct - a.pct);
+                const filas = sucsEnAlcance.map(s => ({ nombre: s.nombre, ...calcularStatsSucursal(s.cod) })).sort((a, b) => b.pctUnidades - a.pctUnidades);
                 const totalCatalogo = stockProductos.length;
                 const totalNeg = filas.reduce((a, f) => a + f.neg, 0);
                 const totalValDef = filas.reduce((a, f) => a + f.valDef, 0);
                 const totalVal = filas.reduce((a, f) => a + f.val, 0);
+                const totalUnidNeg = filas.reduce((a, f) => a + f.unidadesNeg, 0);
+                const totalUnid = filas.reduce((a, f) => a + f.unidadesNeg + f.unidadesPos, 0);
                 const pctGlobal = (totalCatalogo && filas.length) ? (totalNeg / (totalCatalogo * filas.length) * 100) : 0;
+                const pctGlobalUnidades = totalUnid ? (totalUnidNeg / totalUnid * 100) : 0;
                 const cumpleGlobal = pctGlobal < OBJ;
-                const fueraObjetivo = filas.filter(f => f.pct >= OBJ);
-                const fila = (f, i) => `<tr style="${f.pct>=OBJ?'background:#FEF2F2;':''}"><td>${i+1}</td><td style="font-weight:600;">${escapeHtml(f.nombre)}</td><td class="text-right">${f.conStock.toLocaleString('es-AR')}</td><td class="text-right" style="font-weight:700;">${f.neg}</td><td class="text-right" style="font-weight:800;color:${f.pct>=OBJ?'#DC2626':'#059669'}">${f.pct.toFixed(2)}%</td><td class="text-right">${formatCurrency(f.valDef)}</td></tr>`;
+                const cumpleGlobalUnidades = pctGlobalUnidades < OBJ;
+                const fueraObjetivo = filas.filter(f => f.pctUnidades >= OBJ);
+                const fila = (f, i) => `<tr style="${f.pctUnidades>=OBJ?'background:#FEF2F2;':''}"><td>${i+1}</td><td style="font-weight:600;">${escapeHtml(f.nombre)}</td><td class="text-right">${f.conStock.toLocaleString('es-AR')}</td><td class="text-right" style="font-weight:700;">${f.neg}</td><td class="text-right" style="font-weight:800;color:${f.pctUnidades>=OBJ?'#DC2626':'#059669'}">${f.pctUnidades.toFixed(2)}%</td><td class="text-right" style="font-weight:800;color:${f.pct>=OBJ?'#DC2626':'#059669'}">${f.pct.toFixed(2)}%</td><td class="text-right">${formatCurrency(f.valDef)}</td></tr>`;
 
                 coverStats = [
                     ['Alcance', scopeLabel], ['Sucursales incluidas', filas.length],
-                    ['% déficit combinado', pctGlobal.toFixed(2) + '%'], ['Fuera de objetivo', `${fueraObjetivo.length} de ${filas.length}`]
+                    ['% déficit por unidades', pctGlobalUnidades.toFixed(2) + '%'], ['% déficit por SKU', pctGlobal.toFixed(2) + '%']
                 ];
                 pagina2 = `
                     <div class="avoid-break pdf-insight-box">
                         <h3 style="font-size: 16px; font-weight: 700; color: #0F172A; margin: 0 0 12px 0;">💡 Diagnóstico</h3>
-                        <p style="margin:0;font-size:13px;line-height:1.6;color:#334155;">El alcance de este informe (<strong>${escapeHtml(scopeLabel)}</strong>) cubre <strong>${filas.length}</strong> sucursal(es). El déficit combinado es <strong>${pctGlobal.toFixed(2)}%</strong> del inventario total — objetivo del negocio: <1%. Estado: <strong style="color:${cumpleGlobal?'#059669':'#DC2626'}">${cumpleGlobal ? 'CUMPLE ✓' : 'NO CUMPLE ✗'}</strong>. <strong>${fueraObjetivo.length}</strong> de ${filas.length} sucursal(es) superan el objetivo individualmente.</p>
+                        <p style="margin:0;font-size:13px;line-height:1.6;color:#334155;">El alcance de este informe (<strong>${escapeHtml(scopeLabel)}</strong>) cubre <strong>${filas.length}</strong> sucursal(es). El déficit combinado es <strong>${pctGlobalUnidades.toFixed(2)}%</strong> contando unidades, y <strong>${pctGlobal.toFixed(2)}%</strong> del inventario total contando productos — objetivo del negocio en ambos casos: <1%. Estado por unidades: <strong style="color:${cumpleGlobalUnidades?'#059669':'#DC2626'}">${cumpleGlobalUnidades ? 'CUMPLE ✓' : 'NO CUMPLE ✗'}</strong> · Estado por SKU: <strong style="color:${cumpleGlobal?'#059669':'#DC2626'}">${cumpleGlobal ? 'CUMPLE ✓' : 'NO CUMPLE ✗'}</strong>. <strong>${fueraObjetivo.length}</strong> de ${filas.length} sucursal(es) superan el objetivo por unidades individualmente.</p>
                     </div>
-                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:8px;">
-                        ${kpiCard('% déficit combinado', pctGlobal.toFixed(2)+'%', cumpleGlobal)}
+                    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:8px;">
+                        ${kpiCard('% déficit por unidades', pctGlobalUnidades.toFixed(2)+'%', cumpleGlobalUnidades)}
+                        ${kpiCard('% déficit por SKU', pctGlobal.toFixed(2)+'%', cumpleGlobal)}
                         ${kpiCard('Fuera de objetivo', fueraObjetivo.length+' de '+filas.length, fueraObjetivo.length===0)}
                         ${kpiCard('Valor del stock', formatCurrencyCompact(totalVal))}
                         ${kpiCard('Valor del déficit', formatCurrencyCompact(totalValDef), totalValDef===0)}
@@ -4706,7 +4990,7 @@
                 // de 28 filas, cada uno con su propio thead/tbody/pie, la paginación queda 100%
                 // determinística y ninguna fila puede quedar "entre" dos páginas.
                 const FILAS_POR_PAGINA = 28;
-                const theadRanking = `<tr><th>#</th><th>Sucursal</th><th class="text-right">SKU c/stock</th><th class="text-right">Negativos</th><th class="text-right">% déficit</th><th class="text-right">Valor déficit</th></tr>`;
+                const theadRanking = `<tr><th>#</th><th>Sucursal</th><th class="text-right">SKU c/stock</th><th class="text-right">Negativos</th><th class="text-right">% déficit unid.</th><th class="text-right">% déficit SKU</th><th class="text-right">Valor déficit</th></tr>`;
                 pagina3Bloques = [];
                 for (let i = 0; i < filas.length; i += FILAS_POR_PAGINA) {
                     const chunk = filas.slice(i, i + FILAS_POR_PAGINA);
@@ -4825,7 +5109,7 @@
         // re-renderice solo) y el foco vuelve al campo.
         // ====================================================================
         function initClearableSearchInputs() {
-            const ids = ['branchSearch', 'obsSearch', 'searchUserInputMain', 'searchAllUsersInput', 'costAuditSearch', 'zonalSearch', 'compSearch', 'umdSearch'];
+            const ids = ['branchSearch', 'obsSearch', 'searchUserInputMain', 'searchAllUsersInput', 'costAuditSearch', 'zonalSearch', 'compSearch', 'umdSearch', 'stockCostAuditSearch'];
             ids.forEach(id => {
                 const input = document.getElementById(id);
                 if (!input || input.dataset.clearable) return;
