@@ -357,6 +357,42 @@
             .pdf-compact-table thead { background-color: #F8FAFC !important; }
 
             .erp-table tr, .pdf-compact-table tr { page-break-inside: avoid; break-inside: avoid; }
+            /* En tablas largas, el encabezado se repite en cada página impresa */
+            .pdf-compact-table thead, .erp-table thead { display: table-header-group; }
+            /* El pie fijo (.print-footer) se repite en TODAS las páginas, pero el contenido
+               no le reservaba lugar: en cada salto de página el pie TAPABA la última fila de
+               la tabla (por eso "faltaban" números, ej. del 37 saltaba al 39). Este tfoot
+               espaciador se repite al final de cada página y reserva esa franja. */
+            .pdf-footer-spacer { display: table-footer-group; }
+            .pdf-footer-spacer td { height: 34px !important; border: none !important; padding: 0 !important; background: transparent !important; }
+
+            /* ===== INFORME EJECUTIVO DE INVENTARIO (zonal / cadena) ===== */
+            .zpage { position: relative; padding: 14px 4px 44px 4px; box-sizing: border-box; }
+            .z-header { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 14px; }
+            .z-header h2 { font-size: 19px; font-weight: 800; color: #0F172A; margin: 0; letter-spacing: -0.3px; }
+            .z-header .z-brand { font-size: 11px; font-weight: 800; color: #2B3990; }
+            .z-sec { font-size: 12.5px; font-weight: 800; color: #0F172A; margin: 0 0 8px 0; display: flex; align-items: center; gap: 6px; }
+            .z-sec::before { content: ''; width: 4px; height: 13px; background: #2B3990; border-radius: 2px; display: inline-block; }
+            .z-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+            .z-kpi { background: #fff; border: 1px solid #E2E8F0; border-radius: 9px; padding: 8px 10px; border-top: 3px solid #CBD5E1; }
+            .z-kpi .zk-t { font-size: 8px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.4px; margin: 0 0 2px 0; }
+            .z-kpi .zk-v { font-size: 15px; font-weight: 800; color: #0F172A; margin: 0; line-height: 1.1; }
+            .z-kpi .zk-s { font-size: 7.5px; color: #94A3B8; margin: 3px 0 0 0; line-height: 1.35; }
+            .z-box { background: #F8FAFC; border: 1px solid #E2E8F0; border-left: 4px solid #2B3990; border-radius: 0 10px 10px 0; padding: 12px 14px; }
+            .z-box p { margin: 0; font-size: 10.5px; line-height: 1.6; color: #334155; }
+            .z-card { background: #fff; border: 1px solid #E2E8F0; border-radius: 10px; padding: 12px; }
+            .z-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+            .z-table { width: 100%; border-collapse: collapse; }
+            .z-table th { background: #0F172A !important; color: #fff !important; font-size: 8px; text-transform: uppercase; letter-spacing: 0.4px; padding: 5px 6px; text-align: left; }
+            .z-table td { font-size: 8.5px; padding: 4px 6px; border-bottom: 1px solid #F1F5F9; color: #334155; }
+            .z-table tr:nth-child(even) td { background: #FAFBFC; }
+            .z-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+            .z-pill { display: inline-block; font-size: 7.5px; font-weight: 800; padding: 2px 7px; border-radius: 20px; }
+            .z-legend { font-size: 8px; color: #64748B; display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
+            .z-find { display: flex; gap: 8px; align-items: flex-start; padding: 7px 10px; background: #fff; border: 1px solid #E2E8F0; border-radius: 8px; margin-bottom: 6px; }
+            .z-find p { margin: 0; font-size: 9.5px; line-height: 1.5; color: #334155; }
+            .z-find .zf-ico { font-size: 12px; line-height: 1.2; }
+            .z-note { font-size: 8px; color: #94A3B8; font-style: italic; margin-top: 10px; }
 
             .pdf-card { border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px; background: white; }
             .pdf-kpi-title { font-size: 11px; font-weight: 600; color: #64748B; text-transform: uppercase; margin-bottom: 4px;}
@@ -844,6 +880,8 @@
                         <label id="stockSucursalLabelWrap" class="text-xs font-bold text-slate-500 uppercase tracking-wide shrink-0">Sucursal</label>
                         <select id="stockSucursalSelect" onchange="cambiarSucursalStock()" class="w-full sm:w-64 px-3 py-2 text-sm border border-slate-200 rounded-xl outline-none focus:border-brand-primary bg-slate-50 focus:bg-white font-semibold text-slate-800"></select>
                         <p id="stockSucursalUnica" class="hidden text-base font-bold text-slate-800"></p>
+                        <button id="btnStockReasignar" onclick="corregirSucursalStock()" class="hidden shrink-0 px-2.5 py-1.5 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 smooth-transition" data-tip="Este listado fue asignado a mano. Si elegiste mal la sucursal, corregila acá sin volver a importar el archivo.">✎ Corregir sucursal</button>
+                        <button id="btnStockLockBadge" onclick="quitarModoSucursal()" class="hidden shrink-0 px-2.5 py-1.5 text-[11px] font-semibold text-slate-500 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200 smooth-transition" data-tip="Este equipo está en modo sucursal: solo puede cargar el listado de esta sucursal, un archivo por vez. Clic para quitar el bloqueo (uso de administración).">🔒 Modo sucursal</button>
                     </div>
                     <div class="flex items-center gap-2 w-full sm:w-auto">
                         <div class="relative flex-1 sm:w-64">
@@ -860,19 +898,19 @@
                 </div>
 
                 <div id="stockVistaDetalle" class="space-y-6 sm:space-y-8">
-                    <div id="stockKpis" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3"></div>
+                    <div id="stockKpis" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
                         <div class="bg-white rounded-2xl shadow-soft border border-emerald-200 overflow-hidden">
                             <div class="px-5 py-4 bg-emerald-50/50 border-b border-emerald-100 flex items-center justify-between">
                                 <h2 class="text-sm font-bold text-emerald-700 flex items-center gap-2">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
-                                    Mayor Stock Positivo <span id="stockCountPositivo" class="ml-1 px-1.5 py-0.5 rounded-md bg-white text-emerald-700 text-[11px] border border-emerald-200"></span>
+                                    Mayor Stock Positivo <span id="stockCountPositivo" class="ml-1 px-1.5 py-0.5 rounded-md bg-white text-emerald-700 text-[11px] border border-emerald-200"></span><span id="stockUnitsPositivo" data-tip="Total de unidades sumadas de todos los productos con stock positivo (respeta el buscador)" class="px-1.5 py-0.5 rounded-md bg-emerald-100/70 text-emerald-800 text-[11px] border border-emerald-200 font-semibold"></span>
                                 </h2>
                             </div>
                             <div class="overflow-x-auto max-h-[420px] overflow-y-auto custom-scrollbar">
                                 <table class="w-full text-left erp-table">
-                                    <thead class="bg-slate-50 sticky top-0"><tr><th class="px-3 py-2">Producto</th><th class="px-3 py-2 text-right">Stock</th><th class="px-3 py-2 text-right">Valor</th></tr></thead>
+                                    <thead class="bg-slate-50 sticky top-0"><tr><th class="px-3 py-2">Producto</th><th class="px-3 py-2 text-right">Stock</th><th class="px-3 py-2 text-right" title="Unidades fraccionadas/sueltas (columna UnidStock de Plex)">Unid.</th><th class="px-3 py-2 text-right">Valor</th></tr></thead>
                                     <tbody id="stockTablaPositivo"></tbody>
                                 </table>
                             </div>
@@ -881,23 +919,23 @@
                             <div class="px-5 py-4 bg-red-50/50 border-b border-red-100 flex items-center justify-between">
                                 <h2 class="text-sm font-bold text-red-700 flex items-center gap-2">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
-                                    Mayor Stock Negativo (Déficit) <span id="stockCountNegativo" class="ml-1 px-1.5 py-0.5 rounded-md bg-white text-red-700 text-[11px] border border-red-200"></span>
+                                    Mayor Stock Negativo (Déficit) <span id="stockCountNegativo" class="ml-1 px-1.5 py-0.5 rounded-md bg-white text-red-700 text-[11px] border border-red-200"></span><span id="stockUnitsNegativo" data-tip="Total de unidades faltantes sumadas de todos los productos en negativo (respeta el buscador)" class="px-1.5 py-0.5 rounded-md bg-red-100/70 text-red-800 text-[11px] border border-red-200 font-semibold"></span>
                                 </h2>
                             </div>
                             <div class="overflow-x-auto max-h-[420px] overflow-y-auto custom-scrollbar">
                                 <table class="w-full text-left erp-table">
-                                    <thead class="bg-slate-50 sticky top-0"><tr><th class="px-3 py-2">Producto</th><th class="px-3 py-2 text-right">Stock</th><th class="px-3 py-2 text-right">Valor</th></tr></thead>
+                                    <thead class="bg-slate-50 sticky top-0"><tr><th class="px-3 py-2">Producto</th><th class="px-3 py-2 text-right">Stock</th><th class="px-3 py-2 text-right" title="Unidades fraccionadas/sueltas (columna UnidStock de Plex)">Unid.</th><th class="px-3 py-2 text-right">Valor</th></tr></thead>
                                     <tbody id="stockTablaNegativo"></tbody>
                                 </table>
                             </div>
                         </div>
                     </div>
-                    <p class="text-[10.5px] text-slate-400 italic">Los porcentajes se calculan sobre el catálogo TOTAL de la sucursal (incluye productos en 0). "Sobre-stock" compara contra la mediana de stock que el mismo producto tiene en las demás sucursales (Plex no exporta Mínimo/Máximo en este listado). El listado de Stock es una foto del día: cada importación reemplaza la anterior, sin acumular histórico.</p>
+                    <p class="text-[10.5px] text-slate-400 italic">Los porcentajes se calculan sobre el catálogo TOTAL de la sucursal (incluye productos en 0). El consolidado de todas las sucursales no exporta Mínimo/Máximo (vienen en 0); los archivos individuales sí los traen, y cuando están presentes los indicadores "Bajo mínimo" y "Sobre máximo" usan esa parametrización real — si no, el sobre-stock se aproxima con la mediana entre sucursales. El listado de Stock es una foto del día: cada importación reemplaza la anterior, sin acumular histórico.</p>
                 </div>
 
                 <!-- Vista Balance: toda la cadena combinada -->
                 <div id="stockVistaBalance" class="hidden space-y-6 sm:space-y-8">
-                    <div id="stockBalanceKpis" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3"></div>
+                    <div id="stockBalanceKpis" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3"></div>
                     <div class="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden">
                         <div class="px-5 py-4 bg-slate-50 border-b border-slate-100">
                             <h2 class="text-sm font-bold text-slate-700 flex items-center gap-2">
@@ -1787,10 +1825,14 @@
                 <div class="w-14 h-14 bg-blue-50 text-brand-primary rounded-full flex items-center justify-center mb-4">
                     <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                 </div>
-                <h3 class="text-lg font-bold text-slate-900 mb-2">¿De qué sucursal es este listado?</h3>
-                <p class="text-sm text-slate-600 leading-relaxed mb-1">El archivo <strong id="stockSucModalFile" class="font-semibold text-slate-800 break-all"></strong> es un Listado de Stock exportado desde la propia sucursal, y ese formato no indica a cuál pertenece.</p>
-                <p class="text-xs text-slate-400 leading-relaxed mb-4">Elegila acá y se procesa normalmente. La aplicación recuerda tu elección para la próxima vez.</p>
-                <select id="stockSucModalSelect" class="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl outline-none focus:border-brand-primary bg-slate-50 focus:bg-white font-semibold text-slate-800 mb-5"></select>
+                <h3 id="stockSucModalTitle" class="text-lg font-bold text-slate-900 mb-2">¿De qué sucursal es este listado?</h3>
+                <p id="stockSucModalDesc" class="text-sm text-slate-600 leading-relaxed mb-1">El archivo <strong id="stockSucModalFile" class="font-semibold text-slate-800 break-all"></strong> es un Listado de Stock exportado desde la propia sucursal, y ese formato no indica a cuál pertenece.</p>
+                <p id="stockSucModalHint" class="text-xs text-slate-400 leading-relaxed mb-4">Elegila acá y se procesa normalmente. La aplicación recuerda tu elección para la próxima vez.</p>
+                <select id="stockSucModalSelect" class="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl outline-none focus:border-brand-primary bg-slate-50 focus:bg-white font-semibold text-slate-800 mb-3"></select>
+                <label id="stockSucModalLockWrap" class="flex items-start gap-2 w-full text-left mb-5 px-1 cursor-pointer">
+                    <input type="checkbox" id="stockSucModalLock" class="mt-0.5 w-4 h-4 accent-[#2B3990] border-zinc-300 shrink-0">
+                    <span class="text-xs text-slate-500 leading-relaxed">🔒 <strong class="text-slate-700">Bloquear este equipo a la sucursal elegida.</strong> Recomendado para las computadoras de la sucursal: de ahí en más solo va a poder cargar su propio listado (un solo archivo), sin volver a preguntar y sin posibilidad de elegir otra sucursal.</span>
+                </label>
                 <div class="flex gap-2 w-full">
                     <button onclick="resolverStockSucursal(null)" class="flex-1 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 font-semibold rounded-xl text-sm hover:bg-slate-50 smooth-transition">Omitir archivo</button>
                     <button onclick="resolverStockSucursal(document.getElementById('stockSucModalSelect').value)" class="flex-1 px-4 py-2.5 bg-brand-primary text-white font-semibold rounded-xl text-sm hover:bg-brand-primaryHover smooth-transition shadow-soft">Confirmar</button>
@@ -1816,8 +1858,8 @@
 
                     <div class="mb-8 p-4 bg-brand-primary/5 border border-brand-primary/20 rounded-xl text-sm leading-relaxed">
                         <p><strong>La aplicación tiene dos módulos independientes</strong>, elegibles con las pestañas debajo del encabezado. Cada uno tiene su propio botón de importar Excel, y son archivos distintos: no comparten datos entre sí.</p>
-                        <p class="mt-2"><strong>📊 Movimientos</strong> — analiza las <em>bajas de stock</em>: los ajustes que se cargaron (faltantes, vencidos, ingresos, correcciones...). Responde "¿qué pasó y por qué?".</p>
-                        <p class="mt-2"><strong>📦 Stock</strong> — analiza el <em>stock actual</em> de cada sucursal, en un momento dado. Responde "¿cuánto tengo hoy, y está bien cargado?".</p>
+                        <p class="mt-2"><strong>📊 Movimientos</strong> — analiza las <em>bajas de stock</em>: los ajustes que se cargaron (faltantes, vencidos, ingresos, correcciones...). Responde "¿qué pasó y por qué?". Su archivo se descarga desde <strong>Plex → Informes → Stock → Bajas de Stock</strong>.</p>
+                        <p class="mt-2"><strong>📦 Stock</strong> — analiza el <em>stock actual</em> de cada sucursal, en un momento dado. Responde "¿cuánto tengo hoy, y está bien cargado?". Su archivo se descarga desde <strong>Plex → Stock → Listado de Stock</strong> (no está en el menú Informes).</p>
                     </div>
 
                     <div class="mb-10 p-4 border border-slate-200 rounded-xl text-sm">
@@ -1862,7 +1904,7 @@
                     <div class="mb-10">
                         <div class="manual-step">
                             <div class="w-10 h-10 bg-brand-primary text-white rounded-full flex items-center justify-center font-bold shrink-0 z-10">1</div>
-                            <div><p class="font-bold text-slate-800 mb-1">Descargá el Excel desde Plex</p><p class="text-sm leading-relaxed">Ingresá a <strong>Plex → Informes → Stock → Bajas de Stock</strong> y descargá el archivo del período que quieras analizar. No modifiques el archivo: la aplicación valida que tenga el formato original y avisa si algo no coincide.</p></div>
+                            <div><p class="font-bold text-slate-800 mb-1">Descargá el Excel desde Plex</p><p class="text-sm leading-relaxed">Ingresá a <strong>Plex → Informes → Stock → Bajas de Stock</strong> y descargá el archivo del período que quieras analizar. No modifiques el archivo: la aplicación valida que tenga el formato original y avisa si algo no coincide. 💡 No lo confundas con el <em>Listado de Stock</em> del módulo Stock: ese <strong>no</strong> sale del menú Informes, sale de <strong>Plex → Stock → Listado de Stock</strong>.</p></div>
                         </div>
                         <div class="manual-step">
                             <div class="w-10 h-10 bg-brand-primary text-white rounded-full flex items-center justify-center font-bold shrink-0 z-10">2</div>
@@ -1938,9 +1980,10 @@
                     </div>
 
                     <div class="space-y-3 mb-10 text-sm leading-relaxed">
-                        <p><strong>Cómo empezar:</strong> desde Plex, andá a <strong>Informes → Stock → Listado de Stock</strong> y descargalo. Importalo con el botón de la pestaña Stock (es un botón distinto al de Movimientos). Es una <strong>foto diaria</strong>: no hay que preocuparse por acumular datos de días anteriores, cada importación reemplaza a la anterior por completo.</p>
+                        <p><strong>Cómo empezar:</strong> desde Plex, andá a <strong>Stock → Listado de Stock</strong> y descargalo. ⚠️ Ojo: <strong>no</strong> está en el menú Informes — el menú <em>Informes</em> es de donde sale el archivo de <em>Bajas de Stock</em> del módulo Movimientos; son dos archivos y dos accesos distintos. Importalo con el botón de la pestaña Stock (es un botón distinto al de Movimientos). Es una <strong>foto diaria</strong>: no hay que preocuparse por acumular datos de días anteriores, cada importación reemplaza a la anterior por completo.</p>
                         <p>Podés traer el archivo de <strong>todas las sucursales juntas</strong>, el de <strong>una sola sucursal</strong> (por ejemplo, si cada local exporta el suyo), o el recorte de un zonal. No hay que configurar nada: la aplicación detecta sola cuántas sucursales trae el archivo y adapta la pantalla.</p>
-                        <p class="p-3 bg-slate-100 rounded-lg">🏬 <strong>Si el listado se exporta desde la propia sucursal:</strong> ese archivo viene en un formato distinto — el stock aparece en la columna <em>Cantidad</em> y no trae ninguna columna que identifique la sucursal (Plex ya sabe cuál es). La aplicación lo reconoce igual: al importarlo aparece un aviso que pregunta <strong>"¿De qué sucursal es este listado?"</strong>, se elige de la lista y listo. La elección queda guardada, así que en el local se selecciona una sola vez.</p>
+                        <p class="p-3 bg-slate-100 rounded-lg">🏬 <strong>Si el listado se exporta desde la propia sucursal:</strong> ese archivo viene en un formato distinto — el stock aparece en las columnas <em>Cantidad</em> y <em>Unidades</em> y no trae ninguna columna que identifique la sucursal (Plex ya sabe cuál es). La aplicación lo reconoce igual: al importarlo aparece un aviso que pregunta <strong>"¿De qué sucursal es este listado?"</strong>, se elige de la lista y listo. La elección queda guardada, así que en el local se selecciona una sola vez. Y si alguien elige mal, junto al nombre de la sucursal aparece el botón <strong>✎ Corregir sucursal</strong>: reasigna todos los datos a la sucursal correcta al instante, sin volver a importar el archivo.</p>
+                        <p class="p-3 bg-slate-100 rounded-lg">🔒 <strong>Modo sucursal (recomendado para las computadoras del local):</strong> en ese mismo aviso hay una casilla para <strong>bloquear el equipo a la sucursal elegida</strong>. Con el bloqueo activo, esa computadora solo puede cargar <strong>un archivo por vez</strong> y solo el listado de <strong>su propia sucursal</strong> — el consolidado de toda la cadena o el listado de otra sucursal se rechazan con un aviso claro, y ya no se vuelve a preguntar la sucursal: se asigna sola. El bloqueo se ve como un candado 🔒 junto al nombre; administración puede quitarlo con un clic (pide confirmación).</p>
                         <p class="p-3 bg-slate-100 rounded-lg">📐 <strong>Precisión por sucursal:</strong> podés seleccionar <strong>varios archivos a la vez</strong> al importar. Si subís el consolidado de todas las sucursales junto con el archivo propio de una en particular, esa sucursal usa su <strong>catálogo real</strong> (solo sus productos) en vez del catálogo universal de toda la empresa — esto importa porque no todas las sucursales manejan los mismos productos, algunas tienen mucho surtido y otras muchísimo. Las sucursales con catálogo exacto se marcan con <span class="text-brand-primary font-bold">📐 exacto</span> en el ranking del Balance.</p>
 
                         <p class="font-bold text-slate-800 mt-4">Si el archivo trae varias sucursales — Vista Balance</p>
@@ -1949,9 +1992,10 @@
 
                         <p class="font-bold text-slate-800 mt-4">Vista de detalle de una sucursal</p>
                         <p>Muestra el <strong>catálogo total</strong> de esa sucursal (contando también los productos en cero, no solo los que tienen stock cargado), el % de déficit con un indicador claro de si cumple o no el objetivo del 1%, y un segundo indicador que cambia según el caso: <strong>% de sobre-stock</strong> (si hay más sucursales para comparar — mide productos con muchísimo más stock de lo normal para ese mismo producto en otros locales) o <strong>% de cobertura de catálogo</strong> (si el archivo trae una sola sucursal, ya que ahí no hay con qué comparar). Abajo, dos tablas: los productos con mayor stock positivo y los de mayor stock negativo.</p>
+                        <p class="p-3 bg-slate-100 rounded-lg">📐 <strong>Con archivo individual, indicadores reales:</strong> los listados de una sola sucursal (el propio de la farmacia o el individual de administración) traen cargados el <em>Mínimo</em> y el <em>Máximo</em> de reposición de Plex. Cuando están, aparecen dos indicadores con la parametrización real del negocio: <strong>⛔ Bajo mínimo</strong> (productos en positivo o en cero por debajo de su mínimo — riesgo de quiebre antes de llegar a negativo) y <strong>📈 Sobre máximo</strong> (exceso según la regla de la sucursal, no una estimación). Un clic en cualquiera de las dos tarjetas exporta la lista completa a Excel, ordenada por faltante o exceso. El consolidado no trae estos datos, así que ahí se mantiene la aproximación por mediana.</p>
 
                         <p class="font-bold text-slate-800 mt-4">Informe PDF e impresión</p>
-                        <p>El botón <strong>Informe PDF</strong> genera un informe gerencial con tres alcances posibles: <strong>🌎 toda la cadena</strong>, <strong>🗺️ por zonal</strong> (usa la misma configuración de zonales de Movimientos) o <strong>🏬 una sucursal puntual</strong>. Si el archivo ya es de una sola sucursal, la aplicación no pregunta: genera directamente ese informe.</p>
+                        <p>El botón <strong>Informe PDF</strong> genera el <strong>Informe Ejecutivo de Inventario</strong> con tres alcances posibles: <strong>🌎 toda la cadena</strong>, <strong>🗺️ por zonal</strong> (usa la misma configuración de zonales de Movimientos) o <strong>🏬 una sucursal puntual</strong>. En todos los casos incluye portada con semáforo de estado, resumen ejecutivo con tarjetas KPI, gráficos (medidor de cumplimiento, torta de participación, barras y mapa de calor), análisis de productos, hallazgos y recomendaciones generados automáticamente desde los datos, y las tablas de detalle como anexo. En los alcances de cadena y zonal el eje es el ranking de sucursales por criticidad; en el de una sucursal, el análisis es por rubro y por producto — y si el archivo cargado es individual, suma una página de <strong>Reposición y Excesos</strong> con los Mínimos/Máximos reales de Plex. Si el archivo ya es de una sola sucursal, la aplicación no pregunta: genera directamente ese informe.</p>
                         <p>El botón <strong>Negativos</strong> (junto al buscador, solo en la vista de detalle) es distinto: no es un informe gerencial, es un <strong>checklist para imprimir y recorrer el local</strong> con los productos en negativo, su código de barras y el stock del sistema, dejando columnas en blanco para anotar a mano el stock físico real, la diferencia, y una observación — más una línea de firma al pie. Sirve para el control físico en el punto de venta, no para presentar a gerencia.</p>
                     </div>
 
@@ -3086,7 +3130,14 @@
             ];
 
             const missingColumns = requiredColumns.filter(col => !normalizedHeaders.includes(col));
-            if (missingColumns.length > 0) return { valid: false };
+            if (missingColumns.length > 0) {
+                // ARCHIVO EQUIVOCADO: si tiene las columnas típicas del Listado de Stock
+                // (CantStock_SucXXX del consolidado, o Minimo/Maximo del individual),
+                // se avisa que ese archivo va en el módulo Stock, no acá.
+                const esListadoStock = normalizedHeaders.some(h => /^cantstock_suc\d+$/.test(h)) ||
+                    (normalizedHeaders.includes('minimo') && normalizedHeaders.includes('maximo') && !normalizedHeaders.includes('idoperacion'));
+                return { valid: false, esListadoStock };
+            }
 
             const rawJson = XLSX.utils.sheet_to_json(sheet);
             let minDate = new Date(8640000000000000); let maxDate = new Date(-8640000000000000);
@@ -4225,43 +4276,125 @@
         // usar su archivo propio es la única forma de saber su catálogo real (ver conversación:
         // Caballito IV tiene 20.753 productos propios, no los 28.244 del consolidado).
         let stockCatalogoExacto = new Map(); // cod -> Set(IDProducto)
+        let stockSucursalesManuales = new Set(); // códigos asignados a mano en el modal (archivos "de sucursal")
         let stockVistaActual = { positivos: [], negativos: [] };
 
+        // Sucursales ficticias que NO deben entrar al análisis. La 001 es "FP ADM",
+        // una sucursal de pruebas de administración: sus cantidades no son stock real,
+        // así que se excluye de raíz — no aparece en el Balance ni contamina las
+        // medianas con las que se detecta el sobre-stock.
+        const STOCK_CODIGOS_EXCLUIDOS = new Set([1]);
+
+        // Números que vienen de Plex: el Plex de administración y el de las sucursales
+        // no exportan igual — a veces la celda es un número real, a veces texto con
+        // coma decimal ("1234,5") o con separador de miles ("1.234,50"). parseFloat
+        // corta en la coma y devuelve un valor equivocado SIN avisar; esta función
+        // normaliza los tres casos antes de convertir.
+        function parseNumeroPlex(v) {
+            if (typeof v === 'number') return isFinite(v) ? v : 0;
+            if (v === null || v === undefined) return 0;
+            let s = String(v).trim();
+            if (!s) return 0;
+            if (s.includes(',') && s.includes('.')) {
+                // Formato es-AR completo "1.234,56": el punto es miles, la coma es decimal
+                s = s.replace(/\./g, '').replace(',', '.');
+            } else if (s.includes(',')) {
+                // Solo coma: es el decimal argentino ("1234,5")
+                s = s.replace(',', '.');
+            }
+            const n = parseFloat(s);
+            return isFinite(n) ? n : 0;
+        }
+
         function parseStockWorkbook(binary, codSucursalManual) {
+            // Paso pesado (leer y convertir el Excel): se hace UNA sola vez por archivo.
             const wb = XLSX.read(binary, { type: 'array' });
             const sheet = wb.Sheets[wb.SheetNames[0]];
             const rawJson = XLSX.utils.sheet_to_json(sheet, { defval: 0 });
             if (!rawJson.length) return { valid: false };
+            return parseStockFilas(rawJson, codSucursalManual);
+        }
 
+        // Arma los productos a partir de las filas ya convertidas. Separado de la
+        // lectura del Excel a propósito: cuando el archivo es del formato "de
+        // sucursal" hay que esperar a que el usuario elija la sucursal en el modal,
+        // y re-leer el workbook entero en ese momento congelaba la pantalla varios
+        // segundos (el Excel se parseaba DOS veces). Ahora las filas quedan en
+        // memoria (rawJson) y al confirmar solo se les asigna el código: milisegundos.
+        function parseStockFilas(rawJson, codSucursalManual) {
             // Detecta qué códigos de sucursal trae este archivo y resuelve la clave EXACTA de
             // columna una sola vez (los nombres pueden traer ceros a la izquierda variables).
             // Hacerlo por fila/producto —como antes— multiplicaba esto por 28.000+ productos
             // y tardaba casi un minuto; precalculado, el parseo baja a milisegundos.
             const headers = Object.keys(rawJson[0]);
-            const colesPorCodigo = []; // [{ cod, keyCant }]
+            const colesPorCodigo = []; // [{ cod, keyCant, keyUnid }]
+            // Las columnas vienen de a pares por sucursal: CantStock_SucXXX (envases) y
+            // UnidStock_SucXXX (unidades fraccionadas/sueltas). Se leen las dos.
+            const unidPorCodigoKey = new Map();
+            headers.forEach(h => {
+                const mu = h.match(/^UnidStock_Suc0*(\d+)$/i);
+                if (mu) unidPorCodigoKey.set(parseInt(mu[1], 10), h);
+            });
             headers.forEach(h => {
                 const m = h.match(/^CantStock_Suc0*(\d+)$/i);
-                if (m) colesPorCodigo.push({ cod: parseInt(m[1], 10), keyCant: h });
+                if (m) {
+                    const cod = parseInt(m[1], 10);
+                    if (STOCK_CODIGOS_EXCLUIDOS.has(cod)) return; // ficticias (FP ADM): afuera
+                    colesPorCodigo.push({ cod, keyCant: h, keyUnid: unidPorCodigoKey.get(cod) || null });
+                }
             });
             if (!colesPorCodigo.length) {
+                // ARCHIVO EQUIVOCADO: el Excel de Bajas de Stock (módulo Movimientos)
+                // también tiene columnas "Cantidad" e "IDProducto", así que hay que
+                // descartarlo ANTES de la detección del formato de sucursal — si no,
+                // la app preguntaría "¿de qué sucursal es?" e importaría movimientos
+                // como si fueran stock. Se reconoce por sus columnas exclusivas.
+                const headersLower = headers.map(h => String(h).toLowerCase().trim());
+                const esBajasDeStock = ['idoperacion', 'nrobaja', 'motivo'].some(c => headersLower.includes(c));
+                if (esBajasDeStock) return { valid: false, esBajasDeStock: true };
                 // FORMATO "DE SUCURSAL": cuando el listado se exporta DESDE la propia
                 // farmacia, Plex no incluye las columnas CantStock_SucXXX — el stock
-                // viene directo en la columna "Cantidad" y el archivo no dice a qué
-                // sucursal pertenece. Se reconoce por sus columnas base y se procesa
-                // igual que un archivo de una sola sucursal, con el código que el
-                // usuario indica en el modal (codSucursalManual).
+                // viene directo en las columnas "Cantidad" (envases) y "Unidades"
+                // (fraccionadas) y el archivo no dice a qué sucursal pertenece. Se
+                // reconoce por sus columnas base y se procesa igual que un archivo de
+                // una sola sucursal, con el código que corresponda (codSucursalManual
+                // del modal, o el fijado en modo sucursal).
                 const keyCantidad = headers.find(h => /^Cantidad$/i.test(h));
-                const esFormatoSucursal = !!keyCantidad && headers.some(h => /^IDProducto$/i.test(h));
+                // Además de Cantidad e IDProducto se exige la columna "producto":
+                // cualquier Excel ajeno podría tener las dos primeras de casualidad,
+                // pero las tres juntas son la firma del listado real de Plex.
+                const esFormatoSucursal = !!keyCantidad && headers.some(h => /^IDProducto$/i.test(h)) && headers.some(h => /^producto$/i.test(h));
                 if (!esFormatoSucursal) return { valid: false };
-                if (codSucursalManual == null) return { valid: false, formatoSucursal: true };
-                colesPorCodigo.push({ cod: codSucursalManual, keyCant: keyCantidad });
+                if (codSucursalManual == null) return { valid: false, formatoSucursal: true, rawJson };
+                colesPorCodigo.push({ cod: codSucursalManual, keyCant: keyCantidad, keyUnid: headers.find(h => /^Unidades$/i.test(h)) || null });
             }
+
+            // Mínimo/Máximo: Plex los exporta CARGADOS solo en los listados de UNA
+            // sucursal (tanto el de la propia farmacia como el individual de
+            // administración); en el consolidado vienen todos en 0. Cuando están,
+            // habilitan los indicadores "Bajo mínimo" y "Sobre máximo" con los
+            // parámetros reales del negocio en vez de la aproximación por mediana.
+            const esIndividual = colesPorCodigo.length === 1;
+            const codUnico = esIndividual ? colesPorCodigo[0].cod : null;
 
             const productos = rawJson.map((row, i) => {
                 const stockPorSuc = new Map();
-                for (const { cod, keyCant } of colesPorCodigo) {
-                    const cant = parseFloat(row[keyCant] || 0) || 0;
+                const unidPorSuc = new Map(); // unidades fraccionadas/sueltas por sucursal
+                const minPorSuc = new Map();  // Mínimo de reposición (solo archivos individuales)
+                const maxPorSuc = new Map();  // Máximo permitido (solo archivos individuales)
+                for (const { cod, keyCant, keyUnid } of colesPorCodigo) {
+                    const cant = parseNumeroPlex(row[keyCant]);
                     if (cant !== 0) stockPorSuc.set(cod, cant);
+                    if (keyUnid) {
+                        const unid = parseNumeroPlex(row[keyUnid]);
+                        if (unid !== 0) unidPorSuc.set(cod, unid);
+                    }
+                }
+                if (esIndividual) {
+                    const mn = parseNumeroPlex(row.Minimo);
+                    const mx = parseNumeroPlex(row.Maximo);
+                    if (mn > 0) minPorSuc.set(codUnico, mn);
+                    if (mx > 0) maxPorSuc.set(codUnico, mx);
                 }
                 return {
                     id: i,
@@ -4270,10 +4403,13 @@
                     codebar: String(row.Codebar || row.codebar || ''),
                     rubro: String(row.Rubro || 'Sin Rubro'),
                     laboratorio: String(row.Laboratorio || 'Sin Laboratorio'),
-                    precio: parseFloat(row.Precio || 0) || 0,
-                    costo: parseFloat(row.costo || row.Costo || 0) || 0,
+                    precio: parseNumeroPlex(row.Precio),
+                    costo: parseNumeroPlex(row.costo !== undefined && row.costo !== 0 ? row.costo : row.Costo),
                     unidadesProd: parseInt(row.UnidadesProd || 1) || 1,
                     stockPorSuc,
+                    unidPorSuc,
+                    minPorSuc,
+                    maxPorSuc,
                     medianaStock: null // se completa en el paso siguiente
                 };
             });
@@ -4285,10 +4421,20 @@
                 p.medianaStock = positivos.length ? positivos[Math.floor(positivos.length / 2)] : null;
             });
 
+            // Sucursales del archivo. Las que no figuran en el mapeo de nombres NO se
+            // descartan si traen datos: se muestran como "SUCURSAL XXX (sin nombre)"
+            // — descartarlas escondía stock real (ej.: la Suc 001 del consolidado trae
+            // productos en negativo). Solo se omiten las columnas que además de no
+            // tener nombre vienen completamente en cero (depósitos/locales dados de baja).
+            const codesConDatos = new Set();
+            productos.forEach(p => {
+                p.stockPorSuc.forEach((v, cod) => codesConDatos.add(cod));
+                p.unidPorSuc.forEach((v, cod) => codesConDatos.add(cod));
+            });
             const codigosSuc = colesPorCodigo
                 .map(c => c.cod)
-                .filter(cod => MAPEO_SUCURSALES_STOCK[cod])
-                .map(cod => ({ cod, nombre: MAPEO_SUCURSALES_STOCK[cod] }))
+                .filter(cod => MAPEO_SUCURSALES_STOCK[cod] || codesConDatos.has(cod))
+                .map(cod => ({ cod, nombre: MAPEO_SUCURSALES_STOCK[cod] || `SUCURSAL ${String(cod).padStart(3, '0')} (sin nombre)` }))
                 .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
             return { valid: true, productos, codigosSuc };
@@ -4318,11 +4464,51 @@
         // CantStock_SucXXX). Devuelve una Promise con el código elegido, o
         // null si el usuario decide omitir ese archivo.
         // ----------------------------------------------------------------
+        // ----------------------------------------------------------------
+        // MODO SUCURSAL: bloquea este equipo a una única sucursal. Con el
+        // bloqueo activo solo se puede cargar UN archivo por vez, y solo el
+        // listado de esa sucursal (el formato propio de la farmacia, o el de
+        // administración si trae únicamente esa sucursal). Pensado para las
+        // computadoras del local, donde no debería poder cargarse ni el
+        // consolidado ni el listado de otra sucursal.
+        // ----------------------------------------------------------------
+        function getModoSucursal() {
+            try {
+                const v = localStorage.getItem('farmaplus_stock_modo_sucursal');
+                const cod = v ? parseInt(v, 10) : null;
+                return (cod && MAPEO_SUCURSALES_STOCK[cod]) ? cod : null;
+            } catch (e) { return null; }
+        }
+        function setModoSucursal(cod) {
+            try {
+                if (cod == null) localStorage.removeItem('farmaplus_stock_modo_sucursal');
+                else localStorage.setItem('farmaplus_stock_modo_sucursal', String(cod));
+            } catch (e) {}
+        }
+        function quitarModoSucursal() {
+            const cod = getModoSucursal();
+            if (cod == null) return;
+            if (!window.confirm(`Este equipo está bloqueado a la sucursal ${MAPEO_SUCURSALES_STOCK[cod]}. ¿Quitar el bloqueo? (Después va a poder cargar cualquier listado.)`)) return;
+            setModoSucursal(null);
+            poblarSelectorSucursalStock();
+        }
+
         let stockSucursalModalResolve = null;
-        function pedirSucursalParaArchivo(nombreArchivo) {
+        function pedirSucursalParaArchivo(nombreArchivo, esCorreccion) {
             return new Promise((resolve) => {
                 stockSucursalModalResolve = resolve;
-                document.getElementById('stockSucModalFile').innerText = nombreArchivo;
+                if (esCorreccion) {
+                    document.getElementById('stockSucModalTitle').innerText = 'Corregir la sucursal del listado';
+                    document.getElementById('stockSucModalDesc').innerHTML = `Este listado está asignado a <strong class="font-semibold text-slate-800">${escapeHtml(nombreArchivo)}</strong>. Elegí la sucursal correcta y los datos se reasignan al instante.`;
+                    document.getElementById('stockSucModalHint').innerText = 'No hace falta volver a importar el archivo: solo cambia la sucursal a la que pertenecen los datos.';
+                    document.getElementById('stockSucModalLockWrap').classList.add('hidden');
+                } else {
+                    document.getElementById('stockSucModalTitle').innerText = '¿De qué sucursal es este listado?';
+                    document.getElementById('stockSucModalDesc').innerHTML = `El archivo <strong class="font-semibold text-slate-800 break-all">${escapeHtml(nombreArchivo)}</strong> es un Listado de Stock exportado desde la propia sucursal, y ese formato no indica a cuál pertenece.`;
+                    document.getElementById('stockSucModalHint').innerText = 'Elegila acá y se procesa normalmente. La aplicación recuerda tu elección para la próxima vez.';
+                    document.getElementById('stockSucModalLockWrap').classList.remove('hidden');
+                    document.getElementById('stockSucModalLock').checked = false;
+                }
                 const sel = document.getElementById('stockSucModalSelect');
                 sel.innerHTML = Object.entries(MAPEO_SUCURSALES_STOCK)
                     .map(([cod, nombre]) => ({ cod: parseInt(cod, 10), nombre }))
@@ -4339,9 +4525,73 @@
         }
         function resolverStockSucursal(val) {
             const cod = (val !== null && val !== undefined && val !== '') ? parseInt(val, 10) : null;
-            if (cod) { try { localStorage.setItem('farmaplus_stock_sucursal_propia', String(cod)); } catch (e) {} }
+            if (cod) {
+                try { localStorage.setItem('farmaplus_stock_sucursal_propia', String(cod)); } catch (e) {}
+                // Si el usuario marcó el bloqueo, este equipo queda fijado a esa sucursal
+                const lockChk = document.getElementById('stockSucModalLock');
+                const lockVisible = !document.getElementById('stockSucModalLockWrap').classList.contains('hidden');
+                if (lockVisible && lockChk.checked) setModoSucursal(cod);
+            }
             closeModal('modalStockSucursal');
             if (stockSucursalModalResolve) { stockSucursalModalResolve(cod); stockSucursalModalResolve = null; }
+        }
+
+        // ----------------------------------------------------------------
+        // Corrección de sucursal asignada a mano: si en el modal se eligió la
+        // sucursal equivocada, esto reasigna TODOS los datos ya cargados
+        // (cantidades, catálogo exacto, medianas) a la sucursal correcta,
+        // sin necesidad de volver a importar el archivo.
+        // ----------------------------------------------------------------
+        async function corregirSucursalStock() {
+            if (!stockCodigosSuc.length) return;
+            const codViejo = stockCodigosSuc[0].cod;
+            const codNuevo = await pedirSucursalParaArchivo(stockCodigosSuc[0].nombre, true);
+            if (codNuevo == null || codNuevo === codViejo) return;
+            if (stockCodigosSuc.some(s => s.cod === codNuevo)) {
+                document.getElementById('modalValidationErrorText').innerHTML = `No se puede reasignar: la sucursal <strong class="font-semibold text-slate-800">${escapeHtml(MAPEO_SUCURSALES_STOCK[codNuevo])}</strong> ya tiene datos cargados en esta importación.`;
+                openModal('modalValidationError');
+                return;
+            }
+            // Remapea las cantidades y unidades fraccionadas de cada producto al nuevo código
+            stockProductos.forEach(p => {
+                if (p.stockPorSuc.has(codViejo)) {
+                    p.stockPorSuc.set(codNuevo, p.stockPorSuc.get(codViejo));
+                    p.stockPorSuc.delete(codViejo);
+                }
+                if (p.unidPorSuc && p.unidPorSuc.has(codViejo)) {
+                    p.unidPorSuc.set(codNuevo, p.unidPorSuc.get(codViejo));
+                    p.unidPorSuc.delete(codViejo);
+                }
+                if (p.minPorSuc && p.minPorSuc.has(codViejo)) {
+                    p.minPorSuc.set(codNuevo, p.minPorSuc.get(codViejo));
+                    p.minPorSuc.delete(codViejo);
+                }
+                if (p.maxPorSuc && p.maxPorSuc.has(codViejo)) {
+                    p.maxPorSuc.set(codNuevo, p.maxPorSuc.get(codViejo));
+                    p.maxPorSuc.delete(codViejo);
+                }
+            });
+            // Recalcula la mediana entre sucursales (la referencia de sobre-stock)
+            stockProductos.forEach(p => {
+                const positivos = [...p.stockPorSuc.values()].filter(c => c > 0).sort((a, b) => a - b);
+                p.medianaStock = positivos.length ? positivos[Math.floor(positivos.length / 2)] : null;
+            });
+            // Remapea el catálogo exacto y las marcas de asignación manual
+            if (stockCatalogoExacto.has(codViejo)) {
+                stockCatalogoExacto.set(codNuevo, stockCatalogoExacto.get(codViejo));
+                stockCatalogoExacto.delete(codViejo);
+            }
+            stockSucursalesManuales.delete(codViejo);
+            stockSucursalesManuales.add(codNuevo);
+            // Actualiza los códigos, la vista y los encabezados
+            stockCodigosSuc = stockCodigosSuc
+                .map(s => s.cod === codViejo ? { cod: codNuevo, nombre: MAPEO_SUCURSALES_STOCK[codNuevo] } : s)
+                .sort((a, b) => a.nombre.localeCompare(b.nombre));
+            if (stockCurrentSuc === codViejo) stockCurrentSuc = codNuevo;
+            poblarSelectorSucursalStock();
+            document.getElementById('stockHeaderMainLabel').innerText =
+                stockCodigosSuc.length > 1 ? `Stock: ${stockCodigosSuc.length} sucursales` : `Stock: ${stockCodigosSuc[0]?.nombre || ''}`;
+            if (stockVistaBalance) renderStockBalance(); else renderStockSucursal();
         }
 
         // Lee un único archivo como ArrayBuffer, envuelto en Promise para poder leer varios en paralelo
@@ -4368,18 +4618,88 @@
             try {
                 const buffers = await Promise.all(files.map(leerArchivoComoBuffer));
                 const parseados = buffers.map(b => parseStockWorkbook(b));
-                // Archivos en formato "de sucursal" (exportados desde la farmacia, sin
-                // columnas CantStock_SucXXX): se pregunta a cuál pertenecen, uno por uno,
-                // y se re-parsean asignándoles ese código.
-                for (let i = 0; i < parseados.length; i++) {
-                    if (!parseados[i].valid && parseados[i].formatoSucursal) {
-                        const cod = await pedirSucursalParaArchivo(files[i].name);
-                        if (cod != null) parseados[i] = parseStockWorkbook(buffers[i], cod);
+                const manuales = new Set();
+
+                // MODO SUCURSAL activo: un solo archivo, y solo el de ESTA sucursal.
+                const lockCod = getModoSucursal();
+                if (lockCod != null) {
+                    const nombreLock = MAPEO_SUCURSALES_STOCK[lockCod];
+                    if (files.length > 1) {
+                        document.getElementById('modalValidationErrorText').innerHTML = `Este equipo está en <strong class="font-semibold text-slate-800">modo sucursal (${escapeHtml(nombreLock)})</strong> y solo puede cargar <strong>un archivo por vez</strong>: el listado propio de la sucursal.`;
+                        openModal('modalValidationError');
+                        document.getElementById('stockEmptyState').classList.toggle('hidden', stockProductos.length > 0);
+                        if (stockProductos.length > 0) document.getElementById('stockDashboard').classList.remove('hidden');
+                        return;
+                    }
+                    const p0 = parseados[0];
+                    if (p0.valid) {
+                        // El archivo trae identificación por columnas (formato administración):
+                        // solo se acepta si es de UNA sucursal y coincide con la bloqueada.
+                        const esPropio = p0.codigosSuc.length === 1 && p0.codigosSuc[0].cod === lockCod;
+                        if (!esPropio) {
+                            document.getElementById('modalValidationErrorText').innerHTML = `Este equipo está en <strong class="font-semibold text-slate-800">modo sucursal (${escapeHtml(nombreLock)})</strong>. El archivo que intentás cargar ${p0.codigosSuc.length > 1 ? 'es el consolidado de varias sucursales' : `pertenece a otra sucursal (${escapeHtml(p0.codigosSuc[0]?.nombre || 'desconocida')})`} y no se puede importar acá.`;
+                            openModal('modalValidationError');
+                            document.getElementById('stockEmptyState').classList.toggle('hidden', stockProductos.length > 0);
+                            if (stockProductos.length > 0) document.getElementById('stockDashboard').classList.remove('hidden');
+                            return;
+                        }
+                    } else if (p0.formatoSucursal) {
+                        // Formato propio de la farmacia: se asigna directo a la sucursal
+                        // bloqueada, sin preguntar ni permitir elegir otra. Reutiliza las
+                        // filas ya parseadas (sin re-leer el Excel: era lo que congelaba).
+                        parseados[0] = parseStockFilas(p0.rawJson, lockCod);
+                        if (parseados[0].valid) manuales.add(lockCod);
+                    }
+                } else {
+                    // Sin bloqueo: archivos en formato "de sucursal" (exportados desde la
+                    // farmacia, sin columnas CantStock_SucXXX) — se pregunta a cuál
+                    // pertenecen, uno por uno, y se completan asignándoles ese código.
+                    for (let i = 0; i < parseados.length; i++) {
+                        if (!parseados[i].valid && parseados[i].formatoSucursal) {
+                            const cod = await pedirSucursalParaArchivo(files[i].name);
+                            if (cod != null) {
+                                // Deja respirar a la interfaz para que el modal termine de
+                                // cerrarse antes de armar los productos.
+                                await new Promise(r => setTimeout(r, 60));
+                                parseados[i] = parseStockFilas(parseados[i].rawJson, cod);
+                                if (parseados[i].valid) manuales.add(cod);
+                            }
+                        }
                     }
                 }
                 const validos = parseados.filter(p => p.valid);
+                const nombresBajas = files.filter((f, i) => parseados[i].esBajasDeStock).map(f => f.name);
                 if (!validos.length) {
-                    document.getElementById('modalValidationErrorText').innerHTML = 'Ninguno de los archivos corresponde al formato del Listado de Stock. Recordá descargarlos desde <strong class="font-semibold text-slate-800">Plex → Stock → Listado de Stock</strong> e intentá nuevamente.';
+                    document.getElementById('modalValidationErrorText').innerHTML = nombresBajas.length
+                        ? `El archivo <strong class="font-semibold text-slate-800 break-all">${escapeHtml(nombresBajas[0])}</strong> es el Excel de <strong class="font-semibold text-slate-800">Bajas de Stock</strong>, que corresponde al módulo <strong>Movimientos</strong> (se importa en esa pestaña). Este módulo usa otro archivo: el <strong class="font-semibold text-slate-800">Listado de Stock</strong>, que se descarga desde <strong class="font-semibold text-slate-800">Plex → Stock → Listado de Stock</strong> — no desde el menú Informes.`
+                        : 'Ninguno de los archivos corresponde al formato del Listado de Stock. Recordá descargarlos desde <strong class="font-semibold text-slate-800">Plex → Stock → Listado de Stock</strong> (no desde el menú Informes) e intentá nuevamente.';
+                    openModal('modalValidationError');
+                    document.getElementById('stockEmptyState').classList.toggle('hidden', stockProductos.length > 0);
+                    if (stockProductos.length > 0) document.getElementById('stockDashboard').classList.remove('hidden');
+                    return;
+                }
+                // Carga múltiple mixta: los válidos se importan igual, pero se avisa
+                // qué archivo se ignoró por ser el Excel del otro módulo.
+                if (nombresBajas.length) {
+                    document.getElementById('modalValidationErrorText').innerHTML = `Se importaron ${validos.length} archivo(s) válido(s), pero <strong class="font-semibold text-slate-800 break-all">${escapeHtml(nombresBajas.join(', '))}</strong> se ignoró: es el Excel de <strong class="font-semibold text-slate-800">Bajas de Stock</strong> del módulo <strong>Movimientos</strong>. El de este módulo se descarga desde <strong class="font-semibold text-slate-800">Plex → Stock → Listado de Stock</strong>.`;
+                    openModal('modalValidationError');
+                }
+
+                // CONTROL DE PLAUSIBILIDAD: un Listado de Stock real trae el catálogo
+                // completo (los archivos reales rondan los 20.000–28.000 productos).
+                // Un archivo con la estructura correcta pero pocas filas es casi seguro
+                // un export FILTRADO en Plex (por laboratorio, rubro o búsqueda) — es
+                // indistinguible por formato, pero importarlo reemplazaría la foto
+                // completa y todos los porcentajes se calcularían sobre ese recorte.
+                // Se rechaza directamente.
+                const MIN_FILAS_LISTADO = 2000;
+                const chicos = [];
+                files.forEach((f, i) => {
+                    if (parseados[i].valid && parseados[i].productos.length < MIN_FILAS_LISTADO)
+                        chicos.push(`<strong class="font-semibold text-slate-800 break-all">${escapeHtml(f.name)}</strong> (${parseados[i].productos.length.toLocaleString('es-AR')} productos)`);
+                });
+                if (chicos.length) {
+                    document.getElementById('modalValidationErrorText').innerHTML = `El archivo ${chicos.join(', ')} parece un listado <strong class="font-semibold text-slate-800">filtrado</strong> — un Listado de Stock completo trae el catálogo entero, con más de 20.000 productos. Importarlo haría que todos los indicadores se calculen solo sobre ese recorte. Exportalo de nuevo desde <strong class="font-semibold text-slate-800">Plex → Stock → Listado de Stock</strong> sin filtros de laboratorio, rubro ni búsqueda.`;
                     openModal('modalValidationError');
                     document.getElementById('stockEmptyState').classList.toggle('hidden', stockProductos.length > 0);
                     if (stockProductos.length > 0) document.getElementById('stockDashboard').classList.remove('hidden');
@@ -4401,7 +4721,12 @@
                     p.productos.forEach(prod => {
                         const existente = productosPorId.get(prod.IDProducto);
                         if (!existente) { productosPorId.set(prod.IDProducto, prod); }
-                        else { prod.stockPorSuc.forEach((v, cod) => existente.stockPorSuc.set(cod, v)); }
+                        else {
+                            prod.stockPorSuc.forEach((v, cod) => existente.stockPorSuc.set(cod, v));
+                            prod.unidPorSuc.forEach((v, cod) => existente.unidPorSuc.set(cod, v));
+                            prod.minPorSuc.forEach((v, cod) => existente.minPorSuc.set(cod, v));
+                            prod.maxPorSuc.forEach((v, cod) => existente.maxPorSuc.set(cod, v));
+                        }
                     });
                     p.codigosSuc.forEach(s => codigosSucMap.set(s.cod, s.nombre));
                 });
@@ -4418,6 +4743,12 @@
                         // La cantidad de ESTA sucursal viene siempre del archivo individual (más preciso)
                         if (prod.stockPorSuc.has(cod)) master.stockPorSuc.set(cod, prod.stockPorSuc.get(cod));
                         else master.stockPorSuc.delete(cod);
+                        if (prod.unidPorSuc.has(cod)) master.unidPorSuc.set(cod, prod.unidPorSuc.get(cod));
+                        else master.unidPorSuc.delete(cod);
+                        if (prod.minPorSuc.has(cod)) master.minPorSuc.set(cod, prod.minPorSuc.get(cod));
+                        else master.minPorSuc.delete(cod);
+                        if (prod.maxPorSuc.has(cod)) master.maxPorSuc.set(cod, prod.maxPorSuc.get(cod));
+                        else master.maxPorSuc.delete(cod);
                     });
                     catalogoExacto.set(cod, idsDeEstaSuc);
                 });
@@ -4430,6 +4761,7 @@
                 });
                 stockCodigosSuc = [...codigosSucMap.entries()].map(([cod, nombre]) => ({ cod, nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre));
                 stockCatalogoExacto = catalogoExacto;
+                stockSucursalesManuales = manuales;
 
                 stockCurrentSuc = stockCodigosSuc.length ? stockCodigosSuc[0].cod : null;
                 stockVistaBalance = stockCodigosSuc.length > 1;
@@ -4449,8 +4781,11 @@
             } catch (err) {
                 console.error(err);
                 document.getElementById('stockEmptyState').classList.toggle('hidden', stockProductos.length > 0);
-                document.getElementById('stockErrorText').innerText = 'No se pudo leer alguno de los archivos. Verificá que no estén abiertos en Excel ni dañados, e intentá de nuevo.';
-                document.getElementById('stockErrorBanner').classList.remove('hidden');
+                if (stockProductos.length > 0) document.getElementById('stockDashboard').classList.remove('hidden');
+                // Archivo ilegible (dañado, protegido, o no es un Excel de verdad):
+                // mismo cartel que un formato incorrecto, con la ruta de descarga.
+                document.getElementById('modalValidationErrorText').innerHTML = 'No se pudo leer alguno de los archivos: no parece ser un Excel válido (puede estar dañado, abierto en Excel, protegido con contraseña o tener la extensión cambiada). Descargá el archivo original desde <strong class="font-semibold text-slate-800">Plex → Stock → Listado de Stock</strong> e intentá nuevamente.';
+                openModal('modalValidationError');
             } finally {
                 hideStockLoader();
                 uploadText.innerText = stockProductos.length > 0 ? 'Cambiar Excel' : 'Importar Stock';
@@ -4460,7 +4795,7 @@
         }
 
         function limpiarStock() {
-            stockProductos = []; stockCodigosSuc = []; stockCurrentSuc = null; stockCatalogoExacto = new Map();
+            stockProductos = []; stockCodigosSuc = []; stockCurrentSuc = null; stockCatalogoExacto = new Map(); stockSucursalesManuales = new Set();
             stockCostAuditResults = []; stockCostAuditByProductId.clear();
             document.getElementById('stockDashboard').classList.add('hidden');
             document.getElementById('stockCostAuditBanner').classList.add('hidden');
@@ -4476,15 +4811,25 @@
         function poblarSelectorSucursalStock() {
             const sel = document.getElementById('stockSucursalSelect');
             const unica = document.getElementById('stockSucursalUnica');
+            const btnFix = document.getElementById('btnStockReasignar');
+            const btnLock = document.getElementById('btnStockLockBadge');
+            const lockCod = getModoSucursal();
             if (stockCodigosSuc.length <= 1) {
                 // Archivo de UNA sola sucursal (ej: exportación propia de una farmacia):
                 // no tiene sentido mostrar un desplegable con una sola opción.
                 sel.classList.add('hidden');
                 unica.classList.remove('hidden');
                 unica.textContent = stockCodigosSuc[0] ? stockCodigosSuc[0].nombre : 'Sin identificar';
+                // Si la sucursal se eligió a mano se ofrece corregirla — salvo con el
+                // bloqueo activo, donde la sucursal es fija y se muestra el candado.
+                const esManual = stockCodigosSuc[0] && stockSucursalesManuales.has(stockCodigosSuc[0].cod);
+                btnFix.classList.toggle('hidden', !esManual || lockCod != null);
+                btnLock.classList.toggle('hidden', lockCod == null);
             } else {
                 sel.classList.remove('hidden');
                 unica.classList.add('hidden');
+                btnFix.classList.add('hidden');
+                btnLock.classList.add('hidden');
                 // Con varias sucursales, la primera opción es un Balance general de toda
                 // la cadena; elegir una sucursal puntual da la vista detallada de siempre.
                 sel.innerHTML = `<option value="BALANCE">🌐 Balance — Todas las sucursales</option>` +
@@ -4532,6 +4877,7 @@
             // cada fila del ranking, en cambio, sí usa su catálogo exacto cuando está disponible.
             const pctNegGlobal = (stockCodigosSuc.length && totalCatalogo) ? (totalCombosNeg / (totalCatalogo * stockCodigosSuc.length) * 100) : 0;
             const pctUnidadesGlobal = totalUnidadesCadena ? (totalUnidadesNegCadena / totalUnidadesCadena * 100) : 0;
+            const totalUnidadesPosCadena = totalUnidadesCadena - totalUnidadesNegCadena;
             const cumpleGlobal = pctNegGlobal < OBJETIVO_NEG_MAX;
             const cumpleGlobalUnidades = pctUnidadesGlobal < OBJETIVO_NEG_MAX;
             const peorSuc = porSucursal[0];
@@ -4544,12 +4890,13 @@
                     ${sub ? `<p class="text-[10px] text-slate-400 mt-0.5 truncate">${escapeHtml(sub)}</p>` : ''}
                 </div>`;
             document.getElementById('stockBalanceKpis').innerHTML =
-                card('Productos del catálogo universal × cantidad de sucursales cargadas: el universo total que se audita. Las sucursales con archivo propio cargado usan su catálogo real en el ranking, no este número universal.', 'Catálogo × sucursales', `${totalCatalogo.toLocaleString('es-AR')} × ${stockCodigosSuc.length}`, `${totalCombosStock.toLocaleString('es-AR')} combinaciones con stock declarado${nExactas ? ` · ${nExactas} con catálogo exacto` : ''}`) +
-                card('Mismo objetivo (<1%), pero contando UNIDADES en vez de productos: puede revelar sucursales donde pocos productos concentran un desfase enorme, invisible en el % por SKU.', '% déficit por unidades', pctUnidadesGlobal.toFixed(2) + '%', `objetivo <1% ${cumpleGlobalUnidades ? '✔ cumple' : '✗ no cumple'}`, cumpleGlobalUnidades ? 'text-emerald-600' : 'text-red-600') +
-                card('Objetivo del negocio: mantener el stock negativo por debajo del 1% del inventario total, contando PRODUCTOS distintos (aproximado con el catálogo universal).', '% déficit por SKU', pctNegGlobal.toFixed(2) + '%', `objetivo <1% ${cumpleGlobal ? '✔ cumple' : '✗ no cumple'}`, cumpleGlobal ? 'text-emerald-600' : 'text-red-600') +
-                card('Cantidad de sucursales cuyo propio % de déficit por unidades ya supera el objetivo del 1%.', 'Fuera de objetivo', `${sucursalesFueraObjetivo} de ${stockCodigosSuc.length}`, sucursalesFueraObjetivo ? 'requieren atención' : 'todas dentro del objetivo', sucursalesFueraObjetivo ? 'text-red-600' : 'text-emerald-600') +
-                card('Valorización del stock positivo de toda la cadena combinada.', 'Valor del stock (cadena)', formatCurrencyCompact(valorTotalCadena), '') +
-                card('Costo teórico de reponer todo el déficit de toda la cadena combinada.', 'Valor del déficit (cadena)', formatCurrencyCompact(valorDeficitCadena), peorSuc ? `peor: ${peorSuc.nombre}` : '', 'text-red-600');
+                card('Tamaño del universo auditado: todos los productos del catálogo multiplicados por la cantidad de sucursales cargadas. No es un indicador de gestión, sino la base sobre la que se calculan los porcentajes de la cadena. Las sucursales con archivo propio cargado usan su catálogo real en el ranking, no este número general.', 'Catálogo × sucursales', `${totalCatalogo.toLocaleString('es-AR')} × ${stockCodigosSuc.length}`, `${totalCombosStock.toLocaleString('es-AR')} combinaciones con stock declarado${nExactas ? ` · ${nExactas} con catálogo exacto` : ''}`) +
+                card('Porcentaje de las unidades en movimiento de toda la cadena que están en negativo. Por debajo del 1% cumple el objetivo del negocio; si lo supera, el ranking de abajo muestra qué sucursales concentran el problema, incluso cuando pocos productos acumulan un desfase grande. Cálculo: unidades negativas ÷ (positivas + negativas) × 100.', '% déficit s/ total (unid.)', pctUnidadesGlobal.toFixed(2) + '%', `objetivo <1% ${cumpleGlobalUnidades ? '✔ cumple' : '✗ no cumple'}`, cumpleGlobalUnidades ? 'text-emerald-600' : 'text-red-600') +
+                card('Peso del faltante frente a la mercadería disponible en toda la cadena. Un valor alto indica que el déficit es significativo comparado con el stock real en los estantes de la empresa. Cálculo: unidades negativas ÷ unidades positivas × 100.', '% déficit s/ positivo (unid.)', totalUnidadesPosCadena ? (totalUnidadesNegCadena / totalUnidadesPosCadena * 100).toFixed(2) + '%' : (totalUnidadesNegCadena ? '∞' : '0.00%'), `${formatNumber(totalUnidadesNegCadena)} neg. / ${formatNumber(totalUnidadesPosCadena)} pos.`, totalUnidadesNegCadena ? 'text-red-600' : 'text-emerald-600') +
+                card('Porcentaje de combinaciones producto-sucursal con stock en negativo. Por debajo del 1% cumple el objetivo del negocio; un valor mayor indica que los desfases están extendidos en la cadena y no concentrados en pocos productos.', '% déficit por SKU', pctNegGlobal.toFixed(2) + '%', `objetivo <1% ${cumpleGlobal ? '✔ cumple' : '✗ no cumple'}`, cumpleGlobal ? 'text-emerald-600' : 'text-red-600') +
+                card('Cantidad de sucursales cuyo déficit por unidades supera el objetivo del 1%. Cuantas más haya, más extendido está el problema en la cadena; el ranking de abajo permite identificarlas y priorizar las peores.', 'Fuera de objetivo', `${sucursalesFueraObjetivo} de ${stockCodigosSuc.length}`, sucursalesFueraObjetivo ? 'requieren atención' : 'todas dentro del objetivo', sucursalesFueraObjetivo ? 'text-red-600' : 'text-emerald-600') +
+                card('Dinero invertido en la mercadería disponible de todas las sucursales, valuado al costo. Dimensiona el capital total inmovilizado en inventario. Cálculo: cantidad × costo de cada producto con stock positivo.', 'Valor del stock (cadena)', formatCurrencyCompact(valorTotalCadena), '') +
+                card('Cuánto costaría reponer todas las unidades faltantes de la cadena. Cuanto más alto, mayor el impacto económico de los desfases: permite dimensionar el problema en plata además de en porcentajes.', 'Valor del déficit (cadena)', formatCurrencyCompact(valorDeficitCadena), peorSuc ? `peor: ${peorSuc.nombre}` : '', 'text-red-600');
 
             document.getElementById('stockBalanceRanking').innerHTML = porSucursal.map((s, i) => `
                 <tr class="${s.pctUnidades >= OBJETIVO_NEG_MAX ? 'bg-red-50/60' : ''}">
@@ -4605,6 +4952,27 @@
                 const c = p.stockPorSuc.get(cod);
                 return c > 0 && p.medianaStock && c >= p.medianaStock * 3;
             }) : [];
+            // MÍNIMO/MÁXIMO REALES: solo los archivos individuales los traen cargados
+            // (el consolidado los exporta en 0). Cuando esta sucursal los tiene, los
+            // indicadores usan la parametrización real de Plex en vez de la mediana.
+            const parametrizados = universo.filter(p => (p.minPorSuc && p.minPorSuc.has(cod)) || (p.maxPorSuc && p.maxPorSuc.has(cod)));
+            const tieneParams = parametrizados.length > 0;
+            // Bajo mínimo: 0 <= stock < Mínimo (incluye los que están en cero: quiebre total;
+            // excluye los negativos, que ya tienen su propio indicador de déficit).
+            const bajoMinimo = tieneParams ? universo.filter(p => {
+                const mn = p.minPorSuc ? p.minPorSuc.get(cod) : undefined;
+                if (!mn) return false;
+                const c = p.stockPorSuc.get(cod) || 0;
+                return c >= 0 && c < mn;
+            }) : [];
+            // Sobre máximo: stock > Máximo según la parametrización de la sucursal.
+            const sobreMaximo = tieneParams ? universo.filter(p => {
+                const mx = p.maxPorSuc ? p.maxPorSuc.get(cod) : undefined;
+                if (!mx) return false;
+                return (p.stockPorSuc.get(cod) || 0) > mx;
+            }) : [];
+            stockVistaActual.bajoMinimo = bajoMinimo;
+            stockVistaActual.sobreMaximo = sobreMaximo;
             const valorTotal = conStock.reduce((a, p) => { const c = p.stockPorSuc.get(cod); return a + (c > 0 ? c * p.costo : 0); }, 0);
             const valorDeficit = negativos.reduce((a, p) => a + Math.abs(p.stockPorSuc.get(cod)) * p.costo, 0);
 
@@ -4614,31 +4982,33 @@
             const cumpleObjetivo = pctNeg < OBJETIVO_NEG_MAX;
             const cumpleObjetivoUnidades = pctUnidades < OBJETIVO_NEG_MAX;
 
-            const card = (tip, eyebrow, valor, sub, colorClass) => `
-                <div data-tip="${escapeHtml(tip)}" class="kpi-card bg-white border border-zinc-200/80 rounded-2xl p-4 shadow-card flex flex-col justify-between smooth-transition hover:shadow-soft">
+            const card = (tip, eyebrow, valor, sub, colorClass, onclick) => `
+                <div ${onclick ? `onclick="${onclick}"` : ''} data-tip="${escapeHtml(tip)}" class="kpi-card bg-white border border-zinc-200/80 rounded-2xl p-4 shadow-card flex flex-col justify-between smooth-transition hover:shadow-soft ${onclick ? 'cursor-pointer hover:border-brand-primary/40' : ''}">
                     <h3 class="kpi-eyebrow truncate" title="${eyebrow}">${eyebrow}</h3>
                     <p class="text-xl font-extrabold ${colorClass || 'text-slate-900'} mt-1 truncate">${valor}</p>
                     ${sub ? `<p class="text-[10px] text-slate-400 mt-0.5 truncate">${escapeHtml(sub)}</p>` : ''}
                 </div>`;
             document.getElementById('stockKpis').innerHTML =
-                card(esExacto ? 'Cantidad TOTAL de productos del catálogo REAL de esta sucursal (su propio archivo), estén en 0, en positivo o en negativo.' : 'Cantidad TOTAL de productos del catálogo cargado, estén en 0, en positivo o en negativo. Aproximado: usa el catálogo universal del archivo porque esta sucursal no tiene un archivo propio cargado.', esExacto ? '📐 SKU (catálogo exacto)' : '≈ SKU (catálogo aprox.)', total.toLocaleString('es-AR'), `${conStock.length.toLocaleString('es-AR')} con stock declarado`) +
-                card(`Mismo objetivo (<1%), pero contando UNIDADES en vez de productos: unidades negativas sobre el total de unidades en juego (positivas + negativas). Un solo producto con un desfase grande puede pasar casi inadvertido en el % por SKU y dominar acá.`, '% déficit por unidades', pctUnidades.toFixed(2) + '%', `${formatNumber(unidadesNeg)} de ${formatNumber(totalUnidadesSuc)} unidades · objetivo <1% ${cumpleObjetivoUnidades ? '✔ cumple' : '✗ no cumple'}`, cumpleObjetivoUnidades ? 'text-emerald-600' : 'text-red-600') +
-                card(`Objetivo del negocio: mantener el stock negativo por debajo del 1% del inventario total, contando PRODUCTOS distintos. Calculado sobre el catálogo ${esExacto ? 'real' : 'aproximado'} (${total.toLocaleString('es-AR')} productos), no solo los que tienen stock declarado.`, '% déficit por SKU', pctNeg.toFixed(2) + '%', `${negativos.length} producto(s) · objetivo <1% ${cumpleObjetivo ? '✔ cumple' : '✗ no cumple'}`, cumpleObjetivo ? 'text-emerald-600' : 'text-red-600') +
-                (comparableEntreSucursales
-                    ? card('Productos cuyo stock en esta sucursal es 3 veces o más la mediana de stock que ese mismo producto tiene en las demás sucursales — posible sobre-stock o inmovilizado. Calculado sobre el catálogo completo.', '% con sobre-stock', pctSobre.toFixed(2) + '%', `${sobreStock.length} producto(s)`, sobreStock.length ? 'text-amber-600' : 'text-slate-900')
-                    : (() => {
-                        // Sin otras sucursales para comparar, "sobre-stock" no es calculable —
-                        // en su lugar, la cobertura de catálogo: qué % del surtido asignado a
-                        // esta sucursal realmente tiene mercadería en el estante. Es el dato que
-                        // SÍ se puede medir con una sola sucursal y es igual de accionable: el
-                        // espejo del déficit (mide quiebre/venta perdida, no solo stock negativo).
-                        const positivos = conStock.length - negativos.length;
-                        const pctCobertura = total ? (positivos / total * 100) : 0;
-                        const enCero = total - conStock.length;
-                        return card('Porcentaje del catálogo asignado a esta sucursal que tiene stock positivo (mercadería disponible en el estante). El resto está en cero: posible quiebre o producto sin asignar.', '% cobertura de catálogo', pctCobertura.toFixed(1) + '%', `${positivos.toLocaleString('es-AR')} con stock · ${enCero.toLocaleString('es-AR')} en cero`, pctCobertura < 50 ? 'text-amber-600' : 'text-emerald-600');
-                    })()) +
-                card('Valorización del stock positivo (cantidad × costo) de esta sucursal.', 'Valor del stock', formatCurrency(valorTotal), '') +
-                card('Costo teórico del déficit: cuánto costaría reponer las unidades que faltan según el stock negativo.', 'Valor del déficit', formatCurrency(valorDeficit), negativos.length ? '' : 'sin déficit', negativos.length ? 'text-red-600' : 'text-slate-900');
+                card(esExacto ? 'Cantidad de productos que componen el catálogo de esta sucursal, incluyendo los que están en cero. No es un indicador de gestión: es la base sobre la que se calculan los porcentajes de déficit. Proviene del archivo propio de la sucursal, por lo que refleja su surtido real.' : 'Cantidad de productos que componen el catálogo de esta sucursal, incluyendo los que están en cero. No es un indicador de gestión: es la base sobre la que se calculan los porcentajes de déficit. Se estima con el catálogo general del archivo porque esta sucursal no tiene uno propio cargado, por lo que puede incluir productos que no maneja.', esExacto ? '📐 SKU (catálogo exacto)' : '≈ SKU (catálogo aprox.)', total.toLocaleString('es-AR'), `${conStock.length.toLocaleString('es-AR')} con stock declarado`) +
+                card(`Porcentaje de las unidades en movimiento que están en negativo. Cuanto más bajo, más sano el inventario: por debajo del 1% cumple el objetivo del negocio; si lo supera, conviene revisar los productos con mayor faltante, porque uno solo con un desfase grande puede dominar este número. Cálculo: unidades negativas ÷ (positivas + negativas) × 100.`, '% déficit s/ total (unid.)', pctUnidades.toFixed(2) + '%', `${formatNumber(unidadesNeg)} de ${formatNumber(totalUnidadesSuc)} unidades · objetivo <1% ${cumpleObjetivoUnidades ? '✔ cumple' : '✗ no cumple'}`, cumpleObjetivoUnidades ? 'text-emerald-600' : 'text-red-600') +
+                card(`Peso del faltante frente a la mercadería disponible en el estante. Un valor alto indica que el déficit empieza a ser significativo comparado con el stock real; siempre da igual o mayor que el porcentaje sobre el total. Cálculo: unidades negativas ÷ unidades positivas × 100.`, '% déficit s/ positivo (unid.)', unidadesPos ? (unidadesNeg / unidadesPos * 100).toFixed(2) + '%' : (unidadesNeg ? '∞' : '0.00%'), `${formatNumber(unidadesNeg)} neg. / ${formatNumber(unidadesPos)} pos.`, unidadesNeg ? 'text-red-600' : 'text-emerald-600') +
+                card(`Porcentaje de productos del catálogo con stock en negativo. Por debajo del 1% cumple el objetivo del negocio; si lo supera, conviene priorizar el control físico de esos productos. Cálculo: productos en negativo ÷ productos del catálogo ${esExacto ? 'real' : 'aproximado'} × 100.`, '% déficit por SKU', pctNeg.toFixed(2) + '%', `${negativos.length} producto(s) · objetivo <1% ${cumpleObjetivo ? '✔ cumple' : '✗ no cumple'}`, cumpleObjetivo ? 'text-emerald-600' : 'text-red-600') +
+                (tieneParams
+                    ? card('Cantidad de productos con stock en cero o por debajo de su mínimo de reposición. Cuantos más haya, mayor el riesgo de quiebre y de venta perdida: son la prioridad de reposición del local. Solo cuenta los productos con mínimo definido en Plex; los negativos no se incluyen porque ya figuran en el déficit. Clic para exportar la lista a Excel.', '⛔ Bajo mínimo (Plex)', bajoMinimo.length.toLocaleString('es-AR'), `de ${parametrizados.length.toLocaleString('es-AR')} parametrizados · clic para exportar`, bajoMinimo.length ? 'text-amber-600' : 'text-emerald-600', "exportListaMinMax('min')") +
+                      card('Cantidad de productos cuyo stock supera el máximo definido para esta sucursal. Un número alto sugiere capital inmovilizado y posible exceso de compra: son candidatos a redistribuir hacia otras sucursales. Solo cuenta los productos con máximo definido en Plex. Clic para exportar la lista a Excel.', '📈 Sobre máximo (Plex)', sobreMaximo.length.toLocaleString('es-AR'), `de ${parametrizados.length.toLocaleString('es-AR')} parametrizados · clic para exportar`, sobreMaximo.length ? 'text-amber-600' : 'text-emerald-600', "exportListaMinMax('max')")
+                    : (comparableEntreSucursales
+                        ? card('Porcentaje de productos con un stock muy superior al habitual en las demás sucursales. Un valor alto sugiere mercadería inmovilizada que podría redistribuirse. Un producto se marca cuando triplica o más la mediana de las otras sucursales; es una estimación, porque este archivo no incluye los máximos de Plex.', '% con sobre-stock (aprox.)', pctSobre.toFixed(2) + '%', `${sobreStock.length} producto(s)`, sobreStock.length ? 'text-amber-600' : 'text-slate-900')
+                        : (() => {
+                            // Sin otras sucursales para comparar ni Mín/Máx cargados, "sobre-stock"
+                            // no es calculable — en su lugar, la cobertura de catálogo: qué % del
+                            // surtido asignado a esta sucursal realmente tiene mercadería.
+                            const positivosN = conStock.length - negativos.length;
+                            const pctCobertura = total ? (positivosN / total * 100) : 0;
+                            const enCero = total - conStock.length;
+                            return card('Porcentaje del catálogo de la sucursal que tiene mercadería disponible. Cuanto más alto, más completo el surtido en el estante; un valor bajo indica muchos productos en cero, con riesgo de venta perdida. Cálculo: productos con stock positivo ÷ productos del catálogo × 100.', '% cobertura de catálogo', pctCobertura.toFixed(1) + '%', `${positivosN.toLocaleString('es-AR')} con stock · ${enCero.toLocaleString('es-AR')} en cero`, pctCobertura < 50 ? 'text-amber-600' : 'text-emerald-600');
+                        })())) +
+                card('Dinero invertido en la mercadería disponible de esta sucursal, valuado al costo. Sirve para dimensionar el capital inmovilizado en el local. Cálculo: cantidad × costo de cada producto con stock positivo.', 'Valor del stock', formatCurrency(valorTotal), '') +
+                card('Cuánto costaría reponer todas las unidades faltantes según el stock negativo. Cuanto más alto, mayor el impacto económico de los desfases: es el número que dimensiona el problema en plata cuando el porcentaje parece chico.', 'Valor del déficit', formatCurrency(valorDeficit), negativos.length ? '' : 'sin déficit', negativos.length ? 'text-red-600' : 'text-slate-900');
 
             // Top Stock Positivo (mayor cantidad, filtrable por búsqueda)
             let positivos = conStock.filter(p => p.stockPorSuc.get(cod) > 0);
@@ -4653,10 +5023,12 @@
 
             const filaStock = (p, esNeg) => {
                 const c = p.stockPorSuc.get(cod);
+                const u = p.unidPorSuc ? p.unidPorSuc.get(cod) : undefined;
                 const sobre = !esNeg && p.medianaStock && c >= p.medianaStock * 3;
                 return `<tr class="${esNeg ? 'bg-red-50/60' : sobre ? 'bg-amber-50/50' : ''}">
                     <td class="px-3 py-2.5 text-xs font-semibold text-slate-800 max-w-[200px]"><div class="truncate" title="${escapeHtml(p.producto)}">${escapeHtml(p.producto)}</div><div class="text-[10px] text-slate-400 font-normal">${escapeHtml(p.rubro)}</div></td>
                     <td class="px-3 py-2.5 text-xs text-right tabular-nums font-bold ${esNeg ? 'text-red-600' : sobre ? 'text-amber-600' : 'text-slate-800'}">${formatNumber(c)}</td>
+                    <td class="px-3 py-2.5 text-xs text-right tabular-nums ${u !== undefined ? (u < 0 ? 'text-red-500 font-semibold' : 'text-slate-500') : 'text-slate-300'}">${u !== undefined ? formatNumber(u) : '—'}</td>
                     <td class="px-3 py-2.5 text-xs text-right tabular-nums text-slate-600">${formatCurrency(Math.abs(c) * p.costo)}</td>
                 </tr>`;
             };
@@ -4664,13 +5036,45 @@
             const MAX = 100;
             document.getElementById('stockTablaPositivo').innerHTML = positivos.length
                 ? positivos.slice(0, MAX).map(p => filaStock(p, false)).join('')
-                : `<tr><td colspan="3" class="text-center py-8 text-slate-400 text-sm">Sin productos con stock positivo.</td></tr>`;
+                : `<tr><td colspan="4" class="text-center py-8 text-slate-400 text-sm">Sin productos con stock positivo.</td></tr>`;
             document.getElementById('stockTablaNegativo').innerHTML = negFiltrados.length
                 ? negFiltrados.slice(0, MAX).map(p => filaStock(p, true)).join('')
-                : `<tr><td colspan="3" class="text-center py-8 text-slate-400 text-sm">✔️ Sin stock negativo en esta sucursal.</td></tr>`;
+                : `<tr><td colspan="4" class="text-center py-8 text-slate-400 text-sm">✔️ Sin stock negativo en esta sucursal.</td></tr>`;
 
-            document.getElementById('stockCountPositivo').innerText = positivos.length;
-            document.getElementById('stockCountNegativo').innerText = negFiltrados.length;
+            document.getElementById('stockCountPositivo').innerText = `${positivos.length} SKU`;
+            document.getElementById('stockCountNegativo').innerText = `${negFiltrados.length} SKU`;
+            // Total de UNIDADES de cada lista (sobre lo filtrado por el buscador, igual que el conteo de SKU)
+            const unidPosLista = positivos.reduce((a, p) => a + p.stockPorSuc.get(cod), 0);
+            const unidNegLista = negFiltrados.reduce((a, p) => a + Math.abs(p.stockPorSuc.get(cod)), 0);
+            document.getElementById('stockUnitsPositivo').innerText = `${formatNumber(unidPosLista)} un.`;
+            document.getElementById('stockUnitsNegativo').innerText = `${formatNumber(unidNegLista)} un.`;
+        }
+
+        // Exporta a Excel la lista de productos Bajo mínimo ('min') o Sobre máximo
+        // ('max') de la sucursal en pantalla, según la parametrización real de Plex.
+        function exportListaMinMax(tipo) {
+            const cod = stockCurrentSuc;
+            if (cod == null) return;
+            const lista = tipo === 'min' ? (stockVistaActual.bajoMinimo || []) : (stockVistaActual.sobreMaximo || []);
+            if (!lista.length) return;
+            const nombre = (stockCodigosSuc.find(s => s.cod === cod) || {}).nombre || `Suc${cod}`;
+            const rows = lista.map(p => {
+                const c = p.stockPorSuc.get(cod) || 0;
+                const mn = p.minPorSuc ? (p.minPorSuc.get(cod) ?? '') : '';
+                const mx = p.maxPorSuc ? (p.maxPorSuc.get(cod) ?? '') : '';
+                return {
+                    'Producto': p.producto, 'IDProducto': p.IDProducto, 'Código de Barras': p.codebar,
+                    'Rubro': p.rubro, 'Laboratorio': p.laboratorio,
+                    'Stock actual': c, 'Mínimo (Plex)': mn, 'Máximo (Plex)': mx,
+                    [tipo === 'min' ? 'Faltante hasta el mínimo' : 'Exceso sobre el máximo']:
+                        tipo === 'min' ? (mn !== '' ? mn - c : '') : (mx !== '' ? c - mx : ''),
+                    'Costo Unitario': p.costo
+                };
+            }).sort((a, b) => (b[tipo === 'min' ? 'Faltante hasta el mínimo' : 'Exceso sobre el máximo'] || 0) - (a[tipo === 'min' ? 'Faltante hasta el mínimo' : 'Exceso sobre el máximo'] || 0));
+            const ws = XLSX.utils.json_to_sheet(rows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, tipo === 'min' ? 'Bajo Minimo' : 'Sobre Maximo');
+            XLSX.writeFile(wb, `FarmaPlus_${tipo === 'min' ? 'BajoMinimo' : 'SobreMaximo'}_${nombre.replace(/\s+/g, '_')}_${new Date().getTime()}.xlsx`);
         }
 
         function exportStockExcel() {
@@ -4700,6 +5104,7 @@
             const rows = [...stockVistaActual.positivos, ...stockVistaActual.negativos].map(p => ({
                 'Producto': p.producto, 'IDProducto': p.IDProducto, 'Código de Barras': p.codebar,
                 'Rubro': p.rubro, 'Laboratorio': p.laboratorio, 'Stock': p.stockPorSuc.get(cod),
+                'Unid. fraccionadas': (p.unidPorSuc && p.unidPorSuc.has(cod)) ? p.unidPorSuc.get(cod) : '',
                 'Costo Unitario': p.costo, 'Valor': Math.abs(p.stockPorSuc.get(cod)) * p.costo,
                 'Mediana entre sucursales': p.medianaStock ?? '', 'Estado': p.stockPorSuc.get(cod) < 0 ? 'Déficit (negativo)' : (p.medianaStock && p.stockPorSuc.get(cod) >= p.medianaStock * 3 ? 'Sobre-stock' : 'Normal')
             }));
@@ -4974,138 +5379,695 @@
             }
         }
 
+        // ============================================================================
+        // INFORME EJECUTIVO DE INVENTARIO (zonal / toda la cadena)
+        // Genera un informe estilo Business Intelligence: portada, resumen con
+        // tarjetas, estado general, ranking por criticidad, gráficos SVG nativos
+        // (100% confiables en impresión), análisis de productos, análisis económico,
+        // hallazgos y recomendaciones calculados desde los datos, y el ranking
+        // completo como anexo. Paginación MANUAL: cada página es un bloque cerrado.
+        // ============================================================================
+        const Z_OBJ = 1; // objetivo del negocio: déficit < 1%
+        const Z_NIVELES = [
+            { max: 0.5, label: 'Excelente', color: '#059669', bg: '#ECFDF5' },
+            { max: Z_OBJ, label: 'Buena', color: '#0891B2', bg: '#ECFEFF' },
+            { max: 2, label: 'Regular', color: '#D97706', bg: '#FFFBEB' },
+            { max: Infinity, label: 'Crítica', color: '#DC2626', bg: '#FEF2F2' }
+        ];
+        function zNivel(pctUnidades) { return Z_NIVELES.find(n => pctUnidades < n.max) || Z_NIVELES[3]; }
+        function zEsc(s) { return escapeHtml(String(s)); }
+        function zTrunc(s, n) { s = String(s); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+        // Interpola blanco → color según intensidad 0..1 (para el mapa de calor)
+        function zHeatColor(t, hex) {
+            const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+            const mix = c => Math.round(255 + (c - 255) * Math.max(0, Math.min(1, t)));
+            return `rgb(${mix(r)},${mix(g)},${mix(b)})`;
+        }
+
+        // ---- Gráficos SVG estáticos (sin librerías: impresión determinística) ----
+        function zBarrasH(items, opts = {}) {
+            const W = opts.width || 660, labelW = opts.labelW || 150, rowH = 17, pad = 4;
+            const H = items.length * rowH + pad * 2 + (opts.ref != null ? 14 : 0);
+            const maxV = Math.max(...items.map(i => i.value), opts.ref || 0) || 1;
+            const barW = W - labelW - 74;
+            let refLine = '';
+            if (opts.ref != null) {
+                const x = labelW + (opts.ref / maxV) * barW;
+                refLine = `<line x1="${x}" y1="${pad}" x2="${x}" y2="${H - 14}" stroke="#94A3B8" stroke-width="1" stroke-dasharray="3,3"/><text x="${x}" y="${H - 3}" font-size="7.5" fill="#64748B" text-anchor="middle">${zEsc(opts.refTxt || 'objetivo')}</text>`;
+            }
+            const bars = items.map((it, i) => {
+                const y = pad + i * rowH;
+                const w = Math.max(1.5, (it.value / maxV) * barW);
+                return `<text x="${labelW - 6}" y="${y + 11.5}" font-size="8" fill="#334155" text-anchor="end" font-weight="600">${zEsc(zTrunc(it.label, 26))}</text>
+                    <rect x="${labelW}" y="${y + 2.5}" width="${w}" height="${rowH - 6}" rx="2.5" fill="${it.color}"/>
+                    <text x="${labelW + w + 5}" y="${y + 11.5}" font-size="8" fill="#0F172A" font-weight="700">${zEsc(it.txt)}</text>`;
+            }).join('');
+            return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;">${bars}${refLine}</svg>`;
+        }
+        function zBarrasV(items) {
+            const W = 660, H = 132, padB = 28, padT = 12;
+            const n = items.length, colW = W / n, barW = Math.min(30, colW * 0.55);
+            const maxV = Math.max(...items.map(i => i.value)) || 1;
+            const bars = items.map((it, i) => {
+                const h = Math.max(2, (it.value / maxV) * (H - padB - padT));
+                const x = i * colW + (colW - barW) / 2, y = H - padB - h;
+                return `<rect x="${x}" y="${y}" width="${barW}" height="${h}" rx="2.5" fill="${it.color}"/>
+                    <text x="${i * colW + colW / 2}" y="${y - 3}" font-size="7.5" fill="#0F172A" text-anchor="middle" font-weight="700">${zEsc(it.txt)}</text>
+                    <text x="${i * colW + colW / 2}" y="${H - padB + 9}" font-size="6.8" fill="#475569" text-anchor="middle">${zEsc(zTrunc(it.label, 11))}</text>`;
+            }).join('');
+            return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;">${bars}</svg>`;
+        }
+        function zDonut(segments, centro, subCentro) {
+            const R = 54, cx = 70, cy = 70, grosor = 22;
+            const totalV = segments.reduce((a, s) => a + s.value, 0) || 1;
+            let acc = 0;
+            const C = 2 * Math.PI * R;
+            const arcs = segments.map(s => {
+                const frac = s.value / totalV, off = C * (1 - acc), len = C * frac;
+                acc += frac;
+                return `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${s.color}" stroke-width="${grosor}" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${off}" transform="rotate(-90 ${cx} ${cy})"/>`;
+            }).join('');
+            const leyenda = segments.map(s => `<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;"><span class="z-dot" style="background:${s.color};"></span><span style="font-size:8px;color:#334155;font-weight:600;">${zEsc(zTrunc(s.label, 22))}</span><span style="font-size:8px;color:#64748B;margin-left:auto;">${(s.value / totalV * 100).toFixed(1)}%</span></div>`).join('');
+            return `<div style="display:flex;align-items:center;gap:14px;">
+                <svg viewBox="0 0 140 140" width="128" style="flex-shrink:0;">${arcs}
+                    <text x="${cx}" y="${cy - 1}" font-size="12" font-weight="800" fill="#0F172A" text-anchor="middle">${zEsc(centro)}</text>
+                    <text x="${cx}" y="${cy + 11}" font-size="6.5" fill="#64748B" text-anchor="middle">${zEsc(subCentro)}</text></svg>
+                <div style="flex:1;min-width:0;">${leyenda}</div></div>`;
+        }
+        function zGauge(valor, maxEscala) {
+            const cx = 90, cy = 82, R = 62;
+            const ang = p => Math.PI * (1 - Math.min(1, Math.max(0, p)));
+            const px = (a, r) => cx + r * Math.cos(a), py = (a, r) => cy - r * Math.sin(a);
+            const arco = (p0, p1, color) => {
+                const a0 = ang(p0), a1 = ang(p1);
+                return `<path d="M ${px(a0, R)} ${py(a0, R)} A ${R} ${R} 0 0 1 ${px(a1, R)} ${py(a1, R)}" fill="none" stroke="${color}" stroke-width="15"/>`;
+            };
+            const zonas = [
+                arco(0, 0.5 / maxEscala, '#059669'),
+                arco(0.5 / maxEscala, Z_OBJ / maxEscala, '#0891B2'),
+                arco(Z_OBJ / maxEscala, Math.min(1, 2 / maxEscala), '#D97706'),
+                2 < maxEscala ? arco(2 / maxEscala, 1, '#DC2626') : ''
+            ].join('');
+            const aV = ang(valor / maxEscala);
+            const aguja = `<line x1="${cx}" y1="${cy}" x2="${px(aV, R - 21)}" y2="${py(aV, R - 21)}" stroke="#0F172A" stroke-width="2.5" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="4" fill="#0F172A"/>`;
+            const nv = zNivel(valor);
+            return `<svg viewBox="0 0 180 100" width="170" style="display:block;">${zonas}${aguja}
+                <text x="${cx}" y="${cy - 26}" font-size="15" font-weight="800" fill="${nv.color}" text-anchor="middle">${valor.toFixed(2)}%</text>
+                <text x="${cx - R}" y="${cy + 12}" font-size="6.5" fill="#94A3B8" text-anchor="middle">0%</text>
+                <text x="${cx + R}" y="${cy + 12}" font-size="6.5" fill="#94A3B8" text-anchor="middle">${maxEscala}%</text></svg>`;
+        }
+
+        function construirInformeEjecutivoStock(filas, scopeLabel, fechaStr) {
+            const n = filas.length;
+            // --- Métricas derivadas por sucursal ---
+            filas.forEach(f => {
+                f.cobertura = f.total ? (f.pos / f.total * 100) : 0;
+                f.sinStock = f.total - f.conStock;
+                f.nivel = zNivel(f.pctUnidades);
+            });
+            // --- Agregados del alcance ---
+            const totalCatalogo = stockProductos.length;
+            const totNeg = filas.reduce((a, f) => a + f.neg, 0);
+            const totVal = filas.reduce((a, f) => a + f.val, 0);
+            const totValDef = filas.reduce((a, f) => a + f.valDef, 0);
+            const totUnidNeg = filas.reduce((a, f) => a + f.unidadesNeg, 0);
+            const totUnidPos = filas.reduce((a, f) => a + f.unidadesPos, 0);
+            const totSku = filas.reduce((a, f) => a + f.total, 0);
+            const totConStock = filas.reduce((a, f) => a + f.conStock, 0);
+            const totSinStock = filas.reduce((a, f) => a + f.sinStock, 0);
+            const totPos = filas.reduce((a, f) => a + f.pos, 0);
+            const pctUnidGlobal = (totUnidNeg + totUnidPos) ? totUnidNeg / (totUnidNeg + totUnidPos) * 100 : 0;
+            const pctSobrePos = totUnidPos ? totUnidNeg / totUnidPos * 100 : 0;
+            const pctSkuGlobal = totSku ? totNeg / totSku * 100 : 0;
+            const cobGlobal = totSku ? totPos / totSku * 100 : 0;
+            const pesoEconomico = totVal ? totValDef / totVal * 100 : 0;
+            const nivelGlobal = zNivel(pctUnidGlobal);
+            const fueraObjetivo = filas.filter(f => f.pctUnidades >= Z_OBJ);
+            const distEstados = Z_NIVELES.map(nv => ({ nivel: nv, sucs: filas.filter(f => f.nivel.label === nv.label) }));
+
+            // --- Prioridad: 60% severidad del déficit + 40% participación económica ---
+            const maxPct = Math.max(...filas.map(f => f.pctUnidades), 0.0001);
+            filas.forEach(f => { f.score = 0.6 * (f.pctUnidades / maxPct) + 0.4 * (totValDef ? f.valDef / totValDef : 0); });
+            const porCriticidad = [...filas].sort((a, b) => b.score - a.score);
+            porCriticidad.forEach((f, i) => f.prioridad = i + 1);
+            const porValDef = [...filas].sort((a, b) => b.valDef - a.valDef);
+
+            // --- Pareto del valor del déficit ---
+            let acum = 0, n80 = 0;
+            for (const f of porValDef) { acum += f.valDef; n80++; if (totValDef && acum >= totValDef * 0.8) break; }
+            const top1Share = totValDef && porValDef[0] ? porValDef[0].valDef / totValDef * 100 : 0;
+            const top3Share = totValDef ? porValDef.slice(0, 3).reduce((a, f) => a + f.valDef, 0) / totValDef * 100 : 0;
+
+            // --- Análisis de productos del alcance (respeta catálogos exactos) ---
+            const codsScope = filas.map(f => f.cod);
+            const prodAgg = [];
+            stockProductos.forEach(p => {
+                let unidNeg = 0, sucsDef = 0, vDef = 0;
+                for (const cod of codsScope) {
+                    const ex = stockCatalogoExacto.get(cod);
+                    if (ex && !ex.has(p.IDProducto)) continue;
+                    const c = p.stockPorSuc.get(cod);
+                    if (c !== undefined && c < 0) { unidNeg += Math.abs(c); sucsDef++; vDef += Math.abs(c) * p.costo; }
+                }
+                if (sucsDef > 0) prodAgg.push({ p, unidNeg, sucsDef, vDef });
+            });
+            const topImpacto = [...prodAgg].sort((a, b) => b.vDef - a.vDef).slice(0, 10);
+            const topUnidades = [...prodAgg].sort((a, b) => b.unidNeg - a.unidNeg).slice(0, 10);
+            const umbralMulti = Math.max(2, Math.ceil(n * 0.25));
+            const multiSuc = n >= 2 ? prodAgg.filter(x => x.sucsDef >= umbralMulti).sort((a, b) => b.sucsDef - a.sucsDef || b.vDef - a.vDef) : [];
+
+            // --- Hallazgos automáticos (solo los que los datos sostienen) ---
+            const hallazgos = [];
+            if (totValDef > 0 && porValDef[0] && porValDef[0].valDef > 0) hallazgos.push(['🎯', `<strong>${zEsc(porValDef[0].nombre)}</strong> concentra el <strong>${top1Share.toFixed(0)}%</strong> del valor del déficit (${formatCurrency(porValDef[0].valDef)}).`]);
+            if (totValDef > 0 && n > 3 && n80 < n) hallazgos.push(['📊', `<strong>${n80}</strong> de ${n} sucursales acumulan el <strong>80%</strong> del déficit económico: el problema está ${n80 <= Math.ceil(n * 0.3) ? 'muy concentrado' : 'distribuido'}.`]);
+            hallazgos.push(['✅', `El <strong>${(100 - pctSkuGlobal).toFixed(1)}%</strong> de las posiciones producto-sucursal tiene stock correcto (sin negativo).`]);
+            hallazgos.push(['📦', `La cobertura de catálogo promedio es del <strong>${cobGlobal.toFixed(1)}%</strong>: ${totSinStock.toLocaleString('es-AR')} posiciones están en cero.`]);
+            if (totVal > 0 && totValDef > 0) hallazgos.push(['💰', `El déficit económico equivale al <strong>${pesoEconomico.toFixed(2)}%</strong> del valor total del inventario.`]);
+            if (multiSuc.length) hallazgos.push(['🔁', `<strong>${multiSuc.length}</strong> producto(s) con déficit simultáneo en ${umbralMulti}+ sucursales — patrón que sugiere un problema de catálogo o de carga central, no del local. El más extendido: <strong>${zEsc(zTrunc(multiSuc[0].p.producto, 40))}</strong> (${multiSuc[0].sucsDef} sucursales).`]);
+            if (distEstados[3].sucs.length) hallazgos.push(['🚨', `<strong>${distEstados[3].sucs.length}</strong> sucursal(es) en estado crítico (déficit ≥2%): ${zEsc(distEstados[3].sucs.slice(0, 4).map(f => f.nombre).join(', '))}${distEstados[3].sucs.length > 4 ? '…' : ''}.`]);
+
+            // --- Recomendaciones basadas en reglas sobre los indicadores ---
+            const recs = [];
+            if (top3Share >= 50 && n > 3 && totValDef > 0) recs.push(`Priorizar recuentos físicos en <strong>${zEsc(porValDef.slice(0, 3).map(f => f.nombre).join(', '))}</strong>: juntas concentran el ${top3Share.toFixed(0)}% del valor del déficit — el mayor retorno por hora de control.`);
+            if (multiSuc.length) recs.push(`Revisar en administración los ${multiSuc.length} producto(s) con déficit en ${umbralMulti}+ sucursales (empezando por <strong>${zEsc(zTrunc(multiSuc[0].p.producto, 40))}</strong>): un negativo repetido en muchos locales suele ser un cambio de código o un ingreso sin cargar, no faltantes reales.`);
+            if (distEstados[3].sucs.length) recs.push(`Ejecutar el checklist imprimible de <strong>Control de Stock Negativo</strong> (disponible en la aplicación) en las ${distEstados[3].sucs.length} sucursal(es) en estado crítico antes del próximo corte.`);
+            if (cobGlobal < 70) recs.push(`Reforzar la reposición: con una cobertura promedio del ${cobGlobal.toFixed(0)}% hay venta perdida potencial. Empezar por ${zEsc([...filas].sort((a, b) => a.cobertura - b.cobertura).slice(0, 3).map(f => f.nombre).join(', '))}.`);
+            if (pesoEconomico > 2) recs.push(`El déficit equivale al ${pesoEconomico.toFixed(1)}% del valor del inventario: evaluar una auditoría de ingresos de mercadería y transferencias del período.`);
+            if (fueraObjetivo.length === 0) recs.push(`El alcance completo cumple el objetivo (&lt;1%): mantener los controles de rutina y monitorear los productos del Top de impacto para sostenerlo.`);
+
+            const pill = nv => `<span class="z-pill" style="background:${nv.bg};color:${nv.color};border:1px solid ${nv.color};">${nv.label.toUpperCase()}</span>`;
+            const kpi = (t, v, sub, color) => `<div class="z-kpi" style="border-top-color:${color || '#CBD5E1'};"><p class="zk-t">${t}</p><p class="zk-v" style="${color ? `color:${color};` : ''}">${v}</p>${sub ? `<p class="zk-s">${sub}</p>` : ''}</div>`;
+
+            const paginas = [];
+
+            // ============ PÁGINA 1 · PORTADA ============
+            const coverStat = (l, v) => `<div style="padding:10px 0;border-bottom:1px solid #E2E8F0;"><p style="font-size:8.5px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;margin:0;">${l}</p><p style="font-size:16px;font-weight:800;color:#0F172A;margin:3px 0 0 0;">${v}</p></div>`;
+            paginas.push(`
+                <div style="display:flex;flex-direction:column;min-height:90vh;">
+                    <div style="background:#0F172A;border-radius:14px;padding:34px 36px;color:#fff;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:26px;">
+                            <svg viewBox="0 0 100 100" width="30" height="30"><g stroke="#5FA8FF" stroke-width="13" fill="none"><path d="M87.53 55.94A38 38 0 0 1 55.94 87.53"/><path d="M44.06 87.53A38 38 0 0 1 12.47 55.94"/><path d="M12.47 44.06A38 38 0 0 1 44.06 12.47"/><path d="M55.94 12.47A38 38 0 0 1 87.53 44.06"/></g><path d="M39 19a3 3 0 0 1 3-3h16a3 3 0 0 1 3 3v20h20a3 3 0 0 1 3 3v16a3 3 0 0 1-3 3H61v20a3 3 0 0 1-3 3H42a3 3 0 0 1-3-3V61H19a3 3 0 0 1-3-3V42a3 3 0 0 1 3-3h20z" fill="#FF5A66"/></svg>
+                            <span style="font-size:12px;font-weight:700;letter-spacing:0.5px;">FarmaPlus <span style="opacity:0.7;font-weight:500;">Analytics</span></span>
+                        </div>
+                        <p style="font-size:10px;font-weight:700;color:#5FA8FF;text-transform:uppercase;letter-spacing:2px;margin:0 0 8px 0;">Informe Ejecutivo de Inventario</p>
+                        <h1 style="font-size:30px;font-weight:800;margin:0;line-height:1.15;letter-spacing:-0.5px;color:#fff;">${zEsc(scopeLabel)}</h1>
+                        <div style="display:flex;gap:26px;margin-top:22px;font-size:9.5px;color:#CBD5E1;">
+                            <span>📅 Generado el <strong style="color:#fff;">${fechaStr}</strong></span>
+                            <span>📷 Período: foto del stock al día de la importación del listado</span>
+                        </div>
+                        <div style="margin-top:18px;">${pill(nivelGlobal)} <span style="font-size:9px;color:#CBD5E1;margin-left:6px;">Estado general según déficit por unidades (${pctUnidGlobal.toFixed(2)}%)</span></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0 28px;margin-top:24px;padding:0 6px;">
+                        ${coverStat('Sucursales', n.toLocaleString('es-AR'))}
+                        ${coverStat('SKU · catálogo universal', totalCatalogo.toLocaleString('es-AR'))}
+                        ${coverStat('Posiciones producto-sucursal', totSku.toLocaleString('es-AR'))}
+                        ${coverStat('Unidades en stock', formatNumber(totUnidPos))}
+                        ${coverStat('Unidades negativas', formatNumber(totUnidNeg))}
+                        ${coverStat('SKU con stock negativo', totNeg.toLocaleString('es-AR'))}
+                        ${coverStat('Valor total del stock', formatCurrencyCompact(totVal))}
+                        ${coverStat('Valor total del déficit', formatCurrencyCompact(totValDef))}
+                        ${coverStat('Déficit por unidades', pctUnidGlobal.toFixed(2) + '%')}
+                    </div>
+                    <p style="margin-top:auto;padding-top:24px;font-size:8px;color:#94A3B8;">Elaborado automáticamente por FarmaPlus Analytics a partir del Listado de Stock de Plex · Documento de uso interno · Umbrales de estado (déficit por unidades): Excelente &lt;0,5% · Buena &lt;1% · Regular &lt;2% · Crítica ≥2%.</p>
+                </div>`);
+
+            // ============ PÁGINA 2 · RESUMEN EJECUTIVO ============
+            paginas.push(`
+                <div class="z-header"><h2>Resumen Ejecutivo</h2><span class="z-brand">${zEsc(scopeLabel)}</span></div>
+                <div class="z-kpi-grid" style="margin-bottom:10px;">
+                    ${kpi('Sucursales', n, `${fueraObjetivo.length} fuera de objetivo`, '#2B3990')}
+                    ${kpi('SKU catálogo', totalCatalogo.toLocaleString('es-AR'), 'catálogo universal del listado')}
+                    ${kpi('SKU con stock', totConStock.toLocaleString('es-AR'), 'posiciones con cantidad declarada')}
+                    ${kpi('SKU negativos', totNeg.toLocaleString('es-AR'), 'posiciones producto-sucursal', totNeg ? '#DC2626' : '#059669')}
+                    ${kpi('Cobertura de catálogo', cobGlobal.toFixed(1) + '%', 'posiciones con stock positivo', cobGlobal < 50 ? '#D97706' : '#059669')}
+                    ${kpi('Déficit s/ stock total', pctUnidGlobal.toFixed(2) + '%', `objetivo &lt;${Z_OBJ}% · ${pctUnidGlobal < Z_OBJ ? 'cumple ✓' : 'no cumple ✗'}`, pctUnidGlobal < Z_OBJ ? '#059669' : '#DC2626')}
+                    ${kpi('Déficit s/ disponible', (totUnidPos ? pctSobrePos.toFixed(2) + '%' : '—'), 'faltante vs. mercadería en estante', totUnidNeg ? '#DC2626' : '#059669')}
+                    ${kpi('Déficit por SKU', pctSkuGlobal.toFixed(2) + '%', `objetivo &lt;${Z_OBJ}% · ${pctSkuGlobal < Z_OBJ ? 'cumple ✓' : 'no cumple ✗'}`, pctSkuGlobal < Z_OBJ ? '#059669' : '#DC2626')}
+                    ${kpi('Valor del stock', formatCurrencyCompact(totVal), 'mercadería disponible al costo')}
+                    ${kpi('Valor del déficit', formatCurrencyCompact(totValDef), 'costo de reponer los faltantes', totValDef ? '#DC2626' : '#059669')}
+                    ${kpi('Unidades totales', formatNumber(totUnidPos + totUnidNeg), 'positivas + negativas en juego')}
+                    ${kpi('Unidades negativas', formatNumber(totUnidNeg), '', totUnidNeg ? '#DC2626' : '#059669')}
+                    ${kpi('Unidades positivas', formatNumber(totUnidPos), '')}
+                    ${kpi('Sin stock (en cero)', totSinStock.toLocaleString('es-AR'), 'posiciones sin mercadería', '#D97706')}
+                    ${kpi('Objetivo de déficit', '&lt; ' + Z_OBJ + '%', 'por unidades y por SKU')}
+                    ${kpi('Estado general', nivelGlobal.label, 'según déficit por unidades', nivelGlobal.color)}
+                </div>
+                <h3 class="z-sec">Estado general de la zona</h3>
+                <div class="z-box">
+                    <p>${zEsc(scopeLabel)} presenta un déficit del <strong>${pctUnidGlobal.toFixed(2)}%</strong> por unidades, ${pctUnidGlobal < Z_OBJ ? 'por debajo del' : 'por encima del'} objetivo del ${Z_OBJ}% — estado <strong style="color:${nivelGlobal.color};">${nivelGlobal.label.toUpperCase()}</strong>. ${fueraObjetivo.length ? `<strong>${fueraObjetivo.length}</strong> de ${n} sucursales superan el objetivo individualmente.` : `Las ${n} sucursales cumplen el objetivo individualmente.`} ${totValDef && porValDef[0] && porValDef[0].valDef > 0 ? `El impacto económico total es de <strong>${formatCurrency(totValDef)}</strong>${n > 2 ? `, y ${n80 === 1 ? `una sola sucursal (<strong>${zEsc(porValDef[0].nombre)}</strong>) concentra` : `<strong>${n80}</strong> sucursales concentran`} el 80% de ese valor` : ''}.` : 'No se registra impacto económico por déficit.'} La cobertura de catálogo promedio es del <strong>${cobGlobal.toFixed(1)}%</strong>.</p>
+                </div>
+                <h3 class="z-sec" style="margin-top:12px;">Distribución de sucursales por estado</h3>
+                <div class="z-card">
+                    <div style="display:flex;height:20px;border-radius:6px;overflow:hidden;border:1px solid #E2E8F0;">
+                        ${distEstados.filter(d => d.sucs.length).map(d => `<div style="width:${(d.sucs.length / n * 100)}%;background:${d.nivel.color};"></div>`).join('')}
+                    </div>
+                    <div class="z-legend" style="margin-top:8px;">
+                        ${distEstados.map(d => `<span><span class="z-dot" style="background:${d.nivel.color};"></span><strong>${d.sucs.length}</strong> ${d.nivel.label}</span>`).join('')}
+                    </div>
+                </div>`);
+
+            // ============ PÁGINA 3 · RANKING POR CRITICIDAD ============
+            const topRanking = porCriticidad.slice(0, 22);
+            paginas.push(`
+                <div class="z-header"><h2>Ranking de Sucursales por Criticidad</h2><span class="z-brand">${zEsc(scopeLabel)}</span></div>
+                <table class="z-table">
+                    <thead><tr><th style="width:26px;">Prior.</th><th>Sucursal</th><th style="text-align:right;">Déficit %</th><th style="text-align:right;">Valor déficit</th><th style="text-align:right;">SKU neg.</th><th style="text-align:right;">Cobertura</th><th style="text-align:right;">Valor stock</th><th style="text-align:right;">Impacto</th><th>Estado</th></tr></thead>
+                    <tbody>${topRanking.map(f => `<tr>
+                        <td style="font-weight:800;color:#0F172A;">${f.prioridad}</td>
+                        <td style="font-weight:700;color:#0F172A;">${zEsc(zTrunc(f.nombre, 24))}</td>
+                        <td style="text-align:right;font-weight:800;color:${f.nivel.color};">${f.pctUnidades.toFixed(2)}%</td>
+                        <td style="text-align:right;font-weight:700;">${formatCurrency(f.valDef)}</td>
+                        <td style="text-align:right;">${f.neg}</td>
+                        <td style="text-align:right;">${f.cobertura.toFixed(0)}%</td>
+                        <td style="text-align:right;">${formatCurrencyCompact(f.val)}</td>
+                        <td style="text-align:right;">${totValDef ? (f.valDef / totValDef * 100).toFixed(1) + '%' : '—'}</td>
+                        <td style="white-space:nowrap;"><span class="z-dot" style="background:${f.nivel.color};"></span>${f.nivel.label}</td>
+                    </tr>`).join('')}</tbody>
+                </table>
+                ${n > 22 ? `<p class="z-note">Se muestran las 22 sucursales más críticas. El ranking completo, con todas las sucursales y totales, está en el Anexo.</p>` : ''}
+                <p class="z-note">Prioridad: combina la severidad del déficit por unidades (60%) con la participación en el valor total del déficit (40%). Impacto: porcentaje del valor del déficit del alcance que aporta cada sucursal. Estados: Excelente &lt;0,5% · Buena &lt;1% · Regular &lt;2% · Crítica ≥2%.</p>`);
+
+            // ============ PÁGINA 4 · GRÁFICOS: DÉFICIT ============
+            const peores = [...filas].sort((a, b) => b.pctUnidades - a.pctUnidades).slice(0, Math.min(10, n));
+            const gaugeMax = Math.max(3, Math.ceil(pctUnidGlobal * 1.3));
+            paginas.push(`
+                <div class="z-header"><h2>Análisis Gráfico · Déficit</h2><span class="z-brand">${zEsc(scopeLabel)}</span></div>
+                <div class="z-2col" style="margin-bottom:12px;align-items:stretch;">
+                    <div class="z-card" style="display:flex;flex-direction:column;align-items:center;">
+                        <h3 class="z-sec" style="align-self:flex-start;">Cumplimiento general</h3>
+                        ${zGauge(pctUnidGlobal, gaugeMax)}
+                        <p style="font-size:8px;color:#64748B;margin:6px 0 0 0;text-align:center;">Déficit por unidades del alcance completo.<br>Verde: excelente · Celeste: cumple · Ámbar: regular · Rojo: crítico</p>
+                    </div>
+                    <div class="z-card">
+                        <h3 class="z-sec">Participación en el valor del déficit</h3>
+                        ${totValDef > 0 ? zDonut(
+                            porValDef.slice(0, 5).filter(f => f.valDef > 0).map((f, i) => ({ label: f.nombre, value: f.valDef, color: ['#DC2626', '#EA580C', '#D97706', '#CA8A04', '#65A30D'][i] }))
+                                .concat(porValDef.length > 5 && porValDef.slice(5).reduce((a, f) => a + f.valDef, 0) > 0 ? [{ label: `Otras (${porValDef.length - 5})`, value: porValDef.slice(5).reduce((a, f) => a + f.valDef, 0), color: '#94A3B8' }] : []),
+                            formatCurrencyCompact(totValDef), 'déficit total')
+                        : '<p style="font-size:9px;color:#059669;font-weight:700;">Sin déficit económico en el alcance ✓</p>'}
+                    </div>
+                </div>
+                <div class="z-card">
+                    <h3 class="z-sec">${n > 10 ? 'Top 10 — Sucursales con mayor % de déficit' : 'Déficit por sucursal'}</h3>
+                    ${zBarrasH(peores.map(f => ({ label: f.nombre, value: f.pctUnidades, txt: f.pctUnidades.toFixed(2) + '%', color: f.nivel.color })), { ref: Z_OBJ, refTxt: 'objetivo 1%' })}
+                </div>`);
+
+            // ============ PÁGINA 5 · GRÁFICOS: IMPACTO Y COBERTURA ============
+            const topImpEco = porValDef.slice(0, Math.min(10, n)).filter(f => f.valDef > 0);
+            const peorCobertura = [...filas].sort((a, b) => a.cobertura - b.cobertura).slice(0, Math.min(12, n));
+            paginas.push(`
+                <div class="z-header"><h2>Análisis Gráfico · Impacto y Cobertura</h2><span class="z-brand">${zEsc(scopeLabel)}</span></div>
+                ${topImpEco.length ? `<div class="z-card" style="margin-bottom:12px;">
+                    <h3 class="z-sec">${n > 10 ? 'Top 10 — ' : ''}Impacto económico del déficit por sucursal</h3>
+                    ${zBarrasH(topImpEco.map(f => ({ label: f.nombre, value: f.valDef, txt: formatCurrencyCompact(f.valDef), color: '#B91C1C' })))}
+                </div>` : ''}
+                <div class="z-card" style="margin-bottom:12px;">
+                    <h3 class="z-sec">${n > 12 ? 'Sucursales con menor cobertura de catálogo' : 'Cobertura de catálogo por sucursal'}</h3>
+                    ${zBarrasV(peorCobertura.map(f => ({ label: f.nombre, value: f.cobertura, txt: f.cobertura.toFixed(0) + '%', color: f.cobertura < 50 ? '#D97706' : '#0891B2' })))}
+                    <p style="font-size:8px;color:#64748B;margin:2px 0 0 0;">Porcentaje del catálogo de cada sucursal con stock positivo. Promedio del alcance: ${cobGlobal.toFixed(1)}%.</p>
+                </div>
+                <div class="z-card">
+                    <h3 class="z-sec">Peso económico del déficit sobre el valor del stock</h3>
+                    ${zBarrasH([...filas].sort((a, b) => (b.val ? b.valDef / b.val : 0) - (a.val ? a.valDef / a.val : 0)).slice(0, Math.min(8, n)).map(f => ({ label: f.nombre, value: f.val ? f.valDef / f.val * 100 : 0, txt: (f.val ? (f.valDef / f.val * 100).toFixed(2) : '0.00') + '%', color: '#7C3AED' })))}
+                    <p style="font-size:8px;color:#64748B;margin:2px 0 0 0;">Compara el costo de reponer el déficit contra el valor de la mercadería disponible de cada sucursal — la comparación stock vs. déficit sin la distorsión de escala entre ambos montos.</p>
+                </div>`);
+
+            // ============ PÁGINA 6 · MAPA DE CALOR ============
+            const heatFilas = porCriticidad.slice(0, 28);
+            const rango = k => { const vs = heatFilas.map(f => f[k]); return { min: Math.min(...vs), max: Math.max(...vs) }; };
+            const rPct = rango('pctUnidades'), rNeg = rango('neg'), rVd = rango('valDef'), rCob = rango('cobertura');
+            const tHeat = (v, r) => r.max > r.min ? (v - r.min) / (r.max - r.min) : 0;
+            paginas.push(`
+                <div class="z-header"><h2>Mapa de Calor por Sucursal</h2><span class="z-brand">${zEsc(scopeLabel)}</span></div>
+                <table class="z-table">
+                    <thead><tr><th>Sucursal</th><th style="text-align:right;">Déficit % (unid.)</th><th style="text-align:right;">Déficit % (SKU)</th><th style="text-align:right;">SKU negativos</th><th style="text-align:right;">Valor déficit</th><th style="text-align:right;">Cobertura</th></tr></thead>
+                    <tbody>${heatFilas.map(f => `<tr>
+                        <td style="font-weight:700;color:#0F172A;background:#fff !important;">${zEsc(zTrunc(f.nombre, 24))}</td>
+                        <td style="text-align:right;background:${zHeatColor(tHeat(f.pctUnidades, rPct), '#DC2626')} !important;font-weight:700;">${f.pctUnidades.toFixed(2)}%</td>
+                        <td style="text-align:right;background:${zHeatColor(tHeat(f.pct, rPct), '#DC2626')} !important;">${f.pct.toFixed(2)}%</td>
+                        <td style="text-align:right;background:${zHeatColor(tHeat(f.neg, rNeg), '#DC2626')} !important;">${f.neg}</td>
+                        <td style="text-align:right;background:${zHeatColor(tHeat(f.valDef, rVd), '#DC2626')} !important;">${formatCurrencyCompact(f.valDef)}</td>
+                        <td style="text-align:right;background:${zHeatColor(tHeat(f.cobertura, rCob), '#059669')} !important;font-weight:700;">${f.cobertura.toFixed(0)}%</td>
+                    </tr>`).join('')}</tbody>
+                </table>
+                <p class="z-note">Intensidad relativa al alcance: rojo más intenso = peor indicador · verde más intenso = mejor cobertura.${n > 28 ? ' Se muestran las 28 sucursales más críticas; el resto figura en el Anexo.' : ''}</p>`);
+
+            // ============ PÁGINA 7 · PRODUCTOS ============
+            const filaProd = (x, extra) => `<tr><td style="font-weight:600;color:#0F172A;">${zEsc(zTrunc(x.p.producto, 34))}</td><td style="font-size:7.5px;color:#64748B;">${zEsc(zTrunc(x.p.rubro, 14))}</td>${extra}</tr>`;
+            paginas.push(`
+                <div class="z-header"><h2>Análisis de Productos</h2><span class="z-brand">${zEsc(scopeLabel)}</span></div>
+                ${prodAgg.length ? `
+                <div class="z-2col" style="margin-bottom:12px;">
+                    <div class="z-card">
+                        <h3 class="z-sec">Top 10 · Mayor impacto económico</h3>
+                        <table class="z-table"><thead><tr><th>Producto</th><th>Rubro</th><th style="text-align:right;">Unid.</th><th style="text-align:right;">Valor</th></tr></thead>
+                        <tbody>${topImpacto.map(x => filaProd(x, `<td style="text-align:right;">${formatNumber(x.unidNeg)}</td><td style="text-align:right;font-weight:800;color:#B91C1C;">${formatCurrency(x.vDef)}</td>`)).join('')}</tbody></table>
+                    </div>
+                    <div class="z-card">
+                        <h3 class="z-sec">Top 10 · Más unidades negativas</h3>
+                        <table class="z-table"><thead><tr><th>Producto</th><th>Rubro</th><th style="text-align:right;">Unid.</th><th style="text-align:right;">Sucs.</th></tr></thead>
+                        <tbody>${topUnidades.map(x => filaProd(x, `<td style="text-align:right;font-weight:800;color:#B91C1C;">${formatNumber(x.unidNeg)}</td><td style="text-align:right;">${x.sucsDef}</td>`)).join('')}</tbody></table>
+                    </div>
+                </div>
+                ${multiSuc.length ? `<div class="z-card">
+                    <h3 class="z-sec">Productos críticos · Déficit en ${umbralMulti} o más sucursales</h3>
+                    <table class="z-table"><thead><tr><th>Producto</th><th>Rubro</th><th style="text-align:right;">Sucursales con déficit</th><th style="text-align:right;">Unid. neg. totales</th><th style="text-align:right;">Valor</th></tr></thead>
+                    <tbody>${multiSuc.slice(0, 8).map(x => filaProd(x, `<td style="text-align:right;font-weight:800;">${x.sucsDef} de ${n}</td><td style="text-align:right;">${formatNumber(x.unidNeg)}</td><td style="text-align:right;">${formatCurrency(x.vDef)}</td>`)).join('')}</tbody></table>
+                    <p class="z-note">Un producto en negativo en muchas sucursales a la vez sugiere un problema central (cambio de código, ingreso sin cargar) más que faltantes físicos independientes.</p>
+                </div>` : `<div class="z-box"><p>✔ Ningún producto presenta déficit simultáneo en ${umbralMulti} o más sucursales: los negativos detectados son casos aislados por local.</p></div>`}` : `<div class="z-box"><p>✔ No hay productos con stock negativo en el alcance de este informe.</p></div>`}`);
+
+            // ============ PÁGINA 8 · ECONÓMICO + HALLAZGOS + RECOMENDACIONES ============
+            paginas.push(`
+                <div class="z-header"><h2>Análisis Económico y Conclusiones</h2><span class="z-brand">${zEsc(scopeLabel)}</span></div>
+                <div class="z-kpi-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:14px;">
+                    ${kpi('Valor del stock', formatCurrencyCompact(totVal), 'mercadería al costo')}
+                    ${kpi('Valor del déficit', formatCurrencyCompact(totValDef), 'costo de reposición', totValDef ? '#DC2626' : '#059669')}
+                    ${kpi('Participación del déficit', pesoEconomico.toFixed(2) + '%', 'sobre el valor del inventario', pesoEconomico > 2 ? '#DC2626' : '#059669')}
+                    ${kpi('Costo prom. / SKU neg.', totNeg ? formatCurrency(totValDef / totNeg) : '—', `${totNeg.toLocaleString('es-AR')} posiciones en negativo`)}
+                    ${kpi('Déficit prom. / sucursal', formatCurrency(n ? totValDef / n : 0), `${n} sucursales en el alcance`)}
+                </div>
+                <h3 class="z-sec">Hallazgos destacados</h3>
+                <div style="margin-bottom:14px;">${hallazgos.slice(0, 7).map(h => `<div class="z-find"><span class="zf-ico">${h[0]}</span><p>${h[1]}</p></div>`).join('')}</div>
+                <h3 class="z-sec">Recomendaciones</h3>
+                <div>${recs.slice(0, 5).map((r, i) => `<div class="z-find" style="border-left:3px solid #2B3990;"><span style="font-size:9px;font-weight:800;color:#2B3990;min-width:14px;">${i + 1}.</span><p>${r}</p></div>`).join('')}</div>
+                <p class="z-note">Hallazgos y recomendaciones generados automáticamente a partir de los indicadores de este informe. No incluyen información externa a los datos cargados.</p>`);
+
+            // ============ ANEXO · RANKING COMPLETO ============
+            const FILAS_ANEXO = 26;
+            const ordenado = [...filas].sort((a, b) => b.pctUnidades - a.pctUnidades);
+            const theadAnexo = `<tr><th>#</th><th>Sucursal</th><th style="text-align:right;">SKU c/stock</th><th style="text-align:right;">Negativos</th><th style="text-align:right;">% déf. unid.</th><th style="text-align:right;">% déf. SKU</th><th style="text-align:right;">Cobertura</th><th style="text-align:right;">Valor déficit</th><th>Estado</th></tr>`;
+            for (let i = 0; i < ordenado.length; i += FILAS_ANEXO) {
+                const chunk = ordenado.slice(i, i + FILAS_ANEXO);
+                const esUltimo = i + FILAS_ANEXO >= ordenado.length;
+                paginas.push(`
+                    <div class="z-header"><h2>Anexo · Ranking completo${i > 0 ? ' (continuación)' : ''}</h2><span class="z-brand">${zEsc(scopeLabel)}</span></div>
+                    ${i === 0 ? '<p style="font-size:8.5px;color:#64748B;margin:0 0 8px 0;">Todas las sucursales del alcance, ordenadas por % de déficit por unidades (peor primero). Las filas resaltadas superan el objetivo del 1%.</p>' : ''}
+                    <table class="z-table"><thead>${theadAnexo}</thead>
+                    <tbody>${chunk.map((f, j) => `<tr>
+                        <td>${i + j + 1}</td><td style="font-weight:600;color:#0F172A;${f.pctUnidades >= Z_OBJ ? 'background:#FEF2F2 !important;' : ''}">${zEsc(f.nombre)}</td>
+                        <td style="text-align:right;${f.pctUnidades >= Z_OBJ ? 'background:#FEF2F2 !important;' : ''}">${f.conStock.toLocaleString('es-AR')}</td>
+                        <td style="text-align:right;font-weight:700;${f.pctUnidades >= Z_OBJ ? 'background:#FEF2F2 !important;' : ''}">${f.neg}</td>
+                        <td style="text-align:right;font-weight:800;color:${f.nivel.color};${f.pctUnidades >= Z_OBJ ? 'background:#FEF2F2 !important;' : ''}">${f.pctUnidades.toFixed(2)}%</td>
+                        <td style="text-align:right;${f.pctUnidades >= Z_OBJ ? 'background:#FEF2F2 !important;' : ''}">${f.pct.toFixed(2)}%</td>
+                        <td style="text-align:right;${f.pctUnidades >= Z_OBJ ? 'background:#FEF2F2 !important;' : ''}">${f.cobertura.toFixed(0)}%</td>
+                        <td style="text-align:right;${f.pctUnidades >= Z_OBJ ? 'background:#FEF2F2 !important;' : ''}">${formatCurrency(f.valDef)}</td>
+                        <td style="white-space:nowrap;${f.pctUnidades >= Z_OBJ ? 'background:#FEF2F2 !important;' : ''}"><span class="z-dot" style="background:${f.nivel.color};"></span>${f.nivel.label}</td></tr>`).join('')}
+                    ${esUltimo ? `<tr><td colspan="2" style="background:#0F172A !important;color:#fff;font-weight:800;">TOTAL (${n} sucursales)</td>
+                        <td style="text-align:right;background:#0F172A !important;color:#fff;font-weight:700;">${totConStock.toLocaleString('es-AR')}</td>
+                        <td style="text-align:right;background:#0F172A !important;color:#fff;font-weight:800;">${totNeg.toLocaleString('es-AR')}</td>
+                        <td style="text-align:right;background:#0F172A !important;color:#fff;font-weight:800;">${pctUnidGlobal.toFixed(2)}%</td>
+                        <td style="text-align:right;background:#0F172A !important;color:#fff;">${pctSkuGlobal.toFixed(2)}%</td>
+                        <td style="text-align:right;background:#0F172A !important;color:#fff;">${cobGlobal.toFixed(0)}%</td>
+                        <td style="text-align:right;background:#0F172A !important;color:#fff;font-weight:800;">${formatCurrency(totValDef)}</td>
+                        <td style="background:#0F172A !important;"></td></tr>` : ''}</tbody></table>
+                    ${esUltimo ? '<p class="z-note">Los porcentajes se calculan sobre el catálogo total de cada sucursal (incluye productos en 0). Las sucursales con archivo propio cargado usan su catálogo exacto. El Listado de Stock es una foto del día en que se importó: cada importación reemplaza la anterior.</p>' : ''}`);
+            }
+
+            // Ensamblado final con numeración de páginas
+            const N = paginas.length;
+            return paginas.map((contenido, i) => `
+                <div class="zpage${i > 0 ? ' page-break' : ''}">
+                    ${contenido}
+                    <div class="print-footer">Documento de uso interno · FarmaPlus Analytics — Informe Ejecutivo de Inventario · ${zEsc(scopeLabel)} · Página ${i + 1} de ${N}</div>
+                </div>`).join('');
+        }
+
+        // ============================================================================
+        // INFORME EJECUTIVO DE INVENTARIO — SUCURSAL INDIVIDUAL
+        // Mismo lenguaje visual que el informe zonal/cadena, pero con análisis que
+        // tienen sentido para un solo local: déficit por rubro, top de productos,
+        // Pareto del déficit y (si el archivo es individual) la parametrización real
+        // de Mínimos/Máximos de Plex. Las tablas clásicas quedan como anexo.
+        // ============================================================================
+        function construirInformeEjecutivoSucursal(cod, nombre, fechaStr) {
+            const s = calcularStatsSucursal(cod);
+            const scopeLabel = `Sucursal ${nombre}`;
+            const cobertura = s.total ? (s.pos / s.total * 100) : 0;
+            const sinStock = s.total - s.conStock;
+            const nivel = zNivel(s.pctUnidades);
+            const pctSobrePos = s.unidadesPos ? s.unidadesNeg / s.unidadesPos * 100 : 0;
+            const pesoEconomico = s.val ? s.valDef / s.val * 100 : 0;
+            const cumpleUnid = s.pctUnidades < Z_OBJ, cumpleSku = s.pct < Z_OBJ;
+
+            // --- Mínimo/Máximo reales de Plex (solo si el archivo de esta sucursal los trae) ---
+            const catalogoExacto = stockCatalogoExacto.get(cod);
+            const universo = catalogoExacto ? stockProductos.filter(p => catalogoExacto.has(p.IDProducto)) : stockProductos;
+            const parametrizados = universo.filter(p => (p.minPorSuc && p.minPorSuc.has(cod)) || (p.maxPorSuc && p.maxPorSuc.has(cod)));
+            const tieneParams = parametrizados.length > 0;
+            const bajoMinimo = tieneParams ? universo.filter(p => {
+                const mn = p.minPorSuc ? p.minPorSuc.get(cod) : undefined;
+                if (!mn) return false;
+                const c = p.stockPorSuc.get(cod) || 0;
+                return c >= 0 && c < mn;
+            }).map(p => ({ p, c: p.stockPorSuc.get(cod) || 0, ref: p.minPorSuc.get(cod), delta: p.minPorSuc.get(cod) - (p.stockPorSuc.get(cod) || 0) })) : [];
+            const sobreMaximo = tieneParams ? universo.filter(p => {
+                const mx = p.maxPorSuc ? p.maxPorSuc.get(cod) : undefined;
+                return mx && (p.stockPorSuc.get(cod) || 0) > mx;
+            }).map(p => ({ p, c: p.stockPorSuc.get(cod), ref: p.maxPorSuc.get(cod), delta: p.stockPorSuc.get(cod) - p.maxPorSuc.get(cod) })) : [];
+            bajoMinimo.sort((a, b) => b.delta - a.delta);
+            sobreMaximo.sort((a, b) => b.delta * b.p.costo - a.delta * a.p.costo);
+
+            // --- Déficit por producto (Pareto) y por rubro ---
+            const negs = s.negativosDet.map(d => ({ ...d, vDef: Math.abs(d.c) * d.p.costo })).sort((a, b) => b.vDef - a.vDef);
+            let acum = 0, nP80 = 0;
+            for (const d of negs) { acum += d.vDef; nP80++; if (s.valDef && acum >= s.valDef * 0.8) break; }
+            const top1Share = s.valDef && negs[0] ? negs[0].vDef / s.valDef * 100 : 0;
+            const rubrosMap = new Map();
+            negs.forEach(d => {
+                const r = rubrosMap.get(d.p.rubro) || { rubro: d.p.rubro, sku: 0, unid: 0, vDef: 0 };
+                r.sku++; r.unid += Math.abs(d.c); r.vDef += d.vDef;
+                rubrosMap.set(d.p.rubro, r);
+            });
+            const rubros = [...rubrosMap.values()].sort((a, b) => b.vDef - a.vDef);
+            const rubroTopShare = s.valDef && rubros[0] ? rubros[0].vDef / s.valDef * 100 : 0;
+
+            // --- Hallazgos automáticos ---
+            const hallazgos = [];
+            if (negs.length && s.valDef) hallazgos.push(['🎯', `El producto <strong>${zEsc(zTrunc(negs[0].p.producto, 42))}</strong> concentra el <strong>${top1Share.toFixed(0)}%</strong> del valor del déficit (${formatCurrency(negs[0].vDef)}).`]);
+            if (negs.length > 3 && nP80 < negs.length) hallazgos.push(['📊', `<strong>${nP80}</strong> de ${negs.length} productos negativos acumulan el <strong>80%</strong> del déficit económico: un recuento focalizado en pocos ítems resuelve la mayor parte del problema.`]);
+            hallazgos.push(['✅', `El <strong>${(100 - s.pct).toFixed(1)}%</strong> del catálogo tiene stock correcto (sin negativo).`]);
+            hallazgos.push(['📦', `La cobertura de catálogo es del <strong>${cobertura.toFixed(1)}%</strong>: ${sinStock.toLocaleString('es-AR')} productos están en cero.`]);
+            if (s.val > 0 && s.valDef > 0) hallazgos.push(['💰', `El déficit económico equivale al <strong>${pesoEconomico.toFixed(2)}%</strong> del valor del stock del local.`]);
+            if (rubros.length && s.valDef && rubroTopShare >= 25) hallazgos.push(['🏷️', `El rubro <strong>${zEsc(rubros[0].rubro)}</strong> concentra el <strong>${rubroTopShare.toFixed(0)}%</strong> del valor del déficit (${rubros[0].sku} producto(s)).`]);
+            if (tieneParams && (bajoMinimo.length || sobreMaximo.length)) hallazgos.push(['⛔', `Según la parametrización de Plex (${parametrizados.length.toLocaleString('es-AR')} productos), <strong>${bajoMinimo.length.toLocaleString('es-AR')}</strong> están por debajo de su mínimo de reposición (riesgo de quiebre) y <strong>${sobreMaximo.length.toLocaleString('es-AR')}</strong> superan su máximo (capital inmovilizado).`]);
+
+            // --- Recomendaciones basadas en reglas ---
+            const recs = [];
+            if (negs.length && nP80 <= 15 && s.valDef) recs.push(`Hacer un recuento físico focalizado en los <strong>${nP80}</strong> producto(s) del Top de impacto: cubren el 80% del valor del déficit con el mínimo esfuerzo de control.`);
+            if (rubroTopShare >= 40 && rubros.length > 1) recs.push(`Revisar el circuito completo del rubro <strong>${zEsc(rubros[0].rubro)}</strong> (recepción, carga y ventas): concentra un déficit desproporcionado respecto del resto.`);
+            if (tieneParams && bajoMinimo.length) recs.push(`Generar el pedido de reposición para los ${bajoMinimo.length.toLocaleString('es-AR')} productos bajo mínimo — la lista completa se exporta a Excel desde la vista de la sucursal (tarjeta "Bajo mínimo").`);
+            if (tieneParams && sobreMaximo.length > 20) recs.push(`Evaluar la redistribución de los productos sobre máximo hacia sucursales con faltantes: hay ${sobreMaximo.length.toLocaleString('es-AR')} posiciones con exceso según la parametrización de Plex.`);
+            if (s.pctUnidades >= 2) recs.push(`Ejecutar el checklist imprimible de <strong>Control de Stock Negativo</strong> (disponible en la aplicación) antes del próximo corte: el local está en estado crítico.`);
+            if (cobertura < 70) recs.push(`Reforzar la reposición general: con una cobertura del ${cobertura.toFixed(0)}%, hay venta perdida potencial por productos en cero.`);
+            if (cumpleUnid && cumpleSku) recs.push(`El local cumple el objetivo (&lt;1%): mantener los controles de rutina y monitorear los productos del Top de impacto para sostenerlo.`);
+
+            const pill = nv => `<span class="z-pill" style="background:${nv.bg};color:${nv.color};border:1px solid ${nv.color};">${nv.label.toUpperCase()}</span>`;
+            const kpi = (t, v, sub, color) => `<div class="z-kpi" style="border-top-color:${color || '#CBD5E1'};"><p class="zk-t">${t}</p><p class="zk-v" style="${color ? `color:${color};` : ''}">${v}</p>${sub ? `<p class="zk-s">${sub}</p>` : ''}</div>`;
+            const paginas = [];
+
+            // ============ PÁGINA 1 · PORTADA ============
+            const coverStat = (l, v) => `<div style="padding:10px 0;border-bottom:1px solid #E2E8F0;"><p style="font-size:8.5px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;margin:0;">${l}</p><p style="font-size:16px;font-weight:800;color:#0F172A;margin:3px 0 0 0;">${v}</p></div>`;
+            paginas.push(`
+                <div style="display:flex;flex-direction:column;min-height:90vh;">
+                    <div style="background:#0F172A;border-radius:14px;padding:34px 36px;color:#fff;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:26px;">
+                            <svg viewBox="0 0 100 100" width="30" height="30"><g stroke="#5FA8FF" stroke-width="13" fill="none"><path d="M87.53 55.94A38 38 0 0 1 55.94 87.53"/><path d="M44.06 87.53A38 38 0 0 1 12.47 55.94"/><path d="M12.47 44.06A38 38 0 0 1 44.06 12.47"/><path d="M55.94 12.47A38 38 0 0 1 87.53 44.06"/></g><path d="M39 19a3 3 0 0 1 3-3h16a3 3 0 0 1 3 3v20h20a3 3 0 0 1 3 3v16a3 3 0 0 1-3 3H61v20a3 3 0 0 1-3 3H42a3 3 0 0 1-3-3V61H19a3 3 0 0 1-3-3V42a3 3 0 0 1 3-3h20z" fill="#FF5A66"/></svg>
+                            <span style="font-size:12px;font-weight:700;letter-spacing:0.5px;">FarmaPlus <span style="opacity:0.7;font-weight:500;">Analytics</span></span>
+                        </div>
+                        <p style="font-size:10px;font-weight:700;color:#5FA8FF;text-transform:uppercase;letter-spacing:2px;margin:0 0 8px 0;">Informe Ejecutivo de Inventario</p>
+                        <h1 style="font-size:30px;font-weight:800;margin:0;line-height:1.15;letter-spacing:-0.5px;color:#fff;">${zEsc(scopeLabel)}</h1>
+                        <div style="display:flex;gap:26px;margin-top:22px;font-size:9.5px;color:#CBD5E1;">
+                            <span>📅 Generado el <strong style="color:#fff;">${fechaStr}</strong></span>
+                            <span>📷 Período: foto del stock al día de la importación del listado</span>
+                        </div>
+                        <div style="margin-top:18px;">${pill(nivel)} <span style="font-size:9px;color:#CBD5E1;margin-left:6px;">Estado del local según déficit por unidades (${s.pctUnidades.toFixed(2)}%)</span></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0 28px;margin-top:24px;padding:0 6px;">
+                        ${coverStat('SKU · catálogo ' + (s.esExacto ? 'exacto' : 'aprox.'), s.total.toLocaleString('es-AR'))}
+                        ${coverStat('SKU con stock declarado', s.conStock.toLocaleString('es-AR'))}
+                        ${coverStat('SKU sin stock (en cero)', sinStock.toLocaleString('es-AR'))}
+                        ${coverStat('Unidades en stock', formatNumber(s.unidadesPos))}
+                        ${coverStat('Unidades negativas', formatNumber(s.unidadesNeg))}
+                        ${coverStat('SKU con stock negativo', s.neg.toLocaleString('es-AR'))}
+                        ${coverStat('Valor total del stock', formatCurrencyCompact(s.val))}
+                        ${coverStat('Valor total del déficit', formatCurrencyCompact(s.valDef))}
+                        ${coverStat('Déficit por unidades', s.pctUnidades.toFixed(2) + '%')}
+                    </div>
+                    <p style="margin-top:auto;padding-top:24px;font-size:8px;color:#94A3B8;">Elaborado automáticamente por FarmaPlus Analytics a partir del Listado de Stock de Plex · Documento de uso interno · Umbrales de estado (déficit por unidades): Excelente &lt;0,5% · Buena &lt;1% · Regular &lt;2% · Crítica ≥2%.</p>
+                </div>`);
+
+            // ============ PÁGINA 2 · RESUMEN EJECUTIVO ============
+            const kpisParams = tieneParams
+                ? kpi('Bajo mínimo (Plex)', bajoMinimo.length.toLocaleString('es-AR'), `de ${parametrizados.length.toLocaleString('es-AR')} parametrizados`, bajoMinimo.length ? '#D97706' : '#059669')
+                  + kpi('Sobre máximo (Plex)', sobreMaximo.length.toLocaleString('es-AR'), `de ${parametrizados.length.toLocaleString('es-AR')} parametrizados`, sobreMaximo.length ? '#D97706' : '#059669')
+                : kpi('Mín/Máx de Plex', '—', 'este archivo no trae la parametrización (solo la traen los listados individuales)')
+                  + kpi('Objetivo de déficit', '&lt; ' + Z_OBJ + '%', 'por unidades y por SKU');
+            paginas.push(`
+                <div class="z-header"><h2>Resumen Ejecutivo</h2><span class="z-brand">${zEsc(scopeLabel)}</span></div>
+                <div class="z-kpi-grid" style="margin-bottom:10px;">
+                    ${kpi('SKU catálogo', s.total.toLocaleString('es-AR'), s.esExacto ? 'catálogo exacto del archivo propio' : 'catálogo aproximado (universal)', '#2B3990')}
+                    ${kpi('SKU con stock', s.conStock.toLocaleString('es-AR'), 'productos con cantidad declarada')}
+                    ${kpi('SKU negativos', s.neg.toLocaleString('es-AR'), 'productos con faltante', s.neg ? '#DC2626' : '#059669')}
+                    ${kpi('Sin stock (en cero)', sinStock.toLocaleString('es-AR'), 'productos sin mercadería', '#D97706')}
+                    ${kpi('Cobertura de catálogo', cobertura.toFixed(1) + '%', 'productos con stock positivo', cobertura < 50 ? '#D97706' : '#059669')}
+                    ${kpi('Déficit s/ stock total', s.pctUnidades.toFixed(2) + '%', `objetivo &lt;${Z_OBJ}% · ${cumpleUnid ? 'cumple ✓' : 'no cumple ✗'}`, cumpleUnid ? '#059669' : '#DC2626')}
+                    ${kpi('Déficit s/ disponible', (s.unidadesPos ? pctSobrePos.toFixed(2) + '%' : '—'), 'faltante vs. mercadería en estante', s.unidadesNeg ? '#DC2626' : '#059669')}
+                    ${kpi('Déficit por SKU', s.pct.toFixed(2) + '%', `objetivo &lt;${Z_OBJ}% · ${cumpleSku ? 'cumple ✓' : 'no cumple ✗'}`, cumpleSku ? '#059669' : '#DC2626')}
+                    ${kpi('Valor del stock', formatCurrencyCompact(s.val), 'mercadería disponible al costo')}
+                    ${kpi('Valor del déficit', formatCurrencyCompact(s.valDef), 'costo de reponer los faltantes', s.valDef ? '#DC2626' : '#059669')}
+                    ${kpi('Unidades totales', formatNumber(s.unidadesPos + s.unidadesNeg), 'positivas + negativas en juego')}
+                    ${kpi('Unidades negativas', formatNumber(s.unidadesNeg), '', s.unidadesNeg ? '#DC2626' : '#059669')}
+                    ${kpi('Unidades positivas', formatNumber(s.unidadesPos), '')}
+                    ${kpisParams}
+                    ${kpi('Estado general', nivel.label, 'según déficit por unidades', nivel.color)}
+                </div>
+                <h3 class="z-sec">Estado general del local</h3>
+                <div class="z-box">
+                    <p>La sucursal <strong>${zEsc(nombre)}</strong> presenta un déficit del <strong>${s.pctUnidades.toFixed(2)}%</strong> por unidades y del <strong>${s.pct.toFixed(2)}%</strong> por SKU, ${cumpleUnid && cumpleSku ? 'en ambos casos por debajo del' : 'frente al'} objetivo del ${Z_OBJ}% — estado <strong style="color:${nivel.color};">${nivel.label.toUpperCase()}</strong>. ${s.valDef && negs.length ? `El impacto económico es de <strong>${formatCurrency(s.valDef)}</strong>${negs.length > 1 ? `, y ${nP80 === 1 ? `un solo producto concentra` : `<strong>${nP80}</strong> productos concentran`} el 80% de ese valor` : ''}.` : 'No se registra impacto económico por déficit.'} La cobertura de catálogo es del <strong>${cobertura.toFixed(1)}%</strong>${tieneParams ? `, y según la parametrización de Plex hay <strong>${bajoMinimo.length.toLocaleString('es-AR')}</strong> productos bajo mínimo y <strong>${sobreMaximo.length.toLocaleString('es-AR')}</strong> sobre máximo` : ''}.</p>
+                </div>`);
+
+            // ============ PÁGINA 3 · GRÁFICOS ============
+            const paleta = ['#DC2626', '#EA580C', '#D97706', '#CA8A04', '#65A30D'];
+            const gaugeMax = Math.max(3, Math.ceil(s.pctUnidades * 1.3));
+            paginas.push(`
+                <div class="z-header"><h2>Análisis Gráfico · Déficit</h2><span class="z-brand">${zEsc(scopeLabel)}</span></div>
+                <div class="z-2col" style="margin-bottom:12px;align-items:stretch;">
+                    <div class="z-card" style="display:flex;flex-direction:column;align-items:center;">
+                        <h3 class="z-sec" style="align-self:flex-start;">Cumplimiento del local</h3>
+                        ${zGauge(s.pctUnidades, gaugeMax)}
+                        <p style="font-size:8px;color:#64748B;margin:6px 0 0 0;text-align:center;">Déficit por unidades de la sucursal.<br>Verde: excelente · Celeste: cumple · Ámbar: regular · Rojo: crítico</p>
+                    </div>
+                    <div class="z-card">
+                        <h3 class="z-sec">Déficit por rubro</h3>
+                        ${s.valDef > 0 && rubros.length ? zDonut(
+                            rubros.slice(0, 5).map((r, i) => ({ label: r.rubro, value: r.vDef, color: paleta[i] }))
+                                .concat(rubros.length > 5 ? [{ label: `Otros (${rubros.length - 5})`, value: rubros.slice(5).reduce((a, r) => a + r.vDef, 0), color: '#94A3B8' }] : []),
+                            formatCurrencyCompact(s.valDef), 'déficit total')
+                        : '<p style="font-size:9px;color:#059669;font-weight:700;">Sin déficit económico en el local ✓</p>'}
+                    </div>
+                </div>
+                ${negs.length ? `<div class="z-card">
+                    <h3 class="z-sec">Top ${Math.min(10, negs.length)} — Productos con mayor impacto económico</h3>
+                    ${zBarrasH(negs.slice(0, 10).map(d => ({ label: d.p.producto, value: d.vDef, txt: formatCurrency(d.vDef), color: '#B91C1C' })), { labelW: 210 })}
+                    <p style="font-size:8px;color:#64748B;margin:2px 0 0 0;">Valor de reponer el faltante de cada producto (unidades negativas × costo).</p>
+                </div>` : `<div class="z-box"><p>✔ No hay productos con stock negativo en esta sucursal.</p></div>`}`);
+
+            // ============ PÁGINA 4 · RUBROS + PARETO ============
+            if (negs.length) {
+                const rHeat = rubros.slice(0, 14);
+                const maxVr = Math.max(...rHeat.map(r => r.vDef), 1);
+                paginas.push(`
+                    <div class="z-header"><h2>Análisis por Rubro y Concentración</h2><span class="z-brand">${zEsc(scopeLabel)}</span></div>
+                    <div class="z-card" style="margin-bottom:12px;">
+                        <h3 class="z-sec">Déficit por rubro${rubros.length > 14 ? ` (top 14 de ${rubros.length})` : ''}</h3>
+                        <table class="z-table">
+                            <thead><tr><th>Rubro</th><th style="text-align:right;">SKU negativos</th><th style="text-align:right;">Unidades neg.</th><th style="text-align:right;">Valor déficit</th><th style="text-align:right;">Participación</th></tr></thead>
+                            <tbody>${rHeat.map(r => `<tr>
+                                <td style="font-weight:700;color:#0F172A;background:#fff !important;">${zEsc(zTrunc(r.rubro, 30))}</td>
+                                <td style="text-align:right;">${r.sku}</td>
+                                <td style="text-align:right;">${formatNumber(r.unid)}</td>
+                                <td style="text-align:right;background:${zHeatColor(r.vDef / maxVr, '#DC2626')} !important;font-weight:700;">${formatCurrency(r.vDef)}</td>
+                                <td style="text-align:right;font-weight:700;">${s.valDef ? (r.vDef / s.valDef * 100).toFixed(1) : '0.0'}%</td>
+                            </tr>`).join('')}</tbody>
+                        </table>
+                    </div>
+                    <div class="z-card">
+                        <h3 class="z-sec">Concentración del déficit (Pareto)</h3>
+                        ${zBarrasH([
+                            { label: 'Peor producto', value: top1Share, txt: top1Share.toFixed(0) + '%', color: '#DC2626' },
+                            { label: `Top ${Math.min(5, negs.length)} productos`, value: s.valDef ? negs.slice(0, 5).reduce((a, d) => a + d.vDef, 0) / s.valDef * 100 : 0, txt: (s.valDef ? negs.slice(0, 5).reduce((a, d) => a + d.vDef, 0) / s.valDef * 100 : 0).toFixed(0) + '%', color: '#EA580C' },
+                            { label: `Top ${nP80} productos`, value: 80, txt: '80%', color: '#D97706' },
+                            { label: `Todos (${negs.length})`, value: 100, txt: '100%', color: '#94A3B8' }
+                        ], { labelW: 130 })}
+                        <p style="font-size:8px;color:#64748B;margin:2px 0 0 0;">Porcentaje del valor total del déficit que acumula cada grupo de productos, ordenados de mayor a menor impacto. Cuanto más arriba se llega al 80%, más focalizable es el recuento físico.</p>
+                    </div>`);
+            }
+
+            // ============ PÁGINA 5 · MÍN/MÁX DE PLEX (solo archivos individuales) ============
+            if (tieneParams && (bajoMinimo.length || sobreMaximo.length)) {
+                const filaMm = x => `<tr><td style="font-weight:600;color:#0F172A;">${zEsc(zTrunc(x.p.producto, 32))}</td><td style="font-size:7.5px;color:#64748B;">${zEsc(zTrunc(x.p.rubro, 13))}</td><td style="text-align:right;">${formatNumber(x.c)}</td><td style="text-align:right;">${formatNumber(x.ref)}</td><td style="text-align:right;font-weight:800;color:#B45309;">${formatNumber(x.delta)}</td></tr>`;
+                paginas.push(`
+                    <div class="z-header"><h2>Reposición y Excesos · Parametrización Plex</h2><span class="z-brand">${zEsc(scopeLabel)}</span></div>
+                    <div class="z-box" style="margin-bottom:12px;"><p>Este archivo trae los <strong>Mínimos y Máximos reales</strong> cargados en Plex para ${parametrizados.length.toLocaleString('es-AR')} productos. <strong>${bajoMinimo.length.toLocaleString('es-AR')}</strong> están bajo mínimo (riesgo de quiebre) y <strong>${sobreMaximo.length.toLocaleString('es-AR')}</strong> sobre máximo (capital inmovilizado). Las listas completas se exportan a Excel desde las tarjetas de la vista de la sucursal.</p></div>
+                    <div class="z-2col">
+                        <div class="z-card">
+                            <h3 class="z-sec">⛔ Bajo mínimo · Top ${Math.min(12, bajoMinimo.length)} por faltante</h3>
+                            ${bajoMinimo.length ? `<table class="z-table"><thead><tr><th>Producto</th><th>Rubro</th><th style="text-align:right;">Stock</th><th style="text-align:right;">Mín.</th><th style="text-align:right;">Faltan</th></tr></thead>
+                            <tbody>${bajoMinimo.slice(0, 12).map(filaMm).join('')}</tbody></table>` : '<p style="font-size:9px;color:#059669;font-weight:700;">Ningún producto bajo mínimo ✓</p>'}
+                        </div>
+                        <div class="z-card">
+                            <h3 class="z-sec">📈 Sobre máximo · Top ${Math.min(12, sobreMaximo.length)} por exceso valorizado</h3>
+                            ${sobreMaximo.length ? `<table class="z-table"><thead><tr><th>Producto</th><th>Rubro</th><th style="text-align:right;">Stock</th><th style="text-align:right;">Máx.</th><th style="text-align:right;">Exceso</th></tr></thead>
+                            <tbody>${sobreMaximo.slice(0, 12).map(filaMm).join('')}</tbody></table>` : '<p style="font-size:9px;color:#059669;font-weight:700;">Ningún producto sobre máximo ✓</p>'}
+                        </div>
+                    </div>
+                    <p class="z-note">Bajo mínimo: productos con stock entre 0 y su mínimo de reposición (los negativos no se incluyen: ya figuran en el déficit). Sobre máximo: stock superior al máximo parametrizado, ordenado por el valor del exceso.</p>`);
+            }
+
+            // ============ PÁGINA 6 · ECONÓMICO + HALLAZGOS + RECOMENDACIONES ============
+            paginas.push(`
+                <div class="z-header"><h2>Análisis Económico y Conclusiones</h2><span class="z-brand">${zEsc(scopeLabel)}</span></div>
+                <div class="z-kpi-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:14px;">
+                    ${kpi('Valor del stock', formatCurrencyCompact(s.val), 'mercadería al costo')}
+                    ${kpi('Valor del déficit', formatCurrencyCompact(s.valDef), 'costo de reposición', s.valDef ? '#DC2626' : '#059669')}
+                    ${kpi('Participación del déficit', pesoEconomico.toFixed(2) + '%', 'sobre el valor del stock', pesoEconomico > 2 ? '#DC2626' : '#059669')}
+                    ${kpi('Costo prom. / SKU neg.', s.neg ? formatCurrency(s.valDef / s.neg) : '—', `${s.neg.toLocaleString('es-AR')} productos en negativo`)}
+                    ${kpi('Productos p/ el 80%', negs.length ? nP80.toLocaleString('es-AR') : '—', 'concentran el 80% del valor del déficit')}
+                </div>
+                <h3 class="z-sec">Hallazgos destacados</h3>
+                <div style="margin-bottom:14px;">${hallazgos.slice(0, 7).map(h => `<div class="z-find"><span class="zf-ico">${h[0]}</span><p>${h[1]}</p></div>`).join('')}</div>
+                <h3 class="z-sec">Recomendaciones</h3>
+                <div>${recs.slice(0, 5).map((r, i) => `<div class="z-find" style="border-left:3px solid #2B3990;"><span style="font-size:9px;font-weight:800;color:#2B3990;min-width:14px;">${i + 1}.</span><p>${r}</p></div>`).join('')}</div>
+                <p class="z-note">Hallazgos y recomendaciones generados automáticamente a partir de los indicadores de este informe. No incluyen información externa a los datos cargados.</p>`);
+
+            // ============ ANEXO · TOP 15 NEGATIVOS Y POSITIVOS (tablas clásicas) ============
+            const filaDet = d => `<tr><td style="font-weight:600;color:#0F172A;">${zEsc(zTrunc(d.p.producto, 40))}</td><td style="font-size:7.5px;color:#64748B;">${zEsc(zTrunc(d.p.rubro, 16))}</td><td style="text-align:right;font-weight:800;">${formatNumber(d.c)}</td><td style="text-align:right;">${formatCurrency(Math.abs(d.c) * d.p.costo)}</td></tr>`;
+            paginas.push(`
+                <div class="z-header"><h2>Anexo · Detalle de Productos</h2><span class="z-brand">${zEsc(scopeLabel)}</span></div>
+                <div class="z-card" style="margin-bottom:12px;">
+                    <h3 class="z-sec" style="color:#B91C1C;">Top 15 — Mayor stock negativo (déficit)</h3>
+                    <table class="z-table"><thead><tr><th>Producto</th><th>Rubro</th><th style="text-align:right;">Stock</th><th style="text-align:right;">Valor</th></tr></thead>
+                    <tbody>${s.negativosDet.slice(0, 15).map(filaDet).join('') || '<tr><td colspan="4" style="text-align:center;color:#059669;font-weight:700;">Sin stock negativo ✓</td></tr>'}</tbody></table>
+                </div>
+                <div class="z-card">
+                    <h3 class="z-sec" style="color:#047857;">Top 15 — Mayor stock positivo</h3>
+                    <table class="z-table"><thead><tr><th>Producto</th><th>Rubro</th><th style="text-align:right;">Stock</th><th style="text-align:right;">Valor</th></tr></thead>
+                    <tbody>${s.positivosDet.slice(0, 15).map(filaDet).join('') || '<tr><td colspan="4" style="text-align:center;color:#94A3B8;">Sin stock positivo</td></tr>'}</tbody></table>
+                </div>
+                <p class="z-note">Los porcentajes del informe se calculan sobre el catálogo ${s.esExacto ? 'exacto de la sucursal (su propio archivo)' : 'general del listado (esta sucursal no tiene archivo propio cargado)'}, incluyendo los productos en 0. El Listado de Stock es una foto del día en que se importó.</p>`);
+
+            const N = paginas.length;
+            return paginas.map((contenido, i) => `
+                <div class="zpage${i > 0 ? ' page-break' : ''}">
+                    ${contenido}
+                    <div class="print-footer">Documento de uso interno · FarmaPlus Analytics — Informe Ejecutivo de Inventario · ${zEsc(scopeLabel)} · Página ${i + 1} de ${N}</div>
+                </div>`).join('');
+        }
+
         function confirmExportStockPdf() {
             const scope = document.querySelector('input[name="stockExportScope"]:checked').value;
-            const now = new Date();
-            const fechaStr = now.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
-            const OBJ = 1;
-            const kpiCard = (l, v, ok) => `<div class="pdf-card"><p class="pdf-kpi-title">${l}</p><p class="pdf-kpi-value" style="color:${ok === undefined ? '#0F172A' : (ok ? '#059669' : '#DC2626')};">${v}</p></div>`;
-            let scopeLabel, coverStats, pagina2, pagina3, pagina3Bloques;
-
+            const fechaStr = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+            let htmlInforme;
             if (scope === 'SUCURSAL') {
+                // Sucursal individual: tanto elegida a mano como cuando el archivo cargado
+                // ya es de una sola sucursal (formato individual del admin o de la sucursal).
                 const cod = parseInt(document.getElementById('stockExportSucSelect').value, 10);
                 const nombre = (stockCodigosSuc.find(s => s.cod === cod) || {}).nombre || '';
-                scopeLabel = `Sucursal: ${nombre}`;
-                const s = calcularStatsSucursal(cod);
-                const cumple = s.pct < OBJ;
-                const cumpleUnid = s.pctUnidades < OBJ;
-                const fila = (d) => `<tr><td>${escapeHtml(d.p.producto)}</td><td class="text-right" style="font-weight:700;">${formatNumber(d.c)}</td><td class="text-right">${formatCurrency(Math.abs(d.c)*d.p.costo)}</td></tr>`;
-
-                coverStats = [
-                    ['Sucursal', nombre], ['Catálogo total', s.total.toLocaleString('es-AR')],
-                    ['% déficit por unidades', s.pctUnidades.toFixed(2) + '%'], ['% déficit por SKU', s.pct.toFixed(2) + '%']
-                ];
-                pagina2 = `
-                    <div class="avoid-break pdf-insight-box">
-                        <h3 style="font-size: 16px; font-weight: 700; color: #0F172A; margin: 0 0 12px 0;">💡 Diagnóstico</h3>
-                        <p style="margin:0;font-size:13px;line-height:1.6;color:#334155;">La sucursal <strong>${escapeHtml(nombre)}</strong> tiene un catálogo de <strong>${s.total.toLocaleString('es-AR')}</strong> productos, de los cuales <strong>${s.neg}</strong> presentan stock negativo: <strong>${s.pctUnidades.toFixed(2)}%</strong> contando unidades (${formatNumber(s.unidadesNeg)} de ${formatNumber(s.unidadesNeg + s.unidadesPos)}), y <strong>${s.pct.toFixed(2)}%</strong> del catálogo contando productos. Objetivo del negocio en ambos casos: mantener el stock negativo por debajo del 1%. Estado por unidades: <strong style="color:${cumpleUnid?'#059669':'#DC2626'}">${cumpleUnid ? 'CUMPLE ✓' : 'NO CUMPLE ✗'}</strong> · Estado por SKU: <strong style="color:${cumple?'#059669':'#DC2626'}">${cumple ? 'CUMPLE ✓' : 'NO CUMPLE ✗'}</strong>.</p>
-                    </div>
-                    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:8px;">
-                        ${kpiCard('SKU (catálogo)', s.total.toLocaleString('es-AR'))}
-                        ${kpiCard('% déficit unidades', s.pctUnidades.toFixed(2)+'%', cumpleUnid)}
-                        ${kpiCard('% déficit SKU', s.pct.toFixed(2)+'%', cumple)}
-                        ${kpiCard('Valor del stock', formatCurrency(s.val))}
-                        ${kpiCard('Valor del déficit', formatCurrency(s.valDef), s.valDef===0)}
-                    </div>`;
-                pagina3 = `
-                    <div class="avoid-break" style="margin-bottom:28px;">
-                        <h3 style="font-size:14px;font-weight:700;margin-bottom:10px;color:#B91C1C;">Top 15 — Mayor Stock Negativo (Déficit)</h3>
-                        <table class="w-full text-left erp-table dark-header-table pdf-compact-table"><thead><tr><th>Producto</th><th class="text-right">Stock</th><th class="text-right">Valor</th></tr></thead><tbody>${s.negativosDet.slice(0,15).map(fila).join('') || '<tr><td colspan="3" style="text-align:center;color:#94A3B8;">Sin stock negativo ✔️</td></tr>'}</tbody></table>
-                    </div>
-                    <div class="avoid-break">
-                        <h3 style="font-size:14px;font-weight:700;margin-bottom:10px;color:#047857;">Top 15 — Mayor Stock Positivo</h3>
-                        <table class="w-full text-left erp-table dark-header-table pdf-compact-table"><thead><tr><th>Producto</th><th class="text-right">Stock</th><th class="text-right">Valor</th></tr></thead><tbody>${s.positivosDet.slice(0,15).map(fila).join('')}</tbody></table>
-                    </div>`;
-                pagina3Bloques = [`
-                    <div class="page-break" style="padding-top: 20px; position: relative;">
-                        <div class="pdf-title-section"><h2 style="font-size: 24px; font-weight: 800; color: #0F172A; margin:0;">Detalle</h2><div style="font-weight: bold; color: #2B3990;">FarmaPlus</div></div>
-                        ${pagina3}
-                        <p style="font-size:9px;color:#94A3B8;margin-top:14px;font-style:italic;">Los porcentajes se calculan sobre el catálogo total de la sucursal (incluye productos en 0), según el objetivo de mantener el stock negativo por debajo del 1% del inventario. El listado de Stock es una foto del día en que se importó.</p>
-                        <div class="print-footer">Documento de uso interno · FarmaPlus Analytics — Detalle · ${escapeHtml(scopeLabel)}</div>
-                    </div>`];
+                htmlInforme = construirInformeEjecutivoSucursal(cod, nombre, fechaStr);
             } else {
-                let sucsEnAlcance;
+                let sucsEnAlcance, scopeLabel;
                 if (scope === 'ZONAL') {
                     const z = document.getElementById('stockExportZonalSelect').value;
-                    scopeLabel = `Zonal: ${z}`;
+                    scopeLabel = `Zonal ${z}`;
                     sucsEnAlcance = stockCodigosSuc.filter(s => getZonalForSucursal(s.nombre) === z);
                 } else {
                     scopeLabel = 'Toda la cadena';
                     sucsEnAlcance = stockCodigosSuc;
                 }
-                const filas = sucsEnAlcance.map(s => ({ nombre: s.nombre, ...calcularStatsSucursal(s.cod) })).sort((a, b) => b.pctUnidades - a.pctUnidades);
-                const totalCatalogo = stockProductos.length;
-                const totalNeg = filas.reduce((a, f) => a + f.neg, 0);
-                const totalValDef = filas.reduce((a, f) => a + f.valDef, 0);
-                const totalVal = filas.reduce((a, f) => a + f.val, 0);
-                const totalUnidNeg = filas.reduce((a, f) => a + f.unidadesNeg, 0);
-                const totalUnid = filas.reduce((a, f) => a + f.unidadesNeg + f.unidadesPos, 0);
-                const pctGlobal = (totalCatalogo && filas.length) ? (totalNeg / (totalCatalogo * filas.length) * 100) : 0;
-                const pctGlobalUnidades = totalUnid ? (totalUnidNeg / totalUnid * 100) : 0;
-                const cumpleGlobal = pctGlobal < OBJ;
-                const cumpleGlobalUnidades = pctGlobalUnidades < OBJ;
-                const fueraObjetivo = filas.filter(f => f.pctUnidades >= OBJ);
-                const fila = (f, i) => `<tr style="${f.pctUnidades>=OBJ?'background:#FEF2F2;':''}"><td>${i+1}</td><td style="font-weight:600;">${escapeHtml(f.nombre)}</td><td class="text-right">${f.conStock.toLocaleString('es-AR')}</td><td class="text-right" style="font-weight:700;">${f.neg}</td><td class="text-right" style="font-weight:800;color:${f.pctUnidades>=OBJ?'#DC2626':'#059669'}">${f.pctUnidades.toFixed(2)}%</td><td class="text-right" style="font-weight:800;color:${f.pct>=OBJ?'#DC2626':'#059669'}">${f.pct.toFixed(2)}%</td><td class="text-right">${formatCurrency(f.valDef)}</td></tr>`;
-
-                coverStats = [
-                    ['Alcance', scopeLabel], ['Sucursales incluidas', filas.length],
-                    ['% déficit por unidades', pctGlobalUnidades.toFixed(2) + '%'], ['% déficit por SKU', pctGlobal.toFixed(2) + '%']
-                ];
-                pagina2 = `
-                    <div class="avoid-break pdf-insight-box">
-                        <h3 style="font-size: 16px; font-weight: 700; color: #0F172A; margin: 0 0 12px 0;">💡 Diagnóstico</h3>
-                        <p style="margin:0;font-size:13px;line-height:1.6;color:#334155;">El alcance de este informe (<strong>${escapeHtml(scopeLabel)}</strong>) cubre <strong>${filas.length}</strong> sucursal(es). El déficit combinado es <strong>${pctGlobalUnidades.toFixed(2)}%</strong> contando unidades, y <strong>${pctGlobal.toFixed(2)}%</strong> del inventario total contando productos — objetivo del negocio en ambos casos: <1%. Estado por unidades: <strong style="color:${cumpleGlobalUnidades?'#059669':'#DC2626'}">${cumpleGlobalUnidades ? 'CUMPLE ✓' : 'NO CUMPLE ✗'}</strong> · Estado por SKU: <strong style="color:${cumpleGlobal?'#059669':'#DC2626'}">${cumpleGlobal ? 'CUMPLE ✓' : 'NO CUMPLE ✗'}</strong>. <strong>${fueraObjetivo.length}</strong> de ${filas.length} sucursal(es) superan el objetivo por unidades individualmente.</p>
-                    </div>
-                    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:8px;">
-                        ${kpiCard('% déficit por unidades', pctGlobalUnidades.toFixed(2)+'%', cumpleGlobalUnidades)}
-                        ${kpiCard('% déficit por SKU', pctGlobal.toFixed(2)+'%', cumpleGlobal)}
-                        ${kpiCard('Fuera de objetivo', fueraObjetivo.length+' de '+filas.length, fueraObjetivo.length===0)}
-                        ${kpiCard('Valor del stock', formatCurrencyCompact(totalVal))}
-                        ${kpiCard('Valor del déficit', formatCurrencyCompact(totalValDef), totalValDef===0)}
-                    </div>`;
-                // Paginación MANUAL, no automática: la paginación del navegador (page-break-inside
-                // + footer fixed) puede perder filas enteras en tablas largas (visto en producción:
-                // desaparecía la fila #38 de un ranking de 72). Partiendo la tabla en bloques fijos
-                // de 28 filas, cada uno con su propio thead/tbody/pie, la paginación queda 100%
-                // determinística y ninguna fila puede quedar "entre" dos páginas.
-                const FILAS_POR_PAGINA = 28;
-                const theadRanking = `<tr><th>#</th><th>Sucursal</th><th class="text-right">SKU c/stock</th><th class="text-right">Negativos</th><th class="text-right">% déficit unid.</th><th class="text-right">% déficit SKU</th><th class="text-right">Valor déficit</th></tr>`;
-                pagina3Bloques = [];
-                for (let i = 0; i < filas.length; i += FILAS_POR_PAGINA) {
-                    const chunk = filas.slice(i, i + FILAS_POR_PAGINA);
-                    const esUltimo = i + FILAS_POR_PAGINA >= filas.length;
-                    pagina3Bloques.push(`
-                        <div class="page-break" style="padding-top: 20px; position: relative;">
-                            <div class="pdf-title-section"><h2 style="font-size: 24px; font-weight: 800; color: #0F172A; margin:0;">Detalle</h2><div style="font-weight: bold; color: #2B3990;">FarmaPlus</div></div>
-                            ${i === 0 ? `<h3 style="font-size:14px;font-weight:700;margin-bottom:10px;">Ranking de sucursales por % de déficit</h3>` : `<p style="font-size:10px;color:#94A3B8;margin:0 0 10px 0;">(continuación)</p>`}
-                            <table class="w-full text-left erp-table dark-header-table pdf-compact-table"><thead>${theadRanking}</thead><tbody>${chunk.map((f, j) => fila(f, i + j)).join('')}</tbody></table>
-                            ${esUltimo ? `<p style="font-size:9px;color:#94A3B8;margin-top:14px;font-style:italic;">Los porcentajes se calculan sobre el catálogo total de cada sucursal (incluye productos en 0), según el objetivo de mantener el stock negativo por debajo del 1% del inventario. El listado de Stock es una foto del día en que se importó.</p>` : ''}
-                            <div class="print-footer">Documento de uso interno · FarmaPlus Analytics — Detalle · ${escapeHtml(scopeLabel)}</div>
-                        </div>`);
-                }
+                const filas = sucsEnAlcance.map(s => ({ nombre: s.nombre, cod: s.cod, ...calcularStatsSucursal(s.cod) }));
+                htmlInforme = construirInformeEjecutivoStock(filas, scopeLabel, fechaStr);
             }
-
-            document.getElementById('pdf-report-stock').innerHTML = `
-                <div style="padding: 20px; background: #F8FAFC; font-family: Inter, sans-serif; min-height: 100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative;">
-                    <div style="background: white; padding: 40px; border-radius: 16px; border: 1px solid #E2E8F0; width: 100%; max-width: 700px; text-align: left; margin-bottom: 20px;">
-                        <h2 style="font-size: 32px; font-weight: 800; color: #0F172A; line-height: 1.1; margin: 0 0 16px 0; border-bottom: 4px solid #2B3990; padding-bottom: 16px;">INFORME GERENCIAL<br>DE STOCK</h2>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-                            ${coverStats.map(([l,v]) => `<div><p style="font-size: 11px; font-weight: 600; color: #64748B; text-transform: uppercase; margin:0;">${l}</p><p style="font-size: 16px; font-weight: 700; color: #0F172A; margin:2px 0 0 0;">${escapeHtml(String(v))}</p></div>`).join('')}
-                        </div>
-                    </div>
-                    <div style="background: white; padding: 20px 32px; border-radius: 16px; border: 1px solid #E2E8F0; width: 100%; max-width: 700px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-                        <p style="font-size: 11px; font-weight: 600; color: #64748B; text-transform: uppercase; margin:0 0 4px 0;">Generado el</p>
-                        <p style="font-size: 15px; font-weight: 700; color: #0F172A; margin:0;">${fechaStr}</p>
-                    </div>
-                    <div class="print-footer">Documento de uso interno · FarmaPlus Analytics — Portada</div>
-                </div>
-
-                <div class="page-break" style="padding-top: 20px; position: relative;">
-                    <div class="pdf-title-section"><h2 style="font-size: 24px; font-weight: 800; color: #0F172A; margin:0;">Resumen Ejecutivo</h2><div style="font-weight: bold; color: #2B3990;">FarmaPlus</div></div>
-                    ${pagina2}
-                    <div class="print-footer">Documento de uso interno · FarmaPlus Analytics — Resumen Ejecutivo · ${escapeHtml(scopeLabel)}</div>
-                </div>
-                ${pagina3Bloques.join('')}`;
+            document.getElementById('pdf-report-stock').innerHTML = htmlInforme;
             closeModal('modalExportStockPdf');
             triggerPrint('pdf-report-stock');
         }
@@ -5156,6 +6118,7 @@
                             </tr>
                         </thead>
                         <tbody>${s.negativosDet.map(fila).join('') || '<tr><td colspan="7" style="padding:14px;text-align:center;color:#94A3B8;">Sin stock negativo en esta sucursal ✔️</td></tr>'}</tbody>
+                        <tfoot class="pdf-footer-spacer"><tr><td colspan="7"></td></tr></tfoot>
                     </table>
                     <div class="avoid-break" style="margin-top:32px; display:flex; justify-content:space-between; font-size:10px; color:#475569;">
                         <div>Verificado por: ______________________________</div>
@@ -5267,7 +6230,9 @@
                         const parsed = parseExcelWorkbook(evt.target.result);
 
                         if (!parsed.valid) {
-                            document.getElementById('modalValidationErrorText').innerHTML = 'Este archivo está manipulado o no corresponde al formato correcto. Recordá descargar el archivo desde <strong class="font-semibold text-slate-800">Plex → Informes → Stock → Bajas de Stock</strong> e intentá nuevamente.';
+                            document.getElementById('modalValidationErrorText').innerHTML = parsed.esListadoStock
+                                ? `Este archivo es el <strong class="font-semibold text-slate-800">Listado de Stock</strong>, que corresponde al módulo <strong>Stock</strong> (se importa en esa pestaña). Este módulo usa otro archivo: el Excel de <strong class="font-semibold text-slate-800">Bajas de Stock</strong>, que se descarga desde <strong class="font-semibold text-slate-800">Plex → Informes → Stock → Bajas de Stock</strong>.`
+                                : 'Este archivo está manipulado o no corresponde al formato correcto. Recordá descargar el archivo desde <strong class="font-semibold text-slate-800">Plex → Informes → Stock → Bajas de Stock</strong> e intentá nuevamente.';
                             openModal('modalValidationError');
                             document.getElementById('input').value = '';
                             return; 
@@ -5307,7 +6272,12 @@
                         runCodigoDetect();
                         
                     } catch (error) { 
-                        console.error("Error:", error); document.getElementById('errorBanner').classList.remove('hidden'); 
+                        console.error("Error:", error);
+                        // Archivo ilegible (dañado, protegido con contraseña, o no es un
+                        // Excel de verdad aunque tenga la extensión): mismo cartel que un
+                        // formato incorrecto, con la ruta de descarga del archivo original.
+                        document.getElementById('modalValidationErrorText').innerHTML = 'No se pudo leer el archivo: no parece ser un Excel válido (puede estar dañado, protegido con contraseña o tener la extensión cambiada). Descargá el archivo original desde <strong class="font-semibold text-slate-800">Plex → Informes → Stock → Bajas de Stock</strong> e intentá nuevamente.';
+                        openModal('modalValidationError');
                     } finally {
                         hideProcessingLoader();
                         document.getElementById('emptyState').classList.toggle('hidden', fullData.length > 0);
