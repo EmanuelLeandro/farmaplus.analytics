@@ -894,6 +894,10 @@
                         <button id="btnStockPrintNeg" data-tip="Imprimí el listado de productos con stock negativo de esta sucursal para el control físico en el local" class="hidden shrink-0 px-3 py-2 text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl text-xs font-semibold smooth-transition items-center gap-1.5" onclick="imprimirControlNegativos()">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a1 1 0 001-1v-4a1 1 0 00-1-1H9a1 1 0 00-1 1v4a1 1 0 001 1zm8-12V5a2 2 0 00-2-2H7a2 2 0 00-2 2v4h14z"></path></svg> Negativos
                         </button>
+                        <button id="btnStockErroresCarga" data-tip="Volver a ver los posibles errores de carga detectados en la última importación (cantidades imposibles respecto de las demás sucursales)" onclick="verErroresCargaGuardados()" class="shrink-0 px-3 py-2 text-slate-500 bg-white border border-slate-200 rounded-xl text-xs font-semibold smooth-transition items-center gap-1.5 flex hover:bg-slate-50">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            Errores de carga <span id="stockErroresCargaBadge" class="hidden ml-0.5 px-1.5 py-0.5 bg-amber-500 text-white rounded-full text-[9px] font-bold leading-none"></span>
+                        </button>
                     </div>
                 </div>
 
@@ -1260,6 +1264,26 @@
     </div>
 
     <!-- MODALS SECTION -->
+
+    <!-- Modal: AVISO DE ERRORES DE CARGA (detección automática al importar Stock) -->
+    <div id="modalStockErroresCarga" class="fixed inset-0 z-[150] hidden items-center justify-center p-4 no-print bg-slate-900/50 backdrop-blur-sm modal-overlay" onclick="if(event.target === this) closeModal('modalStockErroresCarga')">
+        <div class="bg-white rounded-2xl shadow-floating border border-slate-100 w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col modal-content" onclick="event.stopPropagation()">
+            <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
+                <h3 class="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    ⚠️ Posibles errores de carga detectados
+                </h3>
+                <button onclick="closeModal('modalStockErroresCarga')" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 outline-none smooth-transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div id="modalStockErroresCargaBody" class="px-6 py-5 overflow-y-auto custom-scrollbar"></div>
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0">
+                <button onclick="closeModal('modalStockErroresCarga')" class="px-5 py-2.5 bg-slate-800 text-white font-semibold rounded-xl text-sm hover:bg-slate-900 smooth-transition shadow-sm">Entendido</button>
+            </div>
+        </div>
+    </div>
+
     
     <!-- Modal: CONFIGURACION DE OUTLIERS -->
     <div id="modalOutliers" class="fixed inset-0 z-[140] hidden items-center justify-center p-4 no-print bg-slate-900/50 backdrop-blur-sm modal-overlay" onclick="if(event.target === this) closeModal('modalOutliers')">
@@ -4440,6 +4464,214 @@
             return { valid: true, productos, codigosSuc };
         }
 
+        // ============================================================================
+        // DETECCIÓN DE ERRORES GROSEROS DE CARGA (ej. Berazategui: 3 labiales con
+        // ~300.000 u. cada uno, cuando en el resto de las sucursales tenían 1-9).
+        // No es un sistema de "atípicos" que excluye nada de los cálculos: es un
+        // chequeo que se corre al importar, para avisar si algo se ve imposible.
+        // No toca ningún KPI ni cálculo del resto de la app.
+        //
+        // Por qué comparar contra la MEDIANA de las otras sucursales, y no contra un
+        // número fijo de unidades: un insumo como bolsas o tiras reactivas puede tener
+        // legítimamente miles de unidades en TODAS las sucursales por igual — un
+        // umbral fijo (ej. "más de 1000") marcaría eso como error sin serlo. Lo que
+        // sí es anormal es que UNA sucursal tenga un valor descomunal respecto de las
+        // demás que manejan el mismo producto. Requiere al menos 3 sucursales de
+        // comparación para no marcar productos raros por falta de datos.
+        //
+        // SEGUNDO MÉTODO — CONCENTRACIÓN DE VALOR: el método de arriba necesita al
+        // menos otra sucursal con el mismo producto para poder comparar. Si el
+        // archivo importado es de UNA sola sucursal (individual o el propio formato
+        // de la farmacia), no hay con qué comparar y ese método no detecta nada. Este
+        // segundo método no necesita comparar contra otras sucursales: alcanza con
+        // que UN solo producto concentre una porción absurda del valor total de
+        // stock de esa misma sucursal (ninguna farmacia real tiene el grueso de su
+        // inventario en un solo producto). Así se cubre el caso de un archivo de una
+        // única sucursal con un error de carga.
+        //
+        // Los hallazgos quedan GUARDADOS (localStorage) para poder volver a verlos y
+        // analizarlos después de cerrar el aviso — no es un mensaje de una sola vez.
+        // Cada importación nueva reemplaza la lista guardada (foto de la última carga,
+        // igual que el resto del módulo Stock).
+        // ============================================================================
+        const ERROR_CARGA_RATIO = 100;      // al menos 100 veces la mediana de las demás sucursales
+        const ERROR_CARGA_PISO_UNID = 1000; // y al menos 1.000 unidades (evita marcar productos de bajo movimiento)
+        const ERROR_CARGA_PISO_VALOR = 2000000; // y al menos $2.000.000 de impacto (evita ruido de ítems baratos)
+        const CONCENTRACION_PISO_PCT = 0.15;     // un solo producto con ≥15% del valor total de la sucursal
+        const CONCENTRACION_MIN_CATALOGO = 15;   // no evaluar sucursales con catálogo casi vacío (no hay base de comparación)
+
+        function mediana(valores) {
+            if (!valores.length) return null;
+            const s = [...valores].sort((a, b) => a - b);
+            const mid = Math.floor(s.length / 2);
+            return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+        }
+
+        // Devuelve objetos PLANOS (sin referencias a stockProductos) para poder
+        // guardarlos en localStorage tal cual y reabrirlos más adelante.
+        // motivo/detalle: texto ya armado para mostrar, porque los dos métodos miden
+        // cosas distintas (ratio contra pares vs. % del total) y conviene explicarlo
+        // en una sola columna en vez de forzar las mismas columnas para ambos.
+        function detectarErroresDeCargaStock(productos, codigosSuc) {
+            const hallazgos = [];
+            const yaMarcado = new Set(); // evita duplicar si ambos métodos detectan lo mismo
+
+            const agregar = (p, cod, c, motivo, valorPlata) => {
+                const key = `${cod}|${p.IDProducto}`;
+                if (yaMarcado.has(key)) return;
+                yaMarcado.add(key);
+                hallazgos.push({
+                    producto: p.producto, codebar: p.codebar, idProducto: p.IDProducto, rubro: p.rubro,
+                    cod, nombreSuc: MAPEO_SUCURSALES_STOCK[cod] || `Suc. ${cod}`,
+                    cantidad: c, esNeg: c < 0, valor: valorPlata, motivo
+                });
+            };
+
+            // --- Método 1: comparación contra la mediana de las demás sucursales ---
+            productos.forEach(p => {
+                const positivos = [...p.stockPorSuc.entries()].filter(([, c]) => c > 0);
+                const negativos = [...p.stockPorSuc.entries()].filter(([, c]) => c < 0);
+                const revisar = (entradas) => {
+                    if (entradas.length < 4) return; // hace falta el sospechoso + al menos 3 para comparar
+                    entradas.forEach(([cod, c]) => {
+                        const valorAbs = Math.abs(c);
+                        if (valorAbs < ERROR_CARGA_PISO_UNID) return;
+                        const valorPlata = valorAbs * p.costo;
+                        if (valorPlata < ERROR_CARGA_PISO_VALOR) return;
+                        const pares = entradas.filter(([codP]) => codP !== cod).map(([, v]) => Math.abs(v));
+                        if (pares.length < 3) return;
+                        const medPares = mediana(pares);
+                        if (medPares > 0 && valorAbs >= medPares * ERROR_CARGA_RATIO) {
+                            const ratio = valorAbs / medPares;
+                            agregar(p, cod, c, `${ratio.toFixed(0)}× más que la mediana de las demás sucursales (típico: ${formatNumber(medPares)} un.)`, valorPlata);
+                        }
+                    });
+                };
+                revisar(positivos); revisar(negativos);
+            });
+
+            // --- Método 2: concentración de valor dentro de la misma sucursal ---
+            // No necesita otras sucursales: alcanza con que un producto acapare una
+            // porción imposible del valor total de stock de SU PROPIA sucursal.
+            (codigosSuc || []).forEach(s => {
+                const cod = s.cod;
+                let totalValorPos = 0;
+                const items = [];
+                productos.forEach(p => {
+                    const c = p.stockPorSuc.get(cod);
+                    if (c === undefined || c <= 0) return;
+                    const valor = c * p.costo;
+                    totalValorPos += valor;
+                    items.push({ p, c, valor });
+                });
+                if (items.length < CONCENTRACION_MIN_CATALOGO || totalValorPos <= 0) return;
+                items.forEach(it => {
+                    const participacion = it.valor / totalValorPos;
+                    if (participacion >= CONCENTRACION_PISO_PCT && it.valor >= ERROR_CARGA_PISO_VALOR) {
+                        agregar(it.p, cod, it.c, `Representa el ${(participacion * 100).toFixed(0)}% del valor total de stock de la sucursal (lo normal es no más de un pequeño porcentaje).`, it.valor);
+                    }
+                });
+            });
+
+            hallazgos.sort((a, b) => b.valor - a.valor);
+            return hallazgos;
+        }
+
+        function guardarErroresCarga(hallazgos) {
+            const payload = { fecha: new Date().toISOString(), hallazgos };
+            localStorage.setItem('farmaplus_stock_errores_carga', JSON.stringify(payload));
+            actualizarBadgeErroresCarga();
+        }
+
+        function cargarErroresCargaGuardados() {
+            try {
+                const raw = JSON.parse(localStorage.getItem('farmaplus_stock_errores_carga'));
+                if (raw && Array.isArray(raw.hallazgos)) return raw;
+            } catch (e) { /* nada guardado o corrupto: se ignora */ }
+            return null;
+        }
+
+        function actualizarBadgeErroresCarga() {
+            const btn = document.getElementById('btnStockErroresCarga');
+            if (!btn) return;
+            const guardado = cargarErroresCargaGuardados();
+            const n = guardado ? guardado.hallazgos.length : 0;
+            const badge = document.getElementById('stockErroresCargaBadge');
+            badge.classList.toggle('hidden', n === 0);
+            badge.innerText = n;
+            btn.classList.toggle('text-amber-700', n > 0);
+            btn.classList.toggle('border-amber-300', n > 0);
+            btn.classList.toggle('bg-amber-50', n > 0);
+        }
+
+        // Reabre el aviso en cualquier momento (botón de la barra), con lo último
+        // detectado — no hace falta volver a importar para volver a verlo.
+        function verErroresCargaGuardados() {
+            const guardado = cargarErroresCargaGuardados();
+            if (!guardado || !guardado.hallazgos.length) {
+                document.getElementById('modalStockErroresCargaBody').innerHTML = `<p class="text-sm text-slate-500 py-6 text-center">No se detectaron errores de carga en la última importación. ✔</p>`;
+            } else {
+                const fecha = new Date(guardado.fecha).toLocaleString('es-AR');
+                document.getElementById('modalStockErroresCargaBody').innerHTML = construirAvisoErroresCarga(guardado.hallazgos, fecha);
+            }
+            openModal('modalStockErroresCarga');
+        }
+
+        // Copia al portapapeles con fallback (por si el navegador no permite la API
+        // moderna, ej. sin HTTPS): usa un textarea invisible + execCommand.
+        function copiarTexto(texto, btn) {
+            const marcarCopiado = () => {
+                if (!btn) return;
+                const original = btn.innerHTML;
+                btn.innerHTML = '✔ Copiado';
+                setTimeout(() => { btn.innerHTML = original; }, 1200);
+            };
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(texto).then(marcarCopiado).catch(() => copiarConFallback(texto, marcarCopiado));
+            } else {
+                copiarConFallback(texto, marcarCopiado);
+            }
+        }
+        function copiarConFallback(texto, cb) {
+            const ta = document.createElement('textarea');
+            ta.value = texto; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.focus(); ta.select();
+            try { document.execCommand('copy'); cb && cb(); } catch (e) { /* silencioso */ }
+            document.body.removeChild(ta);
+        }
+
+        function construirAvisoErroresCarga(hallazgos, fechaTxt) {
+            const fila = (h, i) => `<tr>
+                    <td class="px-3 py-2.5 text-xs font-semibold text-slate-800 min-w-[190px]">
+                        <div class="truncate max-w-[220px]" title="${escapeHtml(h.producto)}">${escapeHtml(h.producto)}</div>
+                        <div class="text-[10px] text-slate-400 font-mono mb-1.5">${escapeHtml(h.codebar || h.idProducto)}</div>
+                        <div class="flex gap-1">
+                            <button onclick="copiarTexto('${escapeHtml(h.codebar || h.idProducto).replace(/'/g, "\\'")}', this)" class="text-[10px] font-semibold px-2 py-1 rounded-lg border border-slate-200 text-slate-600 bg-white hover:bg-slate-50 whitespace-nowrap" title="Copiar SOLO el código EAN">📋 EAN</button>
+                            <button onclick="copiarTexto('${escapeHtml(h.producto).replace(/'/g, "\\'")}', this)" class="text-[10px] font-semibold px-2 py-1 rounded-lg border border-slate-200 text-slate-600 bg-white hover:bg-slate-50 whitespace-nowrap" title="Copiar SOLO el nombre del producto">📋 Nombre</button>
+                        </div>
+                    </td>
+                    <td class="px-3 py-2.5 text-xs text-slate-600 whitespace-nowrap">${escapeHtml(h.nombreSuc)}</td>
+                    <td class="px-3 py-2.5 text-xs text-right tabular-nums font-bold whitespace-nowrap ${h.esNeg ? 'text-red-600' : 'text-slate-800'}">${formatNumber(h.cantidad)}</td>
+                    <td class="px-3 py-2.5 text-xs text-slate-600 max-w-[240px]">${escapeHtml(h.motivo)}</td>
+                    <td class="px-3 py-2.5 text-xs text-right tabular-nums text-slate-600 whitespace-nowrap font-bold">${formatCurrency(h.valor)}</td>
+                </tr>`;
+            return `
+                <p class="text-sm text-slate-600 leading-relaxed mb-4">Se encontraron <strong class="text-amber-700">${hallazgos.length}</strong> producto(s) con una cantidad que parece un error de carga en Plex (un dígito de más, un problema de decimal, o una unidad de medida equivocada) y no una diferencia real de stock. Conviene reportarlo o revisarlo en el origen antes de sacar conclusiones con estos datos.${fechaTxt ? `<br><span class="text-xs text-slate-400">Detectado en la importación del ${fechaTxt}.</span>` : ''}</p>
+                <div class="border border-amber-200 rounded-xl overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="bg-amber-50"><tr>
+                            <th class="px-3 py-2 text-xs font-bold text-amber-800">Producto / EAN</th>
+                            <th class="px-3 py-2 text-xs font-bold text-amber-800">Sucursal</th>
+                            <th class="px-3 py-2 text-xs font-bold text-amber-800 text-right">Cantidad cargada</th>
+                            <th class="px-3 py-2 text-xs font-bold text-amber-800">Por qué se marcó</th>
+                            <th class="px-3 py-2 text-xs font-bold text-amber-800 text-right">Valor</th>
+                        </tr></thead>
+                        <tbody class="divide-y divide-amber-100">${hallazgos.map(fila).join('')}</tbody>
+                    </table>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-3 italic">Se usan dos formas de detectar, combinadas: comparar contra la mediana de las demás sucursales que tienen ese mismo producto (cuando el archivo trae más de una), y comparar contra el valor total de stock de la propia sucursal (funciona incluso con el listado de una sola sucursal). En ambos casos, solo se marcan casos extremos — se filtran a propósito los insumos que legítimamente se manejan en cantidad.</p>`;
+        }
+
         let stockLoaderTimer = null;
         const STOCK_LOADER_STATUSES = ['Leyendo el Excel…', 'Cruzando las sucursales…', 'Calculando medianas de stock…', 'Detectando déficits y sobre-stock…'];
         function showStockLoader() {
@@ -4778,7 +5010,16 @@
                 document.getElementById('stockDashboard').classList.remove('hidden');
                 runStockCostAudit();
                 if (stockVistaBalance) renderStockBalance(); else renderStockSucursal();
-            } catch (err) {
+
+                // Se corre siempre, sea el archivo de una sucursal o de varias: el
+                // método de comparación entre sucursales necesita 2+, pero el de
+                // concentración de valor funciona igual con una sola.
+                const hallazgos = detectarErroresDeCargaStock(stockProductos, stockCodigosSuc);
+                guardarErroresCarga(hallazgos); // reemplaza lo guardado de la importación anterior
+                if (hallazgos.length) {
+                    document.getElementById('modalStockErroresCargaBody').innerHTML = construirAvisoErroresCarga(hallazgos);
+                    openModal('modalStockErroresCarga');
+                }
                 console.error(err);
                 document.getElementById('stockEmptyState').classList.toggle('hidden', stockProductos.length > 0);
                 if (stockProductos.length > 0) document.getElementById('stockDashboard').classList.remove('hidden');
@@ -7220,6 +7461,10 @@
         window.addEventListener('beforeunload', (e) => {
             if (fullData.length > 0) { e.preventDefault(); e.returnValue = ''; }
         });
+
+        // Si quedaron errores de carga detectados en una sesión anterior (localStorage),
+        // el badge del botón "Errores de carga" ya arranca mostrando ese número.
+        actualizarBadgeErroresCarga();
     </script>
 </body>
 </html>
