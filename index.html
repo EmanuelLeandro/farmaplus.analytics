@@ -7835,11 +7835,16 @@
             // Construye la vista de acción dentro del contenedor `mount`.
             function renderActionView(scope, mount, opts) {
                 opts = opts || {};
+                const ro = !!opts.readonly;   // solo lectura (detalle del modo masivo)
+                st.cur.readonly = ro;
                 const c = st.cur;
                 const total = c.hits.length, unid = c.hits.reduce((a, h) => a + h.stock, 0), costo = c.hits.reduce((a, h) => a + h.costoTotal, 0), pvp = c.hits.reduce((a, h) => a + h.pvpTotal, 0);
                 const topBar = opts.topBar || '';
-                $(mount).innerHTML = `
-                    ${topBar}
+                const banner = ro ? `
+                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 mb-4 flex items-start gap-3">
+                        <svg class="w-5 h-5 text-slate-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <p class="text-xs text-brand-textSec leading-relaxed">Vista de solo lectura de los productos inhabilitados con stock de esta sucursal. El marcado de stock físico, la baja en Plex y el envío a Comercial los realiza cada sucursal desde la pestaña <b>Individual</b>.</p>
+                    </div>` : `
                     <div class="bg-gradient-to-r from-brand-primary/[0.06] to-transparent border border-brand-primary/20 rounded-2xl p-4 mb-4">
                         <div class="flex items-start gap-3">
                             <div class="w-9 h-9 rounded-xl bg-brand-primary/10 flex items-center justify-center shrink-0"><svg class="w-5 h-5 text-brand-primary" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg></div>
@@ -7852,42 +7857,56 @@
                                 </ol>
                             </div>
                         </div>
-                    </div>
+                    </div>`;
+                const btnPDF = `<button onclick="Inhab.informeComercial('${scope}','pdf')" data-tip="Informe en PDF para Comercial con los productos revisados: los que la sucursal tiene físicamente y los dados de baja con su N° de baja." class="flex-1 sm:flex-none px-4 py-2.5 text-xs font-semibold text-white bg-brand-primary hover:bg-brand-primaryHover border border-transparent rounded-lg smooth-transition flex items-center justify-center gap-1.5 shadow-soft"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>Informe Comercial (PDF)</button>`;
+                const btnXLS = `<button onclick="Inhab.informeComercial('${scope}','xlsx')" data-tip="Mismo informe para Comercial en Excel." class="flex-1 sm:flex-none px-4 py-2.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg smooth-transition flex items-center justify-center gap-1.5"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>Excel</button>`;
+                // En el modo editable los botones de exportar viven en la barra de aviso (CTA), no en la toolbar.
+                const toolbarRight = ro
+                    ? `<button onclick="Inhab.exportListaSucursal()" data-tip="Descargá la lista de inhabilitados con stock de esta sucursal en Excel." class="px-3 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg smooth-transition flex items-center gap-1.5"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>Excel</button>`
+                    : '';
+                const cta = ro ? '' : `
+                    <div id="acc_cta_${scope}" class="rounded-2xl border border-slate-200 bg-slate-50 p-3.5 mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 smooth-transition">
+                        <div class="flex items-start gap-2.5"><span id="acc_cta_ico_${scope}" class="shrink-0 mt-0.5"></span><p id="acc_cta_txt_${scope}" class="text-sm font-medium text-slate-600"></p></div>
+                        <div class="flex gap-2 shrink-0 w-full sm:w-auto">${btnPDF}${btnXLS}</div>
+                    </div>`;
+                const estadoSel = ro ? '' : `<select id="acc_estado_${scope}" onchange="Inhab.acc('${scope}','estado')" class="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white"><option value="all">Todos</option><option value="pend">Pendientes</option><option value="fis">Con físico</option><option value="nofis">Dados de baja</option></select>`;
+                const progRow = ro ? '' : `
+                        <div class="px-4 py-2 border-b border-slate-100 flex items-center justify-between gap-3 text-[11px] text-slate-500 flex-wrap">
+                            <div class="flex items-center gap-2 flex-wrap" id="acc_prog_${scope}"></div>
+                            <div class="flex items-center gap-2"><span class="text-slate-400">Marcar todos:</span>
+                                <button onclick="Inhab.marcarTodos('${scope}','fis')" class="px-2 py-1 rounded-md border border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 font-semibold">Tengo</button>
+                                <button onclick="Inhab.marcarTodos('${scope}','')" class="px-2 py-1 rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 font-semibold">Limpiar</button>
+                            </div>
+                        </div>`;
+                const nota = ro ? 'El stock proviene del Listado de Stock. Esta lista es solo informativa; el conteo físico y la baja los carga la sucursal en el modo Individual.' : 'El stock proviene del Listado de Stock. Tu avance se guarda en este equipo por si recargás la página. El informe para Comercial incluye lo que tenés físicamente y lo dado de baja con su N° de baja.';
+                $(mount).innerHTML = `
+                    ${topBar}
+                    ${banner}
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                         ${kpiCard('Productos inhabilitados', formatNumber(total), 'con stock > 0', 'text-red-600')}
                         ${kpiCard('Total de unidades', formatNumber(unid), '')}
                         ${kpiCard('Costo total', formatCurrencyCompact(costo), formatCurrency(costo))}
                         ${kpiCard('PVP total', formatCurrencyCompact(pvp), formatCurrency(pvp))}
                     </div>
+                    ${cta}
                     <div class="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden">
                         <div class="px-4 py-3 border-b border-slate-100 bg-slate-50/70 flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
                             <div class="flex flex-col sm:flex-row gap-2 flex-1">
                                 <div class="relative flex-1 max-w-xs"><svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg><input type="text" id="acc_q_${scope}" oninput="Inhab.acc('${scope}','q')" placeholder="Buscar producto, EAN o Cód. Plex…" class="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg bg-white" autocomplete="off"></div>
-                                <select id="acc_estado_${scope}" onchange="Inhab.acc('${scope}','estado')" class="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white">
-                                    <option value="all">Todos</option><option value="pend">Pendientes</option><option value="fis">Con físico</option><option value="nofis">Dados de baja</option>
-                                </select>
+                                ${estadoSel}
                             </div>
-                            <div class="flex flex-wrap gap-2">
-                                <button onclick="Inhab.informeComercial('${scope}','pdf')" data-tip="Informe en PDF para Comercial con los productos revisados: los que la sucursal tiene físicamente y los dados de baja con su N° de baja." class="px-3 py-2 text-xs font-semibold text-white bg-brand-primary hover:bg-brand-primaryHover border border-transparent rounded-lg smooth-transition flex items-center gap-1.5 shadow-soft"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>Informe Comercial (PDF)</button>
-                                <button onclick="Inhab.informeComercial('${scope}','xlsx')" data-tip="Mismo informe para Comercial en Excel." class="px-3 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg smooth-transition flex items-center gap-1.5"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>Excel</button>
-                            </div>
+                            <div class="flex flex-wrap gap-2">${toolbarRight}</div>
                         </div>
-                        <div class="px-4 py-2 border-b border-slate-100 flex items-center justify-between gap-3 text-[11px] text-slate-500 flex-wrap">
-                            <div class="flex items-center gap-2 flex-wrap" id="acc_prog_${scope}"></div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-slate-400">Marcar todos:</span>
-                                <button onclick="Inhab.marcarTodos('${scope}','fis')" class="px-2 py-1 rounded-md border border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 font-semibold">Tengo</button>
-                                <button onclick="Inhab.marcarTodos('${scope}','')" class="px-2 py-1 rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 font-semibold">Limpiar</button>
-                            </div>
-                        </div>
+                        ${progRow}
                         <div class="overflow-x-auto max-h-[${opts.maxH || '520px'}] overflow-y-auto custom-scrollbar">
                             <table class="w-full text-left erp-table text-[13px]"><thead class="bg-slate-50 sticky top-0"><tr id="acc_head_${scope}"></tr></thead><tbody id="acc_body_${scope}"></tbody></table>
                         </div>
                     </div>
-                    <p class="text-[10.5px] text-slate-400 italic mt-2">El stock proviene del Listado de Stock. Tu avance se guarda en este equipo por si recargás la página. El informe para Comercial incluye lo que tenés físicamente y lo dado de baja con su N° de baja.</p>`;
+                    <p class="text-[10.5px] text-slate-400 italic mt-2">${nota}</p>`;
                 renderRows(scope);
             }
-            const ACOLS = [['codebar', 'EAN', 'l'], ['IDProducto', 'Cód. Plex', 'l'], ['descripcion', 'Descripción', 'l'], ['rubro', 'Rubro', 'l'], ['stock', 'Stock', 'r'], ['_fis', 'Stock físico', 'c'], ['_baja', 'N° de baja', 'c']];
+            const ACOLS_EDIT = [['codebar', 'EAN', 'l'], ['IDProducto', 'Cód. Plex', 'l'], ['descripcion', 'Descripción', 'l'], ['rubro', 'Rubro', 'l'], ['stock', 'Stock', 'r'], ['_fis', 'Stock físico', 'c'], ['_baja', 'N° de baja', 'c']];
+            const ACOLS_VIEW = [['codebar', 'EAN', 'l'], ['IDProducto', 'Cód. Plex', 'l'], ['descripcion', 'Descripción', 'l'], ['rubro', 'Rubro', 'l'], ['stock', 'Stock', 'r'], ['costoTotal', 'Costo', 'r'], ['pvpTotal', 'PVP', 'r']];
             function curFiltered(scope) {
                 const c = st.cur; let rows = c.hits.slice();
                 const q = normTxt(c.q);
@@ -7898,21 +7917,34 @@
                 rows.sort((a, b) => { let x = a[c.col], y = b[c.col]; if (typeof x === 'string') { x = normTxt(x); y = normTxt(y); } if (x < y) return c.dir === 'asc' ? -1 : 1; if (x > y) return c.dir === 'asc' ? 1 : -1; return 0; });
                 return rows;
             }
+            function eanCell(h) {
+                return `<td class="px-3 py-2"><div class="flex items-center gap-1.5"><span class="font-mono tabular-nums text-slate-700">${escapeHtml(h.codebar) || '<span class=\'text-slate-300\'>—</span>'}</span>${h.codebar ? `<button onclick="Inhab.copiarEAN('${escapeHtml(h.codebar)}')" title="Copiar EAN" class="p-1 text-slate-400 hover:text-brand-primary rounded"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg></button>` : ''}</div></td>`;
+            }
             function renderRows(scope) {
-                const c = st.cur, rows = curFiltered(scope);
-                $('acc_head_' + scope).innerHTML = ACOLS.map(([col, lbl, al]) => (col === '_fis' || col === '_baja') ? `<th class="px-3 py-2 text-center">${lbl}</th>` : `<th class="px-3 py-2 cursor-pointer select-none hover:text-brand-primary ${al === 'r' ? 'text-right' : ''}" onclick="Inhab.accSort('${scope}','${col}')">${lbl}${c.col === col ? (c.dir === 'asc' ? ' ▲' : ' ▼') : ''}</th>`).join('');
+                const c = st.cur, ro = c.readonly, rows = curFiltered(scope);
+                const cols = ro ? ACOLS_VIEW : ACOLS_EDIT;
+                $('acc_head_' + scope).innerHTML = cols.map(([col, lbl, al]) => (col === '_fis' || col === '_baja') ? `<th class="px-3 py-2 text-center">${lbl}</th>` : `<th class="px-3 py-2 cursor-pointer select-none hover:text-brand-primary ${al === 'r' ? 'text-right' : ''}" onclick="Inhab.accSort('${scope}','${col}')">${lbl}${c.col === col ? (c.dir === 'asc' ? ' ▲' : ' ▼') : ''}</th>`).join('');
+                if (ro) {
+                    $('acc_body_' + scope).innerHTML = rows.length ? rows.map(h => `<tr>
+                        ${eanCell(h)}
+                        <td class="px-3 py-2 tabular-nums text-slate-500">${escapeHtml(h.IDProducto)}</td>
+                        <td class="px-3 py-2 font-semibold text-slate-800 max-w-[340px] truncate" title="${escapeHtml(h.descripcion)}">${escapeHtml(h.descripcion)}</td>
+                        <td class="px-3 py-2 text-slate-500 max-w-[150px] truncate" title="${escapeHtml(h.rubro)}">${escapeHtml(h.rubro)}</td>
+                        <td class="px-3 py-2 text-right tabular-nums font-bold text-slate-800">${formatNumber(h.stock)}</td>
+                        <td class="px-3 py-2 text-right tabular-nums text-slate-600">${formatCurrency(h.costoTotal)}</td>
+                        <td class="px-3 py-2 text-right tabular-nums text-slate-600">${formatCurrency(h.pvpTotal)}</td></tr>`).join('') : `<tr><td colspan="7" class="px-3 py-10 text-center text-slate-400">No hay productos que coincidan con el filtro.</td></tr>`;
+                    return;
+                }
                 $('acc_body_' + scope).innerHTML = rows.length ? rows.map(h => {
                     const k = markKey(h), mk = st.marks.get(k);
                     const btn = (val, txt, onCls, offCls) => `<button onclick="Inhab.mark('${scope}','${k}','${val}')" class="px-2 py-1 rounded-md text-[11px] font-bold border smooth-transition ${mk === val ? onCls : offCls}">${txt}</button>`;
-                    // Celda N° de baja: input editable solo cuando el producto se marcó "No tengo"
                     let bajaCell;
                     if (mk === 'nofis') {
                         const val = st.bajas.get(k) || '';
                         bajaCell = `<input type="text" inputmode="numeric" value="${escapeHtml(val)}" data-bk="${bkAttr(k)}" oninput="Inhab.setBaja('${scope}','${k}', this.value)" placeholder="N° de baja" class="w-28 px-2 py-1 text-xs text-center border rounded-md ${val ? 'border-emerald-300 bg-emerald-50/50 text-emerald-800 font-semibold' : 'border-amber-300 bg-amber-50 text-amber-800'}" autocomplete="off">`;
-                    } else if (mk === 'fis') { bajaCell = `<span class="text-[11px] text-slate-300">—</span>`; }
-                    else { bajaCell = `<span class="text-[11px] text-slate-300">—</span>`; }
+                    } else { bajaCell = `<span class="text-[11px] text-slate-300">—</span>`; }
                     return `<tr class="${mk === 'fis' ? 'bg-emerald-50/40' : mk === 'nofis' ? 'bg-amber-50/40' : ''}">
-                        <td class="px-3 py-2"><div class="flex items-center gap-1.5"><span class="font-mono tabular-nums text-slate-700">${escapeHtml(h.codebar) || '<span class=\'text-slate-300\'>—</span>'}</span>${h.codebar ? `<button onclick="Inhab.copiarEAN('${escapeHtml(h.codebar)}')" title="Copiar EAN" class="p-1 text-slate-400 hover:text-brand-primary rounded"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg></button>` : ''}</div></td>
+                        ${eanCell(h)}
                         <td class="px-3 py-2 tabular-nums text-slate-500">${escapeHtml(h.IDProducto)}</td>
                         <td class="px-3 py-2 font-semibold text-slate-800 max-w-[300px] truncate" title="${escapeHtml(h.descripcion)}">${escapeHtml(h.descripcion)}</td>
                         <td class="px-3 py-2 text-slate-500 max-w-[140px] truncate" title="${escapeHtml(h.rubro)}">${escapeHtml(h.rubro)}</td>
@@ -7922,15 +7954,34 @@
                 }).join('') : `<tr><td colspan="7" class="px-3 py-10 text-center text-slate-400">No hay productos que coincidan con el filtro.</td></tr>`;
                 actualizarProgreso(scope);
             }
+            function exportListaSucursal() {
+                const rows = st.cur.hits; if (!rows.length) { toast('Sin productos.', 'error'); return; }
+                const data = rows.map(h => ({ 'EAN': h.codebar, 'Cód. Plex': h.IDProducto, 'Descripción': h.descripcion, 'Rubro': h.rubro, 'Laboratorio': h.laboratorio, 'Stock': h.stock, 'Costo total': h.costoTotal, 'PVP total': h.pvpTotal }));
+                const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Inhabilitados');
+                XLSX.writeFile(wb, `Inhabilitados_${(st.cur.suc || '').replace(/[^\w]+/g, '_')}_${fechaCorta(st.cur.fecha).replace(/\//g, '-')}.xlsx`);
+                toast('Excel generado.', 'ok');
+            }
             function actualizarProgreso(scope) {
                 const c = st.cur;
                 let fis = 0, baja = 0, bajaSinN = 0; c.hits.forEach(h => { const kk = markKey(h), m = st.marks.get(kk); if (m === 'fis') fis++; else if (m === 'nofis') { baja++; if (!(st.bajas.get(kk) || '').trim()) bajaSinN++; } });
                 const pend = c.hits.length - fis - baja;
-                const el = $('acc_prog_' + scope); if (!el) return;
-                el.innerHTML = `<span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">✓ Con físico: ${fis}</span>`
+                const el = $('acc_prog_' + scope);
+                if (el) el.innerHTML = `<span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">✓ Con físico: ${fis}</span>`
                     + `<span class="px-2 py-0.5 rounded-md bg-red-50 text-red-700 border border-red-200 font-semibold">🗎 Dados de baja: ${baja}</span>`
                     + `<span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200 font-semibold">Pendientes: ${pend}</span>`
                     + (bajaSinN ? `<span class="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-300 font-semibold">⚠ Falta N° de baja: ${bajaSinN}</span>` : '');
+                // Aviso guía: recuerda que el paso final es EXPORTAR y ENVIAR a Comercial
+                const box = $('acc_cta_' + scope), txt = $('acc_cta_txt_' + scope), ico = $('acc_cta_ico_' + scope);
+                if (box && txt) {
+                    const resueltos = fis + baja, base = 'rounded-2xl border p-3.5 mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 smooth-transition ';
+                    const icoInfo = `<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                    const icoWarn = `<svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M12 3l9 16H3l9-16z"></path></svg>`;
+                    const icoOk = `<svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                    if (bajaSinN) { box.className = base + 'border-amber-300 bg-amber-50'; txt.className = 'text-sm font-semibold text-amber-800'; txt.textContent = `Cargá el N° de baja que falta en ${bajaSinN} producto(s) y después exportá el informe (PDF o Excel) para enviarlo a Comercial.`; if (ico) ico.innerHTML = icoWarn; }
+                    else if (resueltos === 0) { box.className = base + 'border-slate-200 bg-slate-50'; txt.className = 'text-sm font-medium text-slate-600'; txt.innerHTML = `Revisá cada producto: marcá <b>“Tengo”</b> o dalo de baja con su <b>N° de baja</b>. Al terminar, <b>exportá el informe (PDF o Excel)</b> y enviálo a Comercial.`; if (ico) ico.innerHTML = icoInfo; }
+                    else if (pend > 0) { box.className = base + 'border-amber-200 bg-amber-50'; txt.className = 'text-sm font-medium text-amber-800'; txt.innerHTML = `Te faltan <b>${pend}</b> producto(s) por revisar. Cuando termines, <b>exportá el informe (PDF o Excel)</b> y enviálo a Comercial.`; if (ico) ico.innerHTML = icoWarn; }
+                    else { box.className = base + 'border-emerald-300 bg-emerald-50'; txt.className = 'text-sm font-semibold text-emerald-800'; txt.innerHTML = `¡Listo! Revisaste los ${c.hits.length} productos. <b>Exportá el informe (PDF o Excel)</b> y enviálo a Comercial. 👉`; if (ico) ico.innerHTML = icoOk; }
+                }
             }
             function acc(scope, k) { if (k === 'q') st.cur.q = $('acc_q_' + scope).value; if (k === 'estado') st.cur.estado = $('acc_estado_' + scope).value; renderRows(scope); }
             function accSort(scope, col) { const c = st.cur; if (c.col === col) c.dir = c.dir === 'asc' ? 'desc' : 'asc'; else { c.col = col; c.dir = col === 'stock' ? 'desc' : 'asc'; } renderRows(scope); }
@@ -8168,10 +8219,10 @@
                 const r = st.m2.result;
                 const hits = r.hits.filter(h => h.codSuc === cod);
                 const suc = (r.porSuc.get(cod) || {}).sucursal || core.nombreSuc(cod);
-                st.cur = { scope: 'det', hits, suc, fecha: r.fecha, q: '', estado: 'all', col: 'stock', dir: 'desc' };
+                st.cur = { scope: 'det', hits, suc, fecha: r.fecha, q: '', estado: 'all', col: 'stock', dir: 'desc', readonly: true };
                 $('inhabDetTitulo').textContent = suc;
                 $('inhabDetSub').textContent = `${hits.length} producto(s) inhabilitado(s) con stock · ${fechaLegible(r.fecha)}`;
-                renderActionView('det', 'inhabDetView', { maxH: '48vh' });
+                renderActionView('det', 'inhabDetView', { maxH: '48vh', readonly: true });
                 openModal('modalInhabDetalle');
             }
 
@@ -8293,7 +8344,7 @@
                 setMode, resetAll,
                 onStockFile1, onInhabFile1, analizar1, _branch1, _selBranch1,
                 onStockFiles2, onInhabFile2, analizar2, _setFileCod, _delFile2, clearStockFiles2, renderResumen2, _sort2, verDetalle, exportResumen2Excel,
-                acc, accSort, mark, marcarTodos, setBaja, copiarEAN, informeComercial
+                acc, accSort, mark, marcarTodos, setBaja, copiarEAN, informeComercial, exportListaSucursal
             };
         })();
 
