@@ -438,6 +438,26 @@
         .manual-step { display: flex; gap: 20px; padding-bottom: 28px; position: relative; }
         .manual-step:last-child { padding-bottom: 0; }
         .manual-step:not(:last-child)::before { content: ''; position: absolute; left: 19px; top: 40px; bottom: 0; width: 2px; background: #E2E8F0; }
+
+        /* ====================================================================
+           MÓDULO PRODUCTOS INHABILITADOS — estilos mínimos (el resto reutiliza
+           las clases existentes: kpi-card, erp-table, modal-*, loader-*, etc.)
+           ==================================================================== */
+        @media screen {
+            .inhab-drop { border: 2px dashed #cbd5e1; border-radius: 16px; transition: border-color .18s ease, background-color .18s ease, transform .18s ease; background: #fff; }
+            .inhab-drop:hover { border-color: #2B3990; background: #f8fafc; }
+            .inhab-drop.dragover { border-color: #2B3990; background: rgba(43,57,144,0.06); transform: scale(1.008); }
+            .theme-dark .inhab-drop { border-color: rgba(122,162,247,0.28); background: var(--holo-card); }
+            .theme-dark .inhab-drop:hover, .theme-dark .inhab-drop.dragover { border-color: var(--holo-accent); background: rgba(61,139,253,0.09); box-shadow: 0 0 30px -10px var(--holo-glow); }
+            .inhab-seg { background: #f1f5f9; border: 1px solid #e4e4e7; }
+            .theme-dark .inhab-seg { background: #0B1730; border-color: var(--holo-border); }
+            .inhab-seg-btn { transition: color .15s ease, background-color .15s ease, box-shadow .15s ease; }
+            @keyframes inhabFadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+            .inhab-animate { animation: inhabFadeUp .35s cubic-bezier(0.16,1,0.3,1) both; }
+            .inhab-toast { position: fixed; z-index: 10000; right: 20px; bottom: 20px; max-width: 340px; padding: 12px 16px; border-radius: 12px; font-size: 13px; font-weight: 500; box-shadow: 0 12px 40px -10px rgba(0,0,0,0.25); opacity: 0; transform: translateY(10px); transition: opacity .25s ease, transform .25s ease; }
+            .inhab-toast.show { opacity: 1; transform: none; }
+        }
+
     </style>
 </head>
 <body class="min-h-screen relative">
@@ -502,6 +522,20 @@
                 </div>
             </div>
         </div>
+
+            <div id="headerControlsInhab" class="hidden flex-wrap items-center gap-4 sm:gap-6 w-full sm:w-auto justify-end">
+                <div class="flex gap-2 sm:gap-3 w-full sm:w-auto">
+                    <button id="btnThemeInhab" onclick="toggleTheme()" class="px-3 py-2.5 bg-white border border-slate-200 text-brand-text font-medium rounded-xl text-sm hover:bg-slate-50 smooth-transition shadow-sm flex items-center justify-center" title="Cambiar entre tema claro y oscuro" aria-label="Cambiar tema">
+                        <svg class="theme-icon-sun w-4 h-4 text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        <svg class="theme-icon-moon w-4 h-4 text-brand-primary" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                    </button>
+                    <button onclick="openModal('modalManual')" class="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-white border border-slate-200 text-brand-text font-medium rounded-xl text-sm hover:bg-slate-50 smooth-transition shadow-sm flex items-center gap-2 justify-center" title="Ver manual de usuario">
+                        <svg class="w-4 h-4 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg> <span class="hidden sm:inline">Manual</span>
+                    </button>
+                    <button id="btnInhabReset" onclick="Inhab.resetAll()" class="hidden flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-white border border-slate-200 text-red-600 font-medium rounded-xl text-sm hover:bg-red-50 smooth-transition shadow-sm">Limpiar</button>
+                </div>
+            </div>
+
     </header>
 
     <!-- Selector de vista: Movimientos (bajas de stock) / Stock (foto diaria por sucursal) -->
@@ -514,6 +548,12 @@
             <button id="navBtnStock" onclick="switchView('stock')" class="px-4 py-2 text-sm font-semibold rounded-lg smooth-transition text-slate-500 hover:text-slate-700 flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                 Stock
+            </button>
+
+
+            <button id="navBtnInhab" onclick="switchView('inhab')" class="px-4 py-2 text-sm font-semibold rounded-lg smooth-transition text-slate-500 hover:text-slate-700 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                Productos Inhabilitados
             </button>
 
             <!-- Homenaje Selección Argentina -->
@@ -972,7 +1012,165 @@
                 </div>
             </div>
         </div>
+
+        <!-- ================================================================
+             VISTA: PRODUCTOS INHABILITADOS
+             Detecta productos con stock > 0 que están inhabilitados para la venta.
+             ================================================================ -->
+        <div id="viewInhabilitados" class="hidden space-y-6 sm:space-y-8">
+
+            <!-- Selector de modo: Individual / Masivo -->
+            <div class="flex justify-center no-print">
+                <div class="inhab-seg inline-flex items-center gap-1 p-1 rounded-xl">
+                    <button id="inhabSegModo1" onclick="Inhab.setMode('modo1')" class="inhab-seg-btn px-4 sm:px-5 py-2 text-sm font-semibold rounded-lg bg-white text-brand-primary shadow-sm flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                        Individual
+                    </button>
+                    <button id="inhabSegModo2" onclick="Inhab.setMode('modo2')" class="inhab-seg-btn px-4 sm:px-5 py-2 text-sm font-semibold rounded-lg text-slate-500 hover:text-slate-700 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                        Masivo (todas las sucursales)
+                    </button>
+                </div>
+            </div>
+
+            <!-- ============================ MODO 1 ============================ -->
+            <div id="inhabModo1">
+                <!-- Carga -->
+                <div id="inhab1Setup" class="no-print">
+                    <div class="text-center mb-6">
+                        <h2 class="text-2xl font-semibold text-brand-text tracking-tight mb-1.5">Comparación individual</h2>
+                        <p class="text-sm text-brand-textSec max-w-2xl mx-auto leading-relaxed">Cargá el <strong class="text-slate-700">Listado de Stock</strong> de una sucursal y el <strong class="text-slate-700">archivo de Productos Inhabilitados</strong>. La app cruza ambos por IDProducto (o código de barras, o descripción) y te muestra los inhabilitados que todavía tienen stock.</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 max-w-4xl mx-auto">
+                        <div id="inhab1DropStock" class="inhab-drop p-6 flex flex-col items-center text-center cursor-pointer"
+                             onclick="document.getElementById('inhab1FileStock').click()">
+                            <div id="inhab1IconStock" class="w-14 h-14 rounded-2xl bg-brand-primary/10 flex items-center justify-center mb-4">
+                                <svg class="w-7 h-7 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                            </div>
+                            <p class="text-sm font-semibold text-brand-text">Listado de Stock</p>
+                            <p id="inhab1StockHint" class="text-xs text-brand-textSec mt-1">Arrastrá el Excel o hacé clic para elegirlo</p>
+                            <input type="file" id="inhab1FileStock" class="hidden" accept=".xlsx,.xls" onchange="Inhab.onStockFile1(event)">
+                        </div>
+                        <div id="inhab1DropInhab" class="inhab-drop p-6 flex flex-col items-center text-center cursor-pointer"
+                             onclick="document.getElementById('inhab1FileInhab').click()">
+                            <div id="inhab1IconInhab" class="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center mb-4">
+                                <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                            </div>
+                            <p class="text-sm font-semibold text-brand-text">Productos Inhabilitados</p>
+                            <p id="inhab1InhabHint" class="text-xs text-brand-textSec mt-1">Arrastrá el Excel o hacé clic para elegirlo</p>
+                            <input type="file" id="inhab1FileInhab" class="hidden" accept=".xlsx,.xls" onchange="Inhab.onInhabFile1(event)">
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-center gap-3 mt-6">
+                        <label class="flex items-center gap-2 text-xs text-brand-textSec cursor-pointer select-none">
+                            <input type="checkbox" id="inhab1SoloCompra" checked class="rounded"> Considerar solo filas con Observación “INHABILITAR COMPRA”
+                        </label>
+                        <button id="inhab1BtnAnalizar" onclick="Inhab.analizar1()" disabled class="px-6 py-3 bg-brand-primary text-white font-semibold rounded-xl text-sm hover:bg-brand-primaryHover smooth-transition shadow-soft disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            Analizar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Loader -->
+                <div id="inhab1Loader" class="hidden skeleton-loader no-print py-20 sm:py-24">
+                    <div class="loader-ring w-20 h-20 rounded-full mb-7"></div>
+                    <h2 class="text-lg font-semibold text-brand-text tracking-tight mb-1.5">Cruzando archivos…</h2>
+                    <p id="inhab1LoaderStatus" class="text-sm text-brand-textSec mb-7 min-h-[20px]">Leyendo el Excel…</p>
+                    <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+                </div>
+
+                <!-- Resultados (generado por JS) -->
+                <div id="inhab1Results" class="hidden space-y-6 sm:space-y-8"></div>
+            </div>
+
+            <!-- ============================ MODO 2 ============================ -->
+            <div id="inhabModo2" class="hidden">
+                <!-- Carga -->
+                <div id="inhab2Setup" class="no-print space-y-6">
+                    <div class="text-center">
+                        <h2 class="text-2xl font-semibold text-brand-text tracking-tight mb-1.5">Comparación masiva</h2>
+                        <p class="text-sm text-brand-textSec max-w-2xl mx-auto leading-relaxed">Cargá el <strong class="text-slate-700">consolidado de todas las sucursales</strong> (o varios listados por sucursal) y un único <strong class="text-slate-700">archivo maestro de Productos Inhabilitados</strong>. La app recorre cada sucursal y arma el resumen completo.</p>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
+                        <div class="lg:col-span-2">
+                            <div id="inhab2DropStock" class="inhab-drop p-6 flex flex-col items-center text-center cursor-pointer min-h-[180px] justify-center"
+                                 onclick="document.getElementById('inhab2FileStock').click()">
+                                <div class="w-14 h-14 rounded-2xl bg-brand-primary/10 flex items-center justify-center mb-4">
+                                    <svg class="w-7 h-7 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                                </div>
+                                <p class="text-sm font-semibold text-brand-text">Listados de Stock</p>
+                                <p class="text-xs text-brand-textSec mt-1">Arrastrá uno o varios Excel (consolidado o por sucursal)</p>
+                                <input type="file" id="inhab2FileStock" class="hidden" accept=".xlsx,.xls" multiple onchange="Inhab.onStockFiles2(event)">
+                            </div>
+                        </div>
+                        <div>
+                            <div id="inhab2DropInhab" class="inhab-drop p-6 flex flex-col items-center text-center cursor-pointer min-h-[180px] justify-center"
+                                 onclick="document.getElementById('inhab2FileInhab').click()">
+                                <div class="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center mb-4">
+                                    <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                                </div>
+                                <p class="text-sm font-semibold text-brand-text">Maestro Inhabilitados</p>
+                                <p id="inhab2InhabHint" class="text-xs text-brand-textSec mt-1">Un único archivo</p>
+                                <input type="file" id="inhab2FileInhab" class="hidden" accept=".xlsx,.xls" onchange="Inhab.onInhabFile2(event)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lista de archivos de stock cargados (con asignación de sucursal si hace falta) -->
+                    <div id="inhab2FileList" class="hidden bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden">
+                        <div class="px-5 py-3 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between">
+                            <h3 class="text-sm font-bold text-slate-700">Archivos de stock cargados</h3>
+                            <button onclick="Inhab.clearStockFiles2()" class="text-xs font-semibold text-red-600 hover:text-red-700">Quitar todos</button>
+                        </div>
+                        <div id="inhab2FileListBody" class="divide-y divide-slate-100"></div>
+                    </div>
+
+                    <div class="flex flex-col items-center gap-3">
+                        <label class="flex items-center gap-2 text-xs text-brand-textSec cursor-pointer select-none">
+                            <input type="checkbox" id="inhab2SoloCompra" checked class="rounded"> Considerar solo filas con Observación “INHABILITAR COMPRA”
+                        </label>
+                        <button id="inhab2BtnAnalizar" onclick="Inhab.analizar2()" disabled class="px-6 py-3 bg-brand-primary text-white font-semibold rounded-xl text-sm hover:bg-brand-primaryHover smooth-transition shadow-soft disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            Analizar todas las sucursales
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Progreso -->
+                <div id="inhab2Loader" class="hidden skeleton-loader no-print py-20 sm:py-24">
+                    <div class="loader-ring w-20 h-20 rounded-full mb-7"></div>
+                    <h2 class="text-lg font-semibold text-brand-text tracking-tight mb-1.5">Procesando sucursales…</h2>
+                    <p id="inhab2LoaderStatus" class="text-sm text-brand-textSec mb-5 min-h-[20px]">Preparando…</p>
+                    <div class="w-full max-w-md">
+                        <div class="loader-bar" style="width:100%"><div id="inhab2ProgressBar" class="loader-bar-fill" style="width:0%;animation:none;transition:width .2s ease"></div></div>
+                        <p id="inhab2ProgressPct" class="text-xs text-brand-textSec mt-2 tabular-nums">0%</p>
+                    </div>
+                </div>
+
+                <!-- Resultados (generado por JS) -->
+                <div id="inhab2Results" class="hidden space-y-6 sm:space-y-8"></div>
+            </div>
+        </div>
+
     </main>
+
+    <!-- Modal: Detalle por sucursal (Productos Inhabilitados / Masivo) -->
+    <div id="modalInhabDetalle" class="modal-overlay hidden fixed inset-0 z-[80] items-center justify-center p-4 bg-slate-900/50 no-print" onclick="if(event.target === this) closeModal('modalInhabDetalle')">
+        <div class="modal-content bg-white rounded-2xl shadow-floating w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
+                <div>
+                    <h3 id="inhabDetTitulo" class="text-lg font-bold text-slate-900">Detalle de sucursal</h3>
+                    <p id="inhabDetSub" class="text-xs text-slate-500 mt-0.5">Productos inhabilitados con stock</p>
+                </div>
+                <button onclick="closeModal('modalInhabDetalle')" class="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg smooth-transition" aria-label="Cerrar">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div id="inhabDetView" class="px-6 py-4 overflow-y-auto custom-scrollbar"></div>
+        </div>
+    </div>
+
 
     <!-- HIDDEN ELEMENTS FOR EXPORTING / PRINTING -->
     <div id="hidden-chart-container">
@@ -6375,17 +6573,22 @@
         }
 
         function switchView(v) {
-            const mov = v === 'mov';
-            document.getElementById('viewMovimientos').classList.toggle('hidden', !mov);
-            document.getElementById('viewStock').classList.toggle('hidden', mov);
-            document.getElementById('headerControlsMov').classList.toggle('hidden', !mov);
-            document.getElementById('headerControlsMov').classList.toggle('flex', mov);
-            document.getElementById('headerControlsStock').classList.toggle('hidden', mov);
-            document.getElementById('headerControlsStock').classList.toggle('flex', !mov);
-            document.getElementById('headerSubtitle').innerText = mov ? 'Auditoría de Bajas de Stock' : 'Control de Stock por Sucursal';
+            const views = { mov: 'viewMovimientos', stock: 'viewStock', inhab: 'viewInhabilitados' };
+            const ctrls = { mov: 'headerControlsMov', stock: 'headerControlsStock', inhab: 'headerControlsInhab' };
+            const btns = { mov: 'navBtnMov', stock: 'navBtnStock', inhab: 'navBtnInhab' };
+            const subs = { mov: 'Auditoría de Bajas de Stock', stock: 'Control de Stock por Sucursal', inhab: 'Productos inhabilitados con stock' };
+            if (!views[v]) v = 'mov';
             const act = 'bg-white text-brand-primary shadow-sm', ina = 'text-slate-500 hover:text-slate-700';
-            document.getElementById('navBtnMov').className = `px-4 py-2 text-sm font-semibold rounded-lg smooth-transition flex items-center gap-2 ${mov ? act : ina}`;
-            document.getElementById('navBtnStock').className = `px-4 py-2 text-sm font-semibold rounded-lg smooth-transition flex items-center gap-2 ${!mov ? act : ina}`;
+            Object.keys(views).forEach(k => {
+                const view = document.getElementById(views[k]);
+                if (view) view.classList.toggle('hidden', k !== v);
+                const ctrl = document.getElementById(ctrls[k]);
+                if (ctrl) { ctrl.classList.toggle('hidden', k !== v); ctrl.classList.toggle('flex', k === v); }
+                const btn = document.getElementById(btns[k]);
+                if (btn) btn.className = `px-4 py-2 text-sm font-semibold rounded-lg smooth-transition flex items-center gap-2 ${k === v ? act : ina}`;
+            });
+            const sub = document.getElementById('headerSubtitle');
+            if (sub) sub.innerText = subs[v];
         }
 
         // ====================================================================
@@ -7468,6 +7671,632 @@
         // Si quedaron errores de carga detectados en una sesión anterior (localStorage),
         // el badge del botón "Errores de carga" ya arranca mostrando ese número.
         actualizarBadgeErroresCarga();
+
+        /* ====================================================================
+           ====================================================================
+           MÓDULO: PRODUCTOS INHABILITADOS  (enfoque operativo por sucursal)
+           La sucursal ve sus productos inhabilitados que aún figuran con stock,
+           marca cuáles tiene físicamente y cuáles no, copia el EAN de los que NO
+           tiene para darlos de baja en Plex, y exporta un informe (PDF/Excel)
+           para Comercial con los que SÍ tiene. El stock SIEMPRE proviene del
+           Listado de Stock; del archivo de inhabilitados solo se usan las
+           columnas de cruce (Cod.Plex, Codebar, Producto).
+           ====================================================================
+           ==================================================================== */
+        (function () {
+            'use strict';
+
+            /* ------------------------------------------------------------------
+               NÚCLEO (sin DOM): validación del maestro de inhabilitados + cruce.
+               ------------------------------------------------------------------ */
+            function createCore(deps) {
+                const XLSX = deps.XLSX, parseNumeroPlex = deps.parseNumeroPlex, normTxt = deps.normTxt;
+                const MAPEO = deps.MAPEO_SUCURSALES_STOCK || {}, EXCLUIDOS = deps.STOCK_CODIGOS_EXCLUIDOS || new Set();
+                const S = v => (v === null || v === undefined) ? '' : String(v).trim();
+                function normBar(v) {
+                    let s = S(v); if (!s) return '';
+                    if (/e\+?\d/i.test(s)) { const n = Number(s); if (isFinite(n)) s = n.toLocaleString('fullwide', { useGrouping: false }); }
+                    s = s.replace(/\.0+$/, '').replace(/[^0-9A-Za-z]/g, '');
+                    return s;
+                }
+                const nombreSuc = cod => MAPEO[cod] || ('SUCURSAL ' + String(cod).padStart(3, '0') + ' (sin nombre)');
+                function findKey(headers, cands) {
+                    for (const c of cands) { const k = headers.find(h => normTxt(h).replace(/[.\s_]/g, '') === normTxt(c).replace(/[.\s_]/g, '')); if (k) return k; }
+                    return null;
+                }
+                // Valida ESTRICTAMENTE que el Excel sea el de Productos Inhabilitados:
+                // debe tener las tres columnas de cruce (Cod.Plex, Codebar, Producto).
+                // Si no, se rechaza para que nadie cargue "cualquier Excel".
+                function parseInhabWorkbook(binary, opts) {
+                    opts = opts || {}; const solo = opts.soloInhabilitarCompra !== false;
+                    let wb; try { wb = XLSX.read(binary, { type: 'array' }); } catch (e) { return { valid: false, motivo: 'No pude abrir el archivo. ¿Es un Excel válido?' }; }
+                    let sheet = null, headers = null, keys = null, faltan = null;
+                    for (const name of wb.SheetNames) {
+                        const sh = wb.Sheets[name];
+                        const j = XLSX.utils.sheet_to_json(sh, { header: 1, range: 0 });
+                        const hrow = (j[0] || []).map(S);
+                        // Cod.Plex es la firma del archivo de inhabilitados. NO se acepta
+                        // "IDProducto" como alias: esa es la columna del Listado de Stock, y
+                        // aceptarla dejaría que un Excel de stock pase por inhabilitados.
+                        const kCod = findKey(hrow, ['Cod.Plex', 'CodPlex', 'Cod Plex', 'Codigo Plex', 'CodigoPlex']);
+                        const kBar = findKey(hrow, ['Codebar', 'Cod.Barra', 'CodigoBarra', 'Codigo de Barras', 'EAN']);
+                        const kProd = findKey(hrow, ['Producto', 'Descripcion', 'Descripción']);
+                        // Rechazo temprano si el Excel es claramente un Listado de Stock (columnas exclusivas de Plex)
+                        const esStock = hrow.some(h => /^CantStock_Suc/i.test(String(h)) || /^UnidadesProd$/i.test(String(h)) || /^FechaUltimoPrecio$/i.test(String(h)));
+                        if (kCod && kBar && kProd && !esStock) { sheet = sh; headers = hrow; keys = { kCod, kBar, kProd }; break; }
+                        if (!faltan) { const f = []; if (!kCod) f.push('Cod.Plex'); if (!kBar) f.push('Codebar'); if (!kProd) f.push('Producto'); faltan = esStock ? ['(parece un Listado de Stock, no el de inhabilitados)'] : f; }
+                    }
+                    if (!sheet) return { valid: false, motivo: 'Este no parece el archivo de Productos Inhabilitados: faltan las columnas ' + (faltan || ['Cod.Plex', 'Codebar', 'Producto']).join(', ') + '.' };
+                    const kObs = findKey(headers, ['Observaciones', 'Observacion', 'Observación', 'Estado']);
+                    const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+                    const byId = new Map(), byBar = new Map(), byDesc = new Map(), list = [];
+                    let leidos = 0, descartadosObs = 0, sinClave = 0;
+                    for (const row of rows) {
+                        leidos++;
+                        const codPlex = S(row[keys.kCod]), codebar = normBar(row[keys.kBar]), producto = S(row[keys.kProd]);
+                        const obs = kObs ? S(row[kObs]) : '';
+                        if (!codPlex && !codebar && !producto) { sinClave++; continue; }
+                        if (solo && kObs && !normTxt(obs).includes('inhabilitar')) { descartadosObs++; continue; }
+                        const rec = { codPlex, codebar, producto, descNorm: normTxt(producto) };
+                        list.push(rec);
+                        if (codPlex) byId.set(codPlex, rec);
+                        if (codebar) byBar.set(codebar, rec);
+                        if (rec.descNorm) byDesc.set(rec.descNorm, rec);
+                    }
+                    if (!list.length) return { valid: false, motivo: solo && kObs ? 'No hay filas con Observación “INHABILITAR COMPRA”. Destildá esa opción o revisá el archivo.' : 'El archivo no tiene productos para comparar.' };
+                    return { valid: true, index: { byId, byBar, byDesc }, list, stats: { leidos, considerados: list.length, descartadosObs, sinClave, conObsCol: !!kObs } };
+                }
+                function matchInhab(prod, index) {
+                    const id = S(prod.IDProducto); if (id && index.byId.has(id)) return { via: 'IDProducto' };
+                    const bar = normBar(prod.codebar); if (bar && index.byBar.has(bar)) return { via: 'Codebar' };
+                    const dn = normTxt(prod.producto); if (dn && index.byDesc.has(dn)) return { via: 'Descripción' };
+                    return null;
+                }
+                function cruzar(productos, codigosSuc, index, opts) {
+                    opts = opts || {}; const fecha = opts.fecha || new Date().toISOString();
+                    const soloCods = opts.soloCods || null;
+                    const hits = [], porSucursal = new Map();
+                    const nombrePorCod = new Map((codigosSuc || []).map(c => [c.cod, c.nombre]));
+                    for (const p of productos) {
+                        const m = matchInhab(p, index); if (!m) continue;
+                        const costo = p.costo || 0, precio = p.precio || 0;
+                        p.stockPorSuc.forEach((cant, cod) => {
+                            if (EXCLUIDOS.has(cod)) return;
+                            if (soloCods && !soloCods.has(cod)) return;
+                            if (!(cant > 0)) return;
+                            const suc = nombrePorCod.get(cod) || nombreSuc(cod);
+                            hits.push({ codSuc: cod, sucursal: suc, IDProducto: S(p.IDProducto), codebar: S(p.codebar), descripcion: S(p.producto), stock: cant, costo, pvp: precio, costoTotal: cant * costo, pvpTotal: cant * precio, laboratorio: p.laboratorio || 'Sin Laboratorio', rubro: p.rubro || 'Sin Rubro', via: m.via, fecha });
+                            if (!porSucursal.has(cod)) porSucursal.set(cod, { cod, sucursal: suc, productos: 0, unidades: 0, costo: 0, pvp: 0, fecha });
+                            const r = porSucursal.get(cod); r.productos++; r.unidades += cant; r.costo += cant * costo; r.pvp += cant * precio;
+                        });
+                    }
+                    return { hits, porSucursal };
+                }
+                function contarSucursales(productos, opts) {
+                    opts = opts || {}; const soloCods = opts.soloCods || null; const set = new Set();
+                    for (const p of productos) p.stockPorSuc.forEach((cant, cod) => { if (EXCLUIDOS.has(cod)) return; if (soloCods && !soloCods.has(cod)) return; if (cant > 0) set.add(cod); });
+                    return set;
+                }
+                return { normBar, nombreSuc, parseInhabWorkbook, cruzar, contarSucursales };
+            }
+
+            const core = createCore({ XLSX, parseNumeroPlex, normTxt, MAPEO_SUCURSALES_STOCK, STOCK_CODIGOS_EXCLUIDOS });
+
+            const NOMBRE_A_COD = (() => { const m = []; for (const cod in MAPEO_SUCURSALES_STOCK) m.push({ cod: +cod, norm: normTxt(MAPEO_SUCURSALES_STOCK[cod]) }); return m.sort((a, b) => b.norm.length - a.norm.length); })();
+            function inferirSucursal(filename) { const n = normTxt(filename.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ')); for (const { cod, norm } of NOMBRE_A_COD) { if (norm && n.includes(norm)) return cod; } return null; }
+
+            /* ------------------------------------------------------------------ ESTADO */
+            const st = {
+                modo: 'modo1',
+                marks: new Map(),  // key `${codSuc}|${IDProducto}` -> 'fis' | 'nofis'
+                bajas: new Map(),  // key -> N° de baja (string) para los marcados 'nofis'
+                m1: { stockBin: null, stockName: '', stockParse: null, codManual: null, inhabBin: null, inhabName: '', result: null, branchSel: 'ALL' },
+                m2: { files: [], inhabBin: null, inhabName: '', result: null, tabla: { col: 'productos', dir: 'desc' } },
+                cur: { scope: null, hits: [], suc: '', fecha: '', q: '', estado: 'all', col: 'stock', dir: 'desc' }
+            };
+            const $ = id => document.getElementById(id);
+            const yieldNext = () => new Promise(r => setTimeout(r, 0));
+            const fechaLegible = iso => { try { return new Date(iso).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return iso; } };
+            const fechaCorta = iso => { try { return new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }); } catch (e) { return iso; } };
+            const markKey = h => h.codSuc + '|' + h.IDProducto;
+            const bkAttr = k => k.replace(/[^0-9]/g, '_');
+            // Persistencia liviana en el navegador para no perder el trabajo si se recarga la página.
+            const LS_MARKS = 'farmaplus_inhab_marks', LS_BAJAS = 'farmaplus_inhab_bajas';
+            function persistMarks() { try { localStorage.setItem(LS_MARKS, JSON.stringify([...st.marks])); localStorage.setItem(LS_BAJAS, JSON.stringify([...st.bajas])); } catch (e) { } }
+            function loadMarks() { try { st.marks = new Map(JSON.parse(localStorage.getItem(LS_MARKS) || '[]')); st.bajas = new Map(JSON.parse(localStorage.getItem(LS_BAJAS) || '[]')); } catch (e) { } }
+
+            function toast(msg, tipo) {
+                const el = document.createElement('div');
+                const col = tipo === 'error' ? 'background:#FEE2E2;color:#991B1B;border:1px solid #FCA5A5;'
+                    : tipo === 'ok' ? 'background:#D1FAE5;color:#065F46;border:1px solid #6EE7B7;'
+                        : 'background:#0B1730;color:#E7EEF9;border:1px solid rgba(120,180,255,0.34);';
+                el.className = 'inhab-toast'; el.style.cssText += col; el.textContent = msg;
+                document.body.appendChild(el); requestAnimationFrame(() => el.classList.add('show'));
+                setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 3000);
+            }
+            const readFile = file => new Promise((res, rej) => { const r = new FileReader(); r.onload = e => res(new Uint8Array(e.target.result)); r.onerror = rej; r.readAsArrayBuffer(file); });
+            function copiar(text, okMsg) {
+                const done = () => toast(okMsg || 'Copiado.', 'ok');
+                if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done)); }
+                else fallbackCopy(text, done);
+            }
+            function fallbackCopy(text, cb) { const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); cb && cb(); } catch (e) { toast('No pude copiar.', 'error'); } ta.remove(); }
+
+            function wireDrop(dropId, onFiles, multiple) {
+                const zone = $(dropId); if (!zone) return;
+                ['dragenter', 'dragover'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); zone.classList.add('dragover'); }));
+                ['dragleave', 'drop'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); if (ev === 'dragleave' && zone.contains(e.relatedTarget)) return; zone.classList.remove('dragover'); }));
+                zone.addEventListener('drop', e => { const files = [...(e.dataTransfer.files || [])].filter(f => /\.x(ls|lsx)$/i.test(f.name)); if (!files.length) { toast('Soltá archivos .xlsx', 'error'); return; } onFiles(multiple ? files : [files[0]]); });
+            }
+
+            /* ================================================================== VISTA DE ACCIÓN (compartida MODO1 / detalle) */
+            const kpiCard = (eye, val, sub, cls) => `<div class="kpi-card bg-white border border-zinc-200/80 rounded-2xl p-4 shadow-card flex flex-col justify-between smooth-transition hover:shadow-soft"><h3 class="kpi-eyebrow truncate" title="${escapeHtml(eye)}">${escapeHtml(eye)}</h3><p class="text-xl font-extrabold ${cls || 'text-slate-900'} mt-1 truncate">${val}</p>${sub ? `<p class="text-[10px] text-slate-400 mt-0.5 truncate">${escapeHtml(sub)}</p>` : ''}</div>`;
+
+            // Construye la vista de acción dentro del contenedor `mount`.
+            function renderActionView(scope, mount, opts) {
+                opts = opts || {};
+                const c = st.cur;
+                const total = c.hits.length, unid = c.hits.reduce((a, h) => a + h.stock, 0), costo = c.hits.reduce((a, h) => a + h.costoTotal, 0), pvp = c.hits.reduce((a, h) => a + h.pvpTotal, 0);
+                const topBar = opts.topBar || '';
+                $(mount).innerHTML = `
+                    ${topBar}
+                    <div class="bg-gradient-to-r from-brand-primary/[0.06] to-transparent border border-brand-primary/20 rounded-2xl p-4 mb-4">
+                        <div class="flex items-start gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-brand-primary/10 flex items-center justify-center shrink-0"><svg class="w-5 h-5 text-brand-primary" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg></div>
+                            <div class="flex-1">
+                                <h3 class="text-sm font-bold text-brand-text mb-1">Cómo completar y enviar a Comercial</h3>
+                                <ol class="text-xs text-brand-textSec leading-relaxed space-y-0.5 list-none">
+                                    <li><span class="font-bold text-brand-primary">1.</span> Revisá cada producto inhabilitado que figura con stock.</li>
+                                    <li><span class="font-bold text-emerald-600">2.</span> Si lo tenés físicamente, marcá <b>“Tengo”</b>. Si no lo tenés, dalo de baja en Plex y cargá el <b>N° de baja</b> en la fila.</li>
+                                    <li><span class="font-bold text-brand-primary">3.</span> Cuando esté todo resuelto, generá el <b>Informe (PDF o Excel)</b> y enviálo a Comercial.</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                        ${kpiCard('Productos inhabilitados', formatNumber(total), 'con stock > 0', 'text-red-600')}
+                        ${kpiCard('Total de unidades', formatNumber(unid), '')}
+                        ${kpiCard('Costo total', formatCurrencyCompact(costo), formatCurrency(costo))}
+                        ${kpiCard('PVP total', formatCurrencyCompact(pvp), formatCurrency(pvp))}
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden">
+                        <div class="px-4 py-3 border-b border-slate-100 bg-slate-50/70 flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
+                            <div class="flex flex-col sm:flex-row gap-2 flex-1">
+                                <div class="relative flex-1 max-w-xs"><svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg><input type="text" id="acc_q_${scope}" oninput="Inhab.acc('${scope}','q')" placeholder="Buscar producto, EAN o Cód. Plex…" class="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg bg-white" autocomplete="off"></div>
+                                <select id="acc_estado_${scope}" onchange="Inhab.acc('${scope}','estado')" class="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white">
+                                    <option value="all">Todos</option><option value="pend">Pendientes</option><option value="fis">Con físico</option><option value="nofis">Dados de baja</option>
+                                </select>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="Inhab.informeComercial('${scope}','pdf')" data-tip="Informe en PDF para Comercial con los productos revisados: los que la sucursal tiene físicamente y los dados de baja con su N° de baja." class="px-3 py-2 text-xs font-semibold text-white bg-brand-primary hover:bg-brand-primaryHover border border-transparent rounded-lg smooth-transition flex items-center gap-1.5 shadow-soft"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>Informe Comercial (PDF)</button>
+                                <button onclick="Inhab.informeComercial('${scope}','xlsx')" data-tip="Mismo informe para Comercial en Excel." class="px-3 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg smooth-transition flex items-center gap-1.5"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>Excel</button>
+                            </div>
+                        </div>
+                        <div class="px-4 py-2 border-b border-slate-100 flex items-center justify-between gap-3 text-[11px] text-slate-500 flex-wrap">
+                            <div class="flex items-center gap-2 flex-wrap" id="acc_prog_${scope}"></div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-slate-400">Marcar todos:</span>
+                                <button onclick="Inhab.marcarTodos('${scope}','fis')" class="px-2 py-1 rounded-md border border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 font-semibold">Tengo</button>
+                                <button onclick="Inhab.marcarTodos('${scope}','')" class="px-2 py-1 rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 font-semibold">Limpiar</button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto max-h-[${opts.maxH || '520px'}] overflow-y-auto custom-scrollbar">
+                            <table class="w-full text-left erp-table text-[13px]"><thead class="bg-slate-50 sticky top-0"><tr id="acc_head_${scope}"></tr></thead><tbody id="acc_body_${scope}"></tbody></table>
+                        </div>
+                    </div>
+                    <p class="text-[10.5px] text-slate-400 italic mt-2">El stock proviene del Listado de Stock. Tu avance se guarda en este equipo por si recargás la página. El informe para Comercial incluye lo que tenés físicamente y lo dado de baja con su N° de baja.</p>`;
+                renderRows(scope);
+            }
+            const ACOLS = [['codebar', 'EAN', 'l'], ['IDProducto', 'Cód. Plex', 'l'], ['descripcion', 'Descripción', 'l'], ['rubro', 'Rubro', 'l'], ['stock', 'Stock', 'r'], ['_fis', 'Stock físico', 'c'], ['_baja', 'N° de baja', 'c']];
+            function curFiltered(scope) {
+                const c = st.cur; let rows = c.hits.slice();
+                const q = normTxt(c.q);
+                if (q) rows = rows.filter(h => normTxt(h.descripcion).includes(q) || String(h.codebar).includes(q.replace(/\s/g, '')) || String(h.IDProducto).toLowerCase().includes(q));
+                if (c.estado === 'fis') rows = rows.filter(h => st.marks.get(markKey(h)) === 'fis');
+                else if (c.estado === 'nofis') rows = rows.filter(h => st.marks.get(markKey(h)) === 'nofis');
+                else if (c.estado === 'pend') rows = rows.filter(h => !st.marks.get(markKey(h)));
+                rows.sort((a, b) => { let x = a[c.col], y = b[c.col]; if (typeof x === 'string') { x = normTxt(x); y = normTxt(y); } if (x < y) return c.dir === 'asc' ? -1 : 1; if (x > y) return c.dir === 'asc' ? 1 : -1; return 0; });
+                return rows;
+            }
+            function renderRows(scope) {
+                const c = st.cur, rows = curFiltered(scope);
+                $('acc_head_' + scope).innerHTML = ACOLS.map(([col, lbl, al]) => (col === '_fis' || col === '_baja') ? `<th class="px-3 py-2 text-center">${lbl}</th>` : `<th class="px-3 py-2 cursor-pointer select-none hover:text-brand-primary ${al === 'r' ? 'text-right' : ''}" onclick="Inhab.accSort('${scope}','${col}')">${lbl}${c.col === col ? (c.dir === 'asc' ? ' ▲' : ' ▼') : ''}</th>`).join('');
+                $('acc_body_' + scope).innerHTML = rows.length ? rows.map(h => {
+                    const k = markKey(h), mk = st.marks.get(k);
+                    const btn = (val, txt, onCls, offCls) => `<button onclick="Inhab.mark('${scope}','${k}','${val}')" class="px-2 py-1 rounded-md text-[11px] font-bold border smooth-transition ${mk === val ? onCls : offCls}">${txt}</button>`;
+                    // Celda N° de baja: input editable solo cuando el producto se marcó "No tengo"
+                    let bajaCell;
+                    if (mk === 'nofis') {
+                        const val = st.bajas.get(k) || '';
+                        bajaCell = `<input type="text" inputmode="numeric" value="${escapeHtml(val)}" data-bk="${bkAttr(k)}" oninput="Inhab.setBaja('${scope}','${k}', this.value)" placeholder="N° de baja" class="w-28 px-2 py-1 text-xs text-center border rounded-md ${val ? 'border-emerald-300 bg-emerald-50/50 text-emerald-800 font-semibold' : 'border-amber-300 bg-amber-50 text-amber-800'}" autocomplete="off">`;
+                    } else if (mk === 'fis') { bajaCell = `<span class="text-[11px] text-slate-300">—</span>`; }
+                    else { bajaCell = `<span class="text-[11px] text-slate-300">—</span>`; }
+                    return `<tr class="${mk === 'fis' ? 'bg-emerald-50/40' : mk === 'nofis' ? 'bg-amber-50/40' : ''}">
+                        <td class="px-3 py-2"><div class="flex items-center gap-1.5"><span class="font-mono tabular-nums text-slate-700">${escapeHtml(h.codebar) || '<span class=\'text-slate-300\'>—</span>'}</span>${h.codebar ? `<button onclick="Inhab.copiarEAN('${escapeHtml(h.codebar)}')" title="Copiar EAN" class="p-1 text-slate-400 hover:text-brand-primary rounded"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg></button>` : ''}</div></td>
+                        <td class="px-3 py-2 tabular-nums text-slate-500">${escapeHtml(h.IDProducto)}</td>
+                        <td class="px-3 py-2 font-semibold text-slate-800 max-w-[300px] truncate" title="${escapeHtml(h.descripcion)}">${escapeHtml(h.descripcion)}</td>
+                        <td class="px-3 py-2 text-slate-500 max-w-[140px] truncate" title="${escapeHtml(h.rubro)}">${escapeHtml(h.rubro)}</td>
+                        <td class="px-3 py-2 text-right tabular-nums font-bold text-slate-800">${formatNumber(h.stock)}</td>
+                        <td class="px-3 py-2"><div class="flex items-center justify-center gap-1.5">${btn('fis', '✓ Tengo', 'bg-emerald-600 text-white border-emerald-600', 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50')}${btn('nofis', '✗ No tengo', 'bg-red-600 text-white border-red-600', 'bg-white text-red-600 border-red-200 hover:bg-red-50')}</div></td>
+                        <td class="px-3 py-2 text-center">${bajaCell}</td></tr>`;
+                }).join('') : `<tr><td colspan="7" class="px-3 py-10 text-center text-slate-400">No hay productos que coincidan con el filtro.</td></tr>`;
+                actualizarProgreso(scope);
+            }
+            function actualizarProgreso(scope) {
+                const c = st.cur;
+                let fis = 0, baja = 0, bajaSinN = 0; c.hits.forEach(h => { const kk = markKey(h), m = st.marks.get(kk); if (m === 'fis') fis++; else if (m === 'nofis') { baja++; if (!(st.bajas.get(kk) || '').trim()) bajaSinN++; } });
+                const pend = c.hits.length - fis - baja;
+                const el = $('acc_prog_' + scope); if (!el) return;
+                el.innerHTML = `<span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">✓ Con físico: ${fis}</span>`
+                    + `<span class="px-2 py-0.5 rounded-md bg-red-50 text-red-700 border border-red-200 font-semibold">🗎 Dados de baja: ${baja}</span>`
+                    + `<span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200 font-semibold">Pendientes: ${pend}</span>`
+                    + (bajaSinN ? `<span class="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-300 font-semibold">⚠ Falta N° de baja: ${bajaSinN}</span>` : '');
+            }
+            function acc(scope, k) { if (k === 'q') st.cur.q = $('acc_q_' + scope).value; if (k === 'estado') st.cur.estado = $('acc_estado_' + scope).value; renderRows(scope); }
+            function accSort(scope, col) { const c = st.cur; if (c.col === col) c.dir = c.dir === 'asc' ? 'desc' : 'asc'; else { c.col = col; c.dir = col === 'stock' ? 'desc' : 'asc'; } renderRows(scope); }
+            function mark(scope, key, val) {
+                if (st.marks.get(key) === val) { st.marks.delete(key); if (val === 'nofis') st.bajas.delete(key); }
+                else { st.marks.set(key, val); if (val === 'fis') st.bajas.delete(key); }
+                persistMarks(); renderRows(scope);
+                if (st.marks.get(key) === 'nofis') { const inp = document.querySelector('#acc_body_' + scope + ' input[data-bk="' + bkAttr(key) + '"]'); if (inp) inp.focus(); }
+            }
+            function marcarTodos(scope, val) { curFiltered(scope).forEach(h => { const k = markKey(h); if (!val) { st.marks.delete(k); st.bajas.delete(k); } else { st.marks.set(k, val); if (val === 'fis') st.bajas.delete(k); } }); persistMarks(); renderRows(scope); }
+            function setBaja(scope, key, value) { const v = String(value || '').trim(); if (v) st.bajas.set(key, v); else st.bajas.delete(key); persistMarks(); actualizarProgreso(scope); const inp = document.querySelector('#acc_body_' + scope + ' input[data-bk="' + bkAttr(key) + '"]'); if (inp) { inp.className = 'w-28 px-2 py-1 text-xs text-center border rounded-md ' + (v ? 'border-emerald-300 bg-emerald-50/50 text-emerald-800 font-semibold' : 'border-amber-300 bg-amber-50 text-amber-800'); } }
+            function copiarEAN(ean) { copiar(String(ean), 'EAN copiado: ' + ean); }
+
+            /* ================================================================== MODO 1 */
+            function setDropOk(hintId, name, color) { const hint = $(hintId); if (hint) hint.innerHTML = `<span class="font-semibold ${color}">✓ ${escapeHtml(name)}</span>`; }
+            async function onStockFile1(ev) { const f = (ev.target.files || ev)[0]; if (f) await loadStock1(f); ev.target && (ev.target.value = ''); }
+            async function loadStock1(file) {
+                try {
+                    const bin = await readFile(file);
+                    st.m1.stockBin = bin; st.m1.stockName = file.name; st.m1.codManual = null;
+                    const parse = parseStockWorkbook(bin, null);
+                    if (parse.esBajasDeStock) { toast('Ese Excel es el de Bajas de Stock (módulo Movimientos), no un Listado de Stock.', 'error'); return; }
+                    st.m1.stockParse = parse;
+                    if (parse.valid) { setDropOk('inhab1StockHint', file.name + ` · ${parse.codigosSuc.length} sucursal(es)`, 'text-emerald-600'); removeBranchPicker1(); }
+                    else if (parse.formatoSucursal) { setDropOk('inhab1StockHint', file.name, 'text-amber-600'); showBranchPicker1(file.name); }
+                    else { toast('No pude leer ese Listado de Stock.', 'error'); st.m1.stockParse = null; }
+                    refreshBtn1();
+                } catch (e) { toast('Error leyendo el archivo de stock.', 'error'); }
+            }
+            function showBranchPicker1(fname) {
+                removeBranchPicker1();
+                const cont = document.createElement('div');
+                cont.id = 'inhab1BranchPicker'; cont.className = 'max-w-md mx-auto mt-4 bg-amber-50 border border-amber-200 rounded-xl p-3 text-center';
+                const guess = inferirSucursal(fname);
+                let opts = '<option value="">— Elegí la sucursal —</option>';
+                Object.keys(MAPEO_SUCURSALES_STOCK).sort((a, b) => MAPEO_SUCURSALES_STOCK[a].localeCompare(MAPEO_SUCURSALES_STOCK[b])).forEach(c => { opts += `<option value="${c}" ${+c === guess ? 'selected' : ''}>${escapeHtml(MAPEO_SUCURSALES_STOCK[c])}</option>`; });
+                cont.innerHTML = `<p class="text-xs text-amber-800 mb-2 font-medium">Este archivo no indica la sucursal. Seleccioná a cuál pertenece:</p><select id="inhab1BranchSelect" onchange="Inhab._branch1()" class="w-full px-3 py-2 text-sm border border-amber-300 rounded-lg bg-white">${opts}</select>`;
+                $('inhab1Setup').querySelector('.grid').insertAdjacentElement('afterend', cont);
+                if (guess) st.m1.codManual = guess;
+            }
+            function removeBranchPicker1() { const p = $('inhab1BranchPicker'); if (p) p.remove(); st.m1.codManual = null; }
+            function _branch1() { const s = $('inhab1BranchSelect'); st.m1.codManual = s && s.value ? +s.value : null; refreshBtn1(); }
+            async function onInhabFile1(ev) { const f = (ev.target.files || ev)[0]; if (f) { try { st.m1.inhabBin = await readFile(f); st.m1.inhabName = f.name; setDropOk('inhab1InhabHint', f.name, 'text-emerald-600'); } catch (e) { toast('Error leyendo inhabilitados.', 'error'); } } ev.target && (ev.target.value = ''); refreshBtn1(); }
+            function refreshBtn1() {
+                const stockReady = st.m1.stockParse && (st.m1.stockParse.valid || (st.m1.stockParse.formatoSucursal && st.m1.codManual));
+                $('inhab1BtnAnalizar').disabled = !(stockReady && st.m1.inhabBin);
+                $('btnInhabReset').classList.toggle('hidden', !(st.m1.stockBin || st.m1.inhabBin));
+            }
+            async function analizar1() {
+                $('inhab1Setup').classList.add('hidden'); $('inhab1Results').classList.add('hidden'); $('inhab1Loader').classList.remove('hidden');
+                await yieldNext();
+                try {
+                    const solo = $('inhab1SoloCompra').checked;
+                    $('inhab1LoaderStatus').textContent = 'Validando el archivo de inhabilitados…'; await yieldNext();
+                    const inh = core.parseInhabWorkbook(st.m1.inhabBin, { soloInhabilitarCompra: solo });
+                    if (!inh.valid) { toast(inh.motivo, 'error'); volver1(); return; }
+                    $('inhab1LoaderStatus').textContent = 'Preparando el listado de stock…'; await yieldNext();
+                    let productos, codigosSuc;
+                    if (st.m1.stockParse.valid) { productos = st.m1.stockParse.productos; codigosSuc = st.m1.stockParse.codigosSuc; }
+                    else { const fin = parseStockFilas(st.m1.stockParse.rawJson, st.m1.codManual); productos = fin.productos; codigosSuc = fin.codigosSuc; }
+                    $('inhab1LoaderStatus').textContent = 'Cruzando datos…'; await yieldNext();
+                    const fecha = new Date().toISOString();
+                    const res = core.cruzar(productos, codigosSuc, inh.index, { fecha });
+                    st.m1.result = { hits: res.hits, porSucursal: res.porSucursal, fecha, inhStats: inh.stats };
+                    const branches = [...res.porSucursal.values()].sort((a, b) => b.productos - a.productos);
+                    st.m1.branchSel = branches.length === 1 ? String(branches[0].cod) : 'ALL';
+                    $('inhab1Loader').classList.add('hidden'); $('inhab1Results').classList.remove('hidden');
+                    renderModo1();
+                } catch (e) { console.error(e); toast('Ocurrió un error durante el análisis.', 'error'); volver1(); }
+            }
+            function volver1() { $('inhab1Loader').classList.add('hidden'); $('inhab1Setup').classList.remove('hidden'); }
+            function renderModo1() {
+                const r = st.m1.result;
+                let hits = r.hits; if (st.m1.branchSel !== 'ALL') hits = hits.filter(h => String(h.codSuc) === st.m1.branchSel);
+                const branches = [...r.porSucursal.values()].sort((a, b) => a.sucursal.localeCompare(b.sucursal));
+                const selName = st.m1.branchSel === 'ALL' ? 'Todas las sucursales del archivo' : (r.porSucursal.get(+st.m1.branchSel) || {}).sucursal || '';
+                st.cur = { scope: 'm1', hits, suc: selName, fecha: r.fecha, q: '', estado: 'all', col: 'stock', dir: 'desc' };
+                let branchSelHtml = '';
+                if (branches.length > 1) branchSelHtml = `<select id="inhab1BranchFilter" onchange="Inhab._selBranch1()" class="px-3 py-2 text-sm border border-slate-200 rounded-xl bg-slate-50 font-semibold text-slate-800"><option value="ALL" ${st.m1.branchSel === 'ALL' ? 'selected' : ''}>Todas (${r.porSucursal.size} sucursales)</option>${branches.map(b => `<option value="${b.cod}" ${st.m1.branchSel === String(b.cod) ? 'selected' : ''}>${escapeHtml(b.sucursal)} · ${b.productos}</option>`).join('')}</select>`;
+                const topBar = `<div class="bg-white rounded-2xl shadow-soft border border-slate-100 p-4 sm:p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                    <div><h2 class="text-base font-bold text-brand-text tracking-tight flex items-center gap-2"><svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg> ${escapeHtml(selName)}</h2><p class="text-xs text-brand-textSec mt-0.5">${fechaLegible(r.fecha)} · ${r.inhStats.considerados} inhabilitados en el maestro</p></div>
+                    <div class="flex items-center gap-2">${branchSelHtml}<button onclick="Inhab.resetAll()" class="px-3 py-2 text-xs font-semibold text-brand-primary bg-white border border-slate-200 rounded-xl hover:bg-slate-50 smooth-transition">Nuevo análisis</button></div>
+                </div>`;
+                renderActionView('m1', 'inhab1Results', { topBar, maxH: '560px' });
+            }
+            function _selBranch1() { st.m1.branchSel = $('inhab1BranchFilter').value; renderModo1(); }
+
+            /* ================================================================== MODO 2 (simplificado) */
+            async function onStockFiles2(ev) { const files = [...(ev.target.files || ev)]; await addStockFiles2(files); ev.target && (ev.target.value = ''); }
+            async function addStockFiles2(files) {
+                for (const f of files) {
+                    if (!/\.x(ls|lsx)$/i.test(f.name)) continue;
+                    if (st.m2.files.some(x => x.name === f.name && x.size === f.size)) continue;
+                    const entry = { name: f.name, size: f.size, bin: null, tipo: null, parse: null, cod: null, estado: 'leyendo', productos: 0, sucursales: 0, error: '' };
+                    st.m2.files.push(entry);
+                    try {
+                        entry.bin = await readFile(f);
+                        const p = parseStockWorkbook(entry.bin, null);
+                        if (p.esBajasDeStock) { entry.estado = 'error'; entry.error = 'Es Bajas de Stock, no Listado de Stock'; }
+                        else if (p.valid) { entry.tipo = p.codigosSuc.length > 1 ? 'consolidado' : 'sucursal'; entry.parse = p; entry.productos = p.productos.length; entry.sucursales = p.codigosSuc.length; entry.estado = 'ok'; if (p.codigosSuc.length === 1) entry.cod = p.codigosSuc[0].cod; }
+                        else if (p.formatoSucursal) { entry.tipo = 'sucursal'; entry.parse = p; entry.productos = (p.rawJson || []).length; entry.cod = inferirSucursal(f.name); entry.estado = entry.cod ? 'ok' : 'sin-sucursal'; }
+                        else { entry.estado = 'error'; entry.error = 'No es un Listado de Stock válido'; }
+                    } catch (e) { entry.estado = 'error'; entry.error = 'No se pudo leer'; }
+                }
+                renderFileList2(); refreshBtn2();
+            }
+            function renderFileList2() {
+                const box = $('inhab2FileList'), body = $('inhab2FileListBody');
+                if (!st.m2.files.length) { box.classList.add('hidden'); return; }
+                box.classList.remove('hidden');
+                body.innerHTML = st.m2.files.map((f, i) => {
+                    const badge = f.estado === 'ok' ? `<span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">${f.tipo === 'consolidado' ? f.sucursales + ' sucursales' : 'sucursal'}</span>`
+                        : f.estado === 'sin-sucursal' ? `<span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 text-[10px] font-bold border border-amber-200">falta sucursal</span>`
+                            : f.estado === 'leyendo' ? `<span class="px-2 py-0.5 rounded-md bg-slate-50 text-slate-500 text-[10px] font-bold border border-slate-200">leyendo…</span>`
+                                : `<span class="px-2 py-0.5 rounded-md bg-red-50 text-red-700 text-[10px] font-bold border border-red-200">${escapeHtml(f.error || 'error')}</span>`;
+                    let sucCtl = '';
+                    if (f.tipo === 'sucursal' && f.estado !== 'error') {
+                        const opts = Object.keys(MAPEO_SUCURSALES_STOCK).sort((a, b) => MAPEO_SUCURSALES_STOCK[a].localeCompare(MAPEO_SUCURSALES_STOCK[b])).map(c => `<option value="${c}" ${+c === f.cod ? 'selected' : ''}>${escapeHtml(MAPEO_SUCURSALES_STOCK[c])}</option>`).join('');
+                        sucCtl = `<select onchange="Inhab._setFileCod(${i}, this.value)" class="px-2 py-1 text-xs border border-slate-200 rounded-lg bg-white"><option value="">— sucursal —</option>${opts}</select>`;
+                    } else if (f.tipo === 'consolidado') { sucCtl = `<span class="text-[11px] text-slate-400">todas las sucursales</span>`; }
+                    return `<div class="px-5 py-3 flex items-center justify-between gap-3">
+                        <div class="min-w-0 flex items-center gap-2"><svg class="w-4 h-4 text-brand-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="text-sm font-medium text-slate-700 truncate" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</span> ${badge}</div>
+                        <div class="flex items-center gap-2 shrink-0">${sucCtl}<button onclick="Inhab._delFile2(${i})" class="p-1.5 text-slate-400 hover:text-red-600 rounded-lg" aria-label="Quitar"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg></button></div>
+                    </div>`;
+                }).join('');
+            }
+            function _setFileCod(i, v) { st.m2.files[i].cod = v ? +v : null; st.m2.files[i].estado = v ? 'ok' : 'sin-sucursal'; renderFileList2(); refreshBtn2(); }
+            function _delFile2(i) { st.m2.files.splice(i, 1); renderFileList2(); refreshBtn2(); }
+            function clearStockFiles2() { st.m2.files = []; renderFileList2(); refreshBtn2(); }
+            async function onInhabFile2(ev) { const f = (ev.target.files || ev)[0]; if (f) { try { st.m2.inhabBin = await readFile(f); st.m2.inhabName = f.name; $('inhab2InhabHint').innerHTML = `<span class="font-semibold text-emerald-600">✓ ${escapeHtml(f.name)}</span>`; } catch (e) { toast('Error leyendo inhabilitados.', 'error'); } } ev.target && (ev.target.value = ''); refreshBtn2(); }
+            function refreshBtn2() {
+                const okFiles = st.m2.files.filter(f => f.estado === 'ok');
+                const pend = st.m2.files.some(f => f.estado === 'sin-sucursal');
+                $('inhab2BtnAnalizar').disabled = !(okFiles.length && st.m2.inhabBin && !pend);
+                $('btnInhabReset').classList.toggle('hidden', !(st.m2.files.length || st.m2.inhabBin));
+            }
+            async function analizar2() {
+                $('inhab2Setup').classList.add('hidden'); $('inhab2Results').classList.add('hidden'); $('inhab2Loader').classList.remove('hidden');
+                const setProg = (p, txt) => { $('inhab2ProgressBar').style.width = Math.round(p) + '%'; $('inhab2ProgressPct').textContent = Math.round(p) + '%'; if (txt) $('inhab2LoaderStatus').textContent = txt; };
+                setProg(0, 'Validando el archivo de inhabilitados…'); await yieldNext();
+                const t0 = performance.now();
+                try {
+                    const solo = $('inhab2SoloCompra').checked;
+                    const inh = core.parseInhabWorkbook(st.m2.inhabBin, { soloInhabilitarCompra: solo });
+                    if (!inh.valid) { toast(inh.motivo, 'error'); volver2(); return; }
+                    const fuentes = st.m2.files.filter(f => f.estado === 'ok');
+                    const indiv = fuentes.filter(f => f.tipo === 'sucursal');
+                    const consol = fuentes.filter(f => f.tipo === 'consolidado');
+                    const cubiertasIndiv = new Set(indiv.map(f => f.cod));
+                    const fecha = new Date().toISOString();
+                    const hitsAll = []; const porSuc = new Map(); const sucAnalizadas = new Set(); const nombreSet = new Map();
+                    let regLeidos = 0;
+                    const procesar = (productos, codigosSuc, soloCods) => {
+                        (codigosSuc || []).forEach(c => nombreSet.set(c.cod, c.nombre));
+                        core.contarSucursales(productos, { soloCods }).forEach(c => sucAnalizadas.add(c));
+                        const res = core.cruzar(productos, codigosSuc, inh.index, { fecha, soloCods });
+                        res.hits.forEach(h => hitsAll.push(h));
+                        res.porSucursal.forEach((v, cod) => { if (!porSuc.has(cod)) porSuc.set(cod, v); else { const r = porSuc.get(cod); r.productos += v.productos; r.unidades += v.unidades; r.costo += v.costo; r.pvp += v.pvp; } });
+                    };
+                    const totalPasos = indiv.length + consol.length; let paso = 0;
+                    for (const f of indiv) {
+                        setProg(5 + (paso / Math.max(1, totalPasos)) * 85, `Procesando ${MAPEO_SUCURSALES_STOCK[f.cod] || 'sucursal'}…`); await yieldNext();
+                        let productos, codigosSuc;
+                        if (f.parse.valid) { productos = f.parse.productos; codigosSuc = [{ cod: f.cod, nombre: core.nombreSuc(f.cod) }]; }
+                        else { const fin = parseStockFilas(f.parse.rawJson, f.cod); productos = fin.productos; codigosSuc = fin.codigosSuc; }
+                        regLeidos += productos.length; procesar(productos, codigosSuc, new Set([f.cod])); paso++;
+                    }
+                    for (const f of consol) {
+                        setProg(5 + (paso / Math.max(1, totalPasos)) * 85, `Procesando consolidado (${f.sucursales} sucursales)…`); await yieldNext();
+                        const productos = f.parse.productos, codigosSuc = f.parse.codigosSuc;
+                        regLeidos += productos.length;
+                        const soloCods = new Set(codigosSuc.map(c => c.cod).filter(c => !cubiertasIndiv.has(c)));
+                        procesar(productos, codigosSuc, soloCods); paso++;
+                    }
+                    cubiertasIndiv.forEach(c => sucAnalizadas.add(c));
+                    setProg(95, 'Armando resumen…'); await yieldNext();
+                    const resumen = [...sucAnalizadas].map(cod => {
+                        const r = porSuc.get(cod), nombre = nombreSet.get(cod) || core.nombreSuc(cod);
+                        return { cod, sucursal: nombre, productos: r ? r.productos : 0, unidades: r ? r.unidades : 0, costo: r ? r.costo : 0, pvp: r ? r.pvp : 0, fecha };
+                    }).sort((a, b) => b.productos - a.productos);
+                    const t1 = performance.now();
+                    st.m2.result = { hits: hitsAll, porSuc, resumen, fecha, inhStats: inh.stats, sucAnalizadas: sucAnalizadas.size, archivos: fuentes.length, regLeidos, ms: Math.round(t1 - t0), soloCompra: solo };
+                    setProg(100, 'Listo'); await yieldNext();
+                    $('inhab2Loader').classList.add('hidden'); $('inhab2Results').classList.remove('hidden');
+                    renderModo2();
+                } catch (e) { console.error(e); toast('Ocurrió un error durante el análisis masivo.', 'error'); volver2(); }
+            }
+            function volver2() { $('inhab2Loader').classList.add('hidden'); $('inhab2Setup').classList.remove('hidden'); }
+            function renderModo2() {
+                const r = st.m2.result, res = r.resumen;
+                const conInhab = res.filter(s => s.productos > 0), sinNov = res.length - conInhab.length;
+                const prod = r.hits.length, unid = r.hits.reduce((a, h) => a + h.stock, 0), costo = r.hits.reduce((a, h) => a + h.costoTotal, 0), pvp = r.hits.reduce((a, h) => a + h.pvpTotal, 0);
+                $('inhab2Results').innerHTML = `
+                    <div class="bg-white rounded-2xl shadow-soft border border-slate-100 p-4 sm:p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div><h2 class="text-base font-bold text-brand-text tracking-tight flex items-center gap-2"><svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg> Resumen por sucursal</h2>
+                        <p class="text-xs text-brand-textSec mt-0.5">${fechaLegible(r.fecha)} · ${r.archivos} archivo(s) · ${r.inhStats.considerados} inhabilitados en el maestro</p></div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="Inhab.exportResumen2Excel()" class="px-3 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 smooth-transition">Excel general</button>
+                            <button onclick="Inhab.resetAll()" class="px-3 py-2 text-xs font-semibold text-brand-primary bg-white border border-slate-200 rounded-xl hover:bg-slate-50 smooth-transition">Nuevo análisis</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+                        ${kpiCard('Sucursales con inhabilitados', `${conInhab.length} / ${res.length}`, sinNov + ' sin novedades', conInhab.length ? 'text-red-600' : 'text-emerald-600')}
+                        ${kpiCard('Productos encontrados', formatNumber(prod), '', 'text-red-600')}
+                        ${kpiCard('Total de unidades', formatNumber(unid), '')}
+                        ${kpiCard('Costo total', formatCurrencyCompact(costo), formatCurrency(costo))}
+                        ${kpiCard('PVP total', formatCurrencyCompact(pvp), formatCurrency(pvp))}
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden">
+                        <div class="px-5 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-3"><h2 class="text-sm font-bold text-slate-700">Sucursales</h2><div class="relative w-64 max-w-[55%]"><svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg><input type="text" id="inhab2Search" oninput="Inhab.renderResumen2()" placeholder="Buscar sucursal…" class="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg bg-white"></div></div>
+                        <div class="overflow-x-auto max-h-[600px] overflow-y-auto custom-scrollbar"><table class="w-full text-left erp-table"><thead class="bg-slate-50 sticky top-0"><tr id="inhab2Head"></tr></thead><tbody id="inhab2Body"></tbody></table></div>
+                    </div>
+                    <p class="text-[10.5px] text-slate-400 italic">Registros leídos: ${formatNumber(r.regLeidos)} · Tiempo: ${(r.ms / 1000).toFixed(1)} s. Entrá a una sucursal con “Ver detalle” para marcar físico, copiar EAN y generar el informe para Comercial.</p>`;
+                renderResumen2();
+            }
+            const RES2COLS = [['sucursal', 'Sucursal', 'l'], ['productos', 'Productos', 'r'], ['unidades', 'Unidades', 'r'], ['costo', 'Costo', 'r'], ['pvp', 'PVP', 'r'], ['estado', 'Estado', 'c'], ['_', 'Detalle', 'c']];
+            function renderResumen2() {
+                const r = st.m2.result, t = st.m2.tabla;
+                const q = normTxt(($('inhab2Search') || {}).value || '');
+                let rows = r.resumen.slice(); if (q) rows = rows.filter(s => normTxt(s.sucursal).includes(q));
+                rows.sort((a, b) => { if (t.col === '_' || t.col === 'estado') return b.productos - a.productos; let x = a[t.col], y = b[t.col]; if (typeof x === 'string') { x = normTxt(x); y = normTxt(y); } if (x < y) return t.dir === 'asc' ? -1 : 1; if (x > y) return t.dir === 'asc' ? 1 : -1; return 0; });
+                $('inhab2Head').innerHTML = RES2COLS.map(([c, lbl, al]) => `<th class="px-3 py-2 ${al === 'r' ? 'text-right' : al === 'c' ? 'text-center' : ''} ${c !== '_' && c !== 'estado' ? 'cursor-pointer select-none hover:text-brand-primary' : ''}" ${c !== '_' && c !== 'estado' ? `onclick="Inhab._sort2('${c}')"` : ''}>${lbl}${t.col === c ? (t.dir === 'asc' ? ' ▲' : ' ▼') : ''}</th>`).join('');
+                $('inhab2Body').innerHTML = rows.map(s => s.productos > 0 ? `<tr>
+                    <td class="px-3 py-2.5 font-semibold text-slate-800">${escapeHtml(s.sucursal)}</td>
+                    <td class="px-3 py-2.5 text-right tabular-nums font-bold text-red-600">${formatNumber(s.productos)}</td>
+                    <td class="px-3 py-2.5 text-right tabular-nums text-slate-700">${formatNumber(s.unidades)}</td>
+                    <td class="px-3 py-2.5 text-right tabular-nums text-slate-600">${formatCurrency(s.costo)}</td>
+                    <td class="px-3 py-2.5 text-right tabular-nums text-slate-600">${formatCurrency(s.pvp)}</td>
+                    <td class="px-3 py-2.5 text-center"><span class="px-2 py-0.5 rounded-md bg-red-50 text-red-700 text-[10px] font-bold border border-red-200">${formatNumber(s.productos)} prod.</span></td>
+                    <td class="px-3 py-2.5 text-center"><button onclick="Inhab.verDetalle(${s.cod})" class="text-brand-primary hover:text-brand-primaryHover text-xs font-semibold underline underline-offset-2">Ver detalle</button></td></tr>`
+                    : `<tr class="opacity-70"><td class="px-3 py-2.5 font-medium text-slate-500">${escapeHtml(s.sucursal)}</td><td class="px-3 py-2.5 text-right text-slate-400">0</td><td class="px-3 py-2.5 text-right text-slate-300">—</td><td class="px-3 py-2.5 text-right text-slate-300">—</td><td class="px-3 py-2.5 text-right text-slate-300">—</td><td class="px-3 py-2.5 text-center"><span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">Sin novedades</span></td><td class="px-3 py-2.5 text-center text-slate-300">—</td></tr>`).join('');
+            }
+            function _sort2(col) { const t = st.m2.tabla; if (t.col === col) t.dir = t.dir === 'asc' ? 'desc' : 'asc'; else { t.col = col; t.dir = ['productos', 'unidades', 'costo', 'pvp'].includes(col) ? 'desc' : 'asc'; } renderResumen2(); }
+            function verDetalle(cod) {
+                const r = st.m2.result;
+                const hits = r.hits.filter(h => h.codSuc === cod);
+                const suc = (r.porSuc.get(cod) || {}).sucursal || core.nombreSuc(cod);
+                st.cur = { scope: 'det', hits, suc, fecha: r.fecha, q: '', estado: 'all', col: 'stock', dir: 'desc' };
+                $('inhabDetTitulo').textContent = suc;
+                $('inhabDetSub').textContent = `${hits.length} producto(s) inhabilitado(s) con stock · ${fechaLegible(r.fecha)}`;
+                renderActionView('det', 'inhabDetView', { maxH: '48vh' });
+                openModal('modalInhabDetalle');
+            }
+
+            /* ================================================================== EXPORTES / INFORMES */
+            function informeItems() {
+                return st.cur.hits.filter(h => { const m = st.marks.get(markKey(h)); return m === 'fis' || m === 'nofis'; })
+                    .map(h => { const k = markKey(h), m = st.marks.get(k); return Object.assign({}, h, { esFis: m === 'fis', estadoTxt: m === 'fis' ? 'Con stock físico' : 'Dado de baja', baja: m === 'nofis' ? (st.bajas.get(k) || '') : '' }); })
+                    .sort((a, b) => (a.esFis === b.esFis) ? normTxt(a.descripcion).localeCompare(normTxt(b.descripcion)) : (a.esFis ? -1 : 1));
+            }
+            function informeComercial(scope, fmt) {
+                const items = informeItems();
+                if (!items.length) { toast('Revisá los productos y marcá “Tengo” o “No tengo” antes de generar el informe.', 'error'); return; }
+                const pend = st.cur.hits.length - items.length;
+                const sinN = items.filter(h => !h.esFis && !String(h.baja).trim()).length;
+                if (sinN) toast(`Atención: ${sinN} producto(s) dados de baja sin N° de baja cargado.`, 'error');
+                else if (pend) toast(`Quedan ${pend} producto(s) sin revisar; no se incluyen en el informe.`, '');
+                const suc = st.cur.suc, fecha = st.cur.fecha;
+                if (fmt === 'xlsx') {
+                    const data = items.map(h => ({ 'EAN': h.codebar, 'Cód. Plex': h.IDProducto, 'Descripción': h.descripcion, 'Rubro': h.rubro, 'Laboratorio': h.laboratorio, 'Stock': h.stock, 'Estado': h.estadoTxt, 'N° de baja': h.baja, 'Costo total': h.costoTotal, 'PVP total': h.pvpTotal }));
+                    const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Comercial'); XLSX.writeFile(wb, `Comercial_${(suc || '').replace(/[^\w]+/g, '_')}_${fechaCorta(fecha).replace(/\//g, '-')}.xlsx`);
+                    toast('Informe Excel generado.', 'ok'); return;
+                }
+                abrirPDF(pdfInforme(suc, fecha, items));
+            }
+            function pdfInforme(suc, fecha, rows) {
+                const fis = rows.filter(h => h.esFis), baja = rows.filter(h => !h.esFis);
+                const unidF = fis.reduce((a, h) => a + h.stock, 0), costoF = fis.reduce((a, h) => a + h.costoTotal, 0), pvpF = fis.reduce((a, h) => a + h.pvpTotal, 0);
+                const pill = h => h.esFis ? `<span class="pill pf">Con físico</span>` : `<span class="pill pb">Dado de baja</span>`;
+                const tr = rows.map((h, i) => `<tr><td class="c">${i + 1}</td><td class="mono">${escapeHtml(h.codebar)}</td><td class="mono">${escapeHtml(h.IDProducto)}</td><td>${escapeHtml(h.descripcion)}</td><td>${escapeHtml(h.rubro)}</td><td class="r">${formatNumber(h.stock)}</td><td class="c">${pill(h)}</td><td class="c mono">${h.esFis ? '<span style=\'color:#CBD5E1\'>—</span>' : (escapeHtml(h.baja) || '<span style=\'color:#DC2626;font-weight:700\'>falta</span>')}</td><td class="r">${formatCurrency(h.costoTotal)}</td><td class="r">${formatCurrency(h.pvpTotal)}</td></tr>`).join('');
+                return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Informe Comercial — ${escapeHtml(suc)}</title>
+                <style>*{box-sizing:border-box;font-family:Inter,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:0;padding:22px;color:#0F172A;font-size:12px}
+                .hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #2B3990;padding-bottom:12px;margin-bottom:6px}
+                .hd h1{font-size:19px;margin:0;color:#0F172A;letter-spacing:-.3px}.hd h1 span{color:#2B3990}
+                .hd .sub{font-size:12px;color:#64748B;margin-top:3px}.hd .r{text-align:right}.hd .r b{font-size:13px;color:#0F172A}.hd .r p{margin:2px 0 0;font-size:10.5px;color:#64748B}
+                .note{background:#F5F7FC;border:1px solid #E2E8F0;border-left:4px solid #2B3990;border-radius:0 8px 8px 0;padding:10px 14px;margin:14px 0;font-size:11px;color:#334155;line-height:1.5}
+                .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+                .k{border:1px solid #E2E8F0;border-top:3px solid #2B3990;border-radius:8px;padding:8px 10px}.kt{font-size:8px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.4px;margin:0 0 3px}.kv{font-size:15px;font-weight:800;margin:0}
+                .k.g{border-top-color:#10B981}.k.r{border-top-color:#EF4444}
+                table{width:100%;border-collapse:collapse}thead{display:table-header-group}th{background:#0F172A;color:#fff;font-size:8px;text-transform:uppercase;letter-spacing:.4px;padding:6px;text-align:left}
+                td{font-size:9px;padding:4px 6px;border-bottom:1px solid #EEF2F7;color:#334155}tr:nth-child(even) td{background:#FAFBFC}tr{page-break-inside:avoid}
+                td.r,th.r{text-align:right}td.c,th.c{text-align:center}td.mono{font-family:'Courier New',monospace;font-weight:600;color:#0F172A}
+                .pill{display:inline-block;font-size:7.5px;font-weight:800;padding:2px 7px;border-radius:20px}.pf{background:#D1FAE5;color:#065F46}.pb{background:#FEE2E2;color:#991B1B}
+                .ft{margin-top:16px;padding-top:8px;border-top:1px solid #E2E8F0;font-size:9px;color:#94A3B8;display:flex;justify-content:space-between}
+                @page{size:A4 landscape;margin:12mm}</style></head><body>
+                <div class="hd"><div><h1>Productos Inhabilitados <span>con stock — Revisión de sucursal</span></h1><div class="sub">Sucursal: <b>${escapeHtml(suc)}</b> · Remito a Comercial</div></div><div class="r"><b>FarmaPlus Analytics</b><p>${fechaLegible(fecha)}</p></div></div>
+                <div class="note">Detalle de los productos <b>inhabilitados para la venta que figuraban con stock</b>. La sucursal revisó cada uno: los marcados <b>“Con físico”</b> están presentes en el local y se remiten a Comercial; los <b>“Dados de baja”</b> eran stock virtual y ya se dieron de baja en Plex (se indica el <b>N° de baja</b>). El stock proviene del Listado de Stock de Plex.</div>
+                <div class="kpis"><div class="k"><p class="kt">Productos revisados</p><p class="kv">${formatNumber(rows.length)}</p></div><div class="k g"><p class="kt">Con stock físico</p><p class="kv">${formatNumber(fis.length)}</p></div><div class="k r"><p class="kt">Dados de baja</p><p class="kv">${formatNumber(baja.length)}</p></div><div class="k g"><p class="kt">Unidades físico · Costo</p><p class="kv">${formatNumber(unidF)} · ${formatCurrency(costoF)}</p></div></div>
+                <table><thead><tr><th class="c">#</th><th>EAN</th><th>Cód. Plex</th><th>Descripción</th><th>Rubro</th><th class="r">Stock</th><th class="c">Estado</th><th class="c">N° de baja</th><th class="r">Costo</th><th class="r">PVP</th></tr></thead><tbody>${tr}</tbody>
+                <tfoot><tr><td colspan="8" class="r" style="background:#EEF2F7;font-weight:800;border-top:2px solid #CBD5E1">TOTAL con físico (${fis.length})</td><td class="r" style="background:#EEF2F7;font-weight:800;border-top:2px solid #CBD5E1">${formatCurrency(costoF)}</td><td class="r" style="background:#EEF2F7;font-weight:800;border-top:2px solid #CBD5E1">${formatCurrency(pvpF)}</td></tr></tfoot></table>
+                <div class="ft"><span>Generado por FarmaPlus Analytics · Área de Inventarios</span><span>${escapeHtml(suc)} · ${fechaCorta(fecha)}</span></div>
+                </body></html>`;
+            }
+            // Imprime el informe desde un iframe oculto en la misma página: abre el
+            // diálogo de impresión (Guardar como PDF) sin dejar una pestaña about:blank.
+            function abrirPDF(html) {
+                const prev = document.getElementById('inhabPrintFrame'); if (prev) prev.remove();
+                const iframe = document.createElement('iframe');
+                iframe.id = 'inhabPrintFrame'; iframe.setAttribute('aria-hidden', 'true');
+                iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+                iframe.onload = function () {
+                    let done = false;
+                    const cleanup = function () { if (done) return; done = true; setTimeout(function () { try { iframe.remove(); } catch (e) { } }, 400); };
+                    try {
+                        const w = iframe.contentWindow;
+                        w.onafterprint = cleanup;
+                        w.focus();
+                        setTimeout(function () { try { w.print(); } catch (e) { cleanup(); } }, 150);
+                        setTimeout(cleanup, 120000);
+                    } catch (e) { toast('No pude abrir la impresión del informe.', 'error'); cleanup(); }
+                };
+                iframe.srcdoc = html;
+                document.body.appendChild(iframe);
+            }
+            function exportResumen2Excel() {
+                const r = st.m2.result;
+                const resumen = r.resumen.map(s => ({ 'Sucursal': s.sucursal, 'Productos inhabilitados': s.productos, 'Unidades': s.unidades, 'Costo total': s.costo, 'PVP total': s.pvp, 'Estado': s.productos ? 'Con inhabilitados' : 'Sin novedades' }));
+                const detalle = r.hits.map(h => ({ 'Sucursal': h.sucursal, 'EAN': h.codebar, 'Cód. Plex': h.IDProducto, 'Descripción': h.descripcion, 'Rubro': h.rubro, 'Laboratorio': h.laboratorio, 'Stock': h.stock, 'Costo total': h.costoTotal, 'PVP total': h.pvpTotal }));
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumen), 'Resumen');
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detalle), 'Detalle');
+                XLSX.writeFile(wb, `Inhabilitados_general_${fechaCorta(r.fecha).replace(/\//g, '-')}.xlsx`);
+                toast('Excel generado.', 'ok');
+            }
+
+            /* ================================================================== MODO / RESET / INIT */
+            function setMode(m) {
+                st.modo = m;
+                const on = 'inhab-seg-btn px-4 sm:px-5 py-2 text-sm font-semibold rounded-lg bg-white text-brand-primary shadow-sm flex items-center gap-2';
+                const off = 'inhab-seg-btn px-4 sm:px-5 py-2 text-sm font-semibold rounded-lg text-slate-500 hover:text-slate-700 flex items-center gap-2';
+                $('inhabSegModo1').className = m === 'modo1' ? on : off;
+                $('inhabSegModo2').className = m === 'modo2' ? on : off;
+                $('inhabModo1').classList.toggle('hidden', m !== 'modo1');
+                $('inhabModo2').classList.toggle('hidden', m !== 'modo2');
+            }
+            function resetAll() {
+                st.marks = new Map(); st.bajas = new Map();
+                try { localStorage.removeItem(LS_MARKS); localStorage.removeItem(LS_BAJAS); } catch (e) { }
+                st.m1 = { stockBin: null, stockName: '', stockParse: null, codManual: null, inhabBin: null, inhabName: '', result: null, branchSel: 'ALL' };
+                st.m2 = { files: [], inhabBin: null, inhabName: '', result: null, tabla: { col: 'productos', dir: 'desc' } };
+                $('inhab1Results').classList.add('hidden'); $('inhab1Results').innerHTML = ''; $('inhab1Setup').classList.remove('hidden'); $('inhab1Loader').classList.add('hidden');
+                $('inhab1StockHint').textContent = 'Arrastrá el Excel o hacé clic para elegirlo'; $('inhab1InhabHint').textContent = 'Arrastrá el Excel o hacé clic para elegirlo';
+                removeBranchPicker1(); $('inhab1BtnAnalizar').disabled = true;
+                $('inhab2Results').classList.add('hidden'); $('inhab2Results').innerHTML = ''; $('inhab2Setup').classList.remove('hidden'); $('inhab2Loader').classList.add('hidden');
+                $('inhab2InhabHint').textContent = 'Un único archivo'; renderFileList2(); $('inhab2BtnAnalizar').disabled = true;
+                $('btnInhabReset').classList.add('hidden');
+                toast('Módulo reiniciado.', 'ok');
+            }
+            function init() {
+                loadMarks();
+                wireDrop('inhab1DropStock', files => loadStock1(files[0]), false);
+                wireDrop('inhab1DropInhab', files => onInhabFile1({ target: { files } }), false);
+                wireDrop('inhab2DropStock', files => addStockFiles2(files), true);
+                wireDrop('inhab2DropInhab', files => onInhabFile2({ target: { files } }), false);
+                setMode('modo1');
+            }
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+
+            window.Inhab = {
+                setMode, resetAll,
+                onStockFile1, onInhabFile1, analizar1, _branch1, _selBranch1,
+                onStockFiles2, onInhabFile2, analizar2, _setFileCod, _delFile2, clearStockFiles2, renderResumen2, _sort2, verDetalle, exportResumen2Excel,
+                acc, accSort, mark, marcarTodos, setBaja, copiarEAN, informeComercial
+            };
+        })();
+
     </script>
 </body>
 </html>
