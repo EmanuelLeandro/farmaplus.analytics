@@ -7490,6 +7490,10 @@
         actualizarBadgeErroresCarga();
     </script>
 
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Diferencias">
 <!-- ============================================================================
      MÓDULO CONTROL DE DIFERENCIAS DE INVENTARIO
      Agregado sin tocar nada de lo que ya andaba: vista propia, su botón en la
@@ -7498,6 +7502,7 @@
      ============================================================================ -->
 <style>
   /* Cuando alguien abre su listado desde el QR, la app ocupa toda la pantalla */
+  #difControlador .h-13 { height: 3.25rem; }
   body.dif-solo > *:not(#difControlador):not(#difToast) { display: none !important; }
   body.dif-solo { overflow: hidden; overscroll-behavior: none; }
   body.dif-solo #difControlador {
@@ -10440,6 +10445,9 @@ function abrirControlador(payload) {
   leerPayload(payload).then(function (data) {
     CTRL = data; loadLocal();
     document.body.classList.add("dif-solo");
+    /* Tailwind mide en rem: subir la raíz agranda TODO de una (letras, botones,
+       alturas y espacios) sin tocar cada clase. */
+    document.documentElement.style.fontSize = "19px";
     var cont = $("difControlador");
     cont.classList.remove("hidden");
     pintarControlador();
@@ -10451,7 +10459,7 @@ function abrirControlador(payload) {
   });
 }
 
-var vista = "ficha", cursor = 0;   /* ficha = un producto por vez; lista = para buscar */
+var vista = "lista", cursor = 0;
 
 function visibles() {
   var q = busca.toLowerCase().trim();
@@ -10468,10 +10476,7 @@ function todosOrdenados() {
   return CTRL.items.slice().sort(function (a, b) { return a.lab < b.lab ? -1 : a.lab > b.lab ? 1 : (a.nm < b.nm ? -1 : 1); });
 }
 
-function pintarControlador() {
-  if (vista === "lista") return pintarLista();
-  return pintarFicha();
-}
+function pintarControlador() { return pintarLista(); }
 
 /* ---------- cabecera común, fija arriba ---------- */
 function cabecera(extra) {
@@ -10490,92 +10495,6 @@ function cabecera(extra) {
     el("div", { class: "h-1.5 bg-zinc-100" }, [el("div", { class: "h-full bg-brand-primary", style: "width:" + pct + "%" })]),
     extra || null
   ]);
-}
-
-/* ---------- una ficha por vez, a pantalla completa ---------- */
-function pintarFicha() {
-  var cont = $("difControlador"); cont.innerHTML = "";
-  var lista = visibles();
-  if (!lista.length) {
-    var all = CTRL.items, hechos = all.filter(isDone).length;
-    cont.appendChild(cabecera());
-    cont.appendChild(el("div", { class: "dif-scroll flex items-center justify-center px-8" }, [
-      el("div", { class: "text-center space-y-4" }, [
-        el("p", { class: "text-lg text-brand-text font-semibold" }, [hechos === all.length && all.length ? "Terminaste tu lista" : "No quedan productos con este filtro"]),
-        el("button", { class: "px-6 h-12 rounded-xl bg-brand-primary text-white font-semibold", onclick: function () { pantallaCompartir(); } }, ["Enviar lo controlado"]),
-        filtro !== "todos" ? el("button", { class: "block mx-auto px-6 h-12 rounded-xl border border-zinc-200 text-brand-text font-medium",
-          onclick: function () { filtro = "todos"; cursor = 0; pintarControlador(); } }, ["Ver todos igual"]) : null
-      ])
-    ]));
-    return;
-  }
-  if (cursor >= lista.length) cursor = lista.length - 1;
-  if (cursor < 0) cursor = 0;
-  var it = lista[cursor];
-  var dif = it.c - it.s;
-
-  cont.appendChild(cabecera(
-    el("div", { class: "px-4 py-2 flex items-center justify-between gap-2 border-t border-zinc-100" }, [
-      el("button", { class: "h-9 px-3 rounded-lg text-sm font-medium text-brand-textSec border border-zinc-200",
-        onclick: function () { vista = "lista"; pintarControlador(); } }, ["Ver la lista"]),
-      el("span", { class: "text-sm text-brand-textSec tabular-nums" }, [(cursor + 1) + " de " + lista.length]),
-      el("button", { class: "h-9 px-3 rounded-lg text-sm font-semibold text-white bg-brand-primary",
-        onclick: function () { pantallaCompartir(); } }, ["Enviar"])
-    ])
-  ));
-
-  var scroll = el("div", { class: "dif-scroll px-4 py-3 space-y-3" });
-
-  scroll.appendChild(el("div", {}, [
-    el("p", { class: "text-xs uppercase tracking-wide text-brand-textSec" }, [it.lab]),
-    el("p", { class: "text-xl font-bold text-brand-text leading-tight mt-0.5" }, [it.nm]),
-    el("div", { class: "flex items-center gap-3 mt-2 flex-wrap" }, [
-      el("span", { class: "text-base text-brand-textSec tabular-nums" }, [it.cb]),
-      el("span", { class: "px-3 py-1 rounded-full text-sm font-bold " + (dif < 0 ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700") },
-        [dif < 0 ? "Faltan " + Math.abs(dif) : "Sobran " + dif])
-    ])
-  ]));
-
-  scroll.appendChild(el("div", { class: "grid grid-cols-3 rounded-2xl border border-zinc-200 overflow-hidden" }, [
-    ["Sistema", String(it.s), ""], ["Se contó", String(it.c), ""],
-    ["Diferencia", (dif > 0 ? "+" : "") + dif, dif < 0 ? "text-red-600" : "text-blue-600"]
-  ].map(function (t, i) {
-    return el("div", { class: "py-2.5 text-center bg-white " + (i < 2 ? "border-r border-zinc-200" : "") }, [
-      el("p", { class: "text-[10px] uppercase tracking-wide text-brand-textSec" }, [t[0]]),
-      el("p", { class: "text-xl font-bold tabular-nums " + (t[2] || "text-brand-text") }, [t[1]])
-    ]);
-  })));
-
-  scroll.appendChild(bloqueConteo(it, function () { pintarFicha(); }));
-
-  scroll.appendChild(el("details", { class: "rounded-2xl border border-zinc-200 bg-white" }, [
-    el("summary", { class: "px-4 py-3 text-sm font-medium text-brand-textSec cursor-pointer" }, ["¿Cuál es este producto?"]),
-    el("div", { class: "px-4 pb-4 flex flex-wrap gap-2" }, buscadores(it).map(function (b) {
-      return el("a", { class: "px-3 h-11 inline-flex items-center rounded-xl border border-zinc-200 text-brand-text text-sm font-medium",
-        href: b.u, target: "_blank", rel: "noopener" }, [b.t]);
-    }))
-  ]));
-  cont.appendChild(scroll);
-
-  /* navegación fija abajo */
-  var chk = el("input", { class: "w-6 h-6 accent-[#2B3990]", type: "checkbox" });
-  chk.checked = isDone(it);
-  chk.addEventListener("change", function () {
-    marcarHecho(it, chk.checked);
-    if (chk.checked && filtro === "pend") { pintarFicha(); }
-    else { if (chk.checked) cursor = Math.min(cursor + 1, lista.length - 1); pintarFicha(); }
-  });
-  cont.appendChild(el("div", { class: "dif-fija bg-white border-t border-zinc-200 px-3 py-2.5 space-y-2" }, [
-    el("label", { class: "flex items-center justify-center gap-3 h-14 rounded-2xl border text-base font-semibold cursor-pointer select-none " +
-      (isDone(it) ? "bg-brand-primary/10 border-brand-primary/40 text-brand-primary" : "border-zinc-200 text-brand-text") },
-      [chk, document.createTextNode(isDone(it) ? "Controlado" : "Marcar como controlado")]),
-    el("div", { class: "flex gap-2" }, [
-      el("button", { class: "flex-1 h-14 rounded-2xl border border-zinc-200 text-brand-text font-semibold text-base " + (cursor === 0 ? "opacity-40" : ""),
-        onclick: function () { if (cursor > 0) { cursor--; pintarFicha(); } } }, ["\u2039  Anterior"]),
-      el("button", { class: "flex-1 h-14 rounded-2xl bg-brand-primary text-white font-semibold text-base " + (cursor >= lista.length - 1 ? "opacity-40" : ""),
-        onclick: function () { if (cursor < lista.length - 1) { cursor++; pintarFicha(); } } }, ["Siguiente  \u203a"])
-    ])
-  ]));
 }
 
 /* ---------- el bloque de sumar, compartido ---------- */
@@ -10626,53 +10545,115 @@ function bloqueConteo(it, alCambiar) {
   return caja;
 }
 
-/* ---------- la lista, para buscar y saltar ---------- */
+/* ---------- la lista completa: todos los productos, grandes ---------- */
 function pintarLista() {
   var cont = $("difControlador"); cont.innerHTML = "";
   var lista = visibles().sort(function (a, b) { return a.lab < b.lab ? -1 : a.lab > b.lab ? 1 : (a.nm < b.nm ? -1 : 1); });
 
   cont.appendChild(cabecera(
-    el("div", { class: "px-4 py-2 space-y-2 border-t border-zinc-100" }, [
-      el("div", { class: "flex gap-2" }, [
-        el("input", { class: "flex-1 h-12 px-4 text-base bg-white border border-zinc-200 rounded-xl text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/30",
-          type: "search", value: busca, placeholder: "Buscar producto o código…",
-          oninput: function (e) { busca = e.target.value; pintarLista(); var i = document.querySelector("#difControlador input[type=search]"); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } } }),
-        el("button", { class: "shrink-0 px-4 h-12 rounded-xl bg-brand-primary text-white font-semibold", onclick: function () { vista = "ficha"; pintarControlador(); } }, ["Volver"])
-      ]),
+    el("div", { class: "px-3 pb-2 space-y-2 border-t border-zinc-100" }, [
+      el("input", { class: "w-full h-12 px-4 text-base bg-white border border-zinc-200 rounded-xl text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/30",
+        type: "search", value: busca, placeholder: "Buscar producto o código…",
+        oninput: function (e) {
+          busca = e.target.value; pintarLista();
+          var i = document.querySelector("#difControlador input[type=search]");
+          if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
+        } }),
       el("div", { class: "flex gap-2 overflow-x-auto -mx-1 px-1 pb-1" },
         [["pend", "Pendientes"], ["todos", "Todos"], ["hechos", "Controlados"], ["falta", "Faltantes"], ["sobra", "Sobrantes"]].map(function (f) {
-          return el("button", { class: (filtro === f[0] ? "bg-brand-primary text-white" : "bg-white border border-zinc-200 text-brand-textSec") + " px-4 h-10 rounded-full text-sm font-medium whitespace-nowrap shrink-0",
-            onclick: function () { filtro = f[0]; cursor = 0; pintarLista(); } }, [f[1]]);
+          return el("button", { class: (filtro === f[0] ? "bg-brand-primary text-white" : "bg-white border border-zinc-200 text-brand-textSec") + " px-4 h-11 rounded-full text-sm font-semibold whitespace-nowrap shrink-0",
+            onclick: function () { filtro = f[0]; pintarLista(); } }, [f[1]]);
         }))
     ])
   ));
 
   var scroll = el("div", { class: "dif-scroll" });
   if (!lista.length) {
-    scroll.appendChild(el("p", { class: "text-center text-base text-brand-textSec py-12 px-6" }, ["No hay productos con este filtro."]));
+    var all = CTRL.items, hechos = all.filter(isDone).length;
+    scroll.appendChild(el("div", { class: "px-6 py-16 text-center space-y-4" }, [
+      el("p", { class: "text-lg font-semibold text-brand-text" }, [hechos === all.length && all.length ? "Terminaste tu lista" : "No hay productos con este filtro"]),
+      filtro !== "todos" ? el("button", { class: "px-6 h-12 rounded-xl border border-zinc-200 text-brand-text font-medium",
+        onclick: function () { filtro = "todos"; pintarLista(); } }, ["Ver todos"]) : null
+    ]));
   } else {
     var lastLab = null;
-    lista.forEach(function (it, n) {
+    lista.forEach(function (it) {
       if (it.lab !== lastLab) {
         lastLab = it.lab;
-        scroll.appendChild(el("p", { class: "text-xs uppercase tracking-wide font-semibold text-brand-textSec px-4 pt-4 pb-1" }, [it.lab]));
+        scroll.appendChild(el("p", { class: "text-sm uppercase tracking-wide font-bold text-brand-textSec px-4 pt-5 pb-2" }, [it.lab]));
       }
-      var dif = it.c - it.s, total = totalDe(it);
-      scroll.appendChild(el("button", { class: "w-full text-left px-4 py-3 border-b border-zinc-200 bg-white flex items-center gap-3",
-        onclick: function () { cursor = n; vista = "ficha"; pintarControlador(); } }, [
-        el("div", { class: "min-w-0 flex-1" }, [
-          el("p", { class: "text-base font-semibold text-brand-text leading-snug" }, [it.nm]),
-          el("p", { class: "text-xs text-brand-textSec tabular-nums" }, [it.cb + " · sistema " + it.s + " · contó " + it.c])
-        ]),
-        el("div", { class: "shrink-0 text-right" }, [
-          el("p", { class: "text-sm font-bold tabular-nums " + (dif < 0 ? "text-red-600" : "text-blue-600") }, [(dif > 0 ? "+" : "") + dif]),
-          tocado(it) ? el("p", { class: "text-xs text-brand-textSec tabular-nums" }, ["contaste " + total]) : null,
-          isDone(it) ? el("p", { class: "text-xs font-semibold text-emerald-600" }, ["listo"]) : null
-        ])
-      ]));
+      scroll.appendChild(filaProducto(it));
     });
+    scroll.appendChild(el("div", { class: "h-6" }));
   }
   cont.appendChild(scroll);
+
+  var all = CTRL.items, hechos = all.filter(isDone).length;
+  cont.appendChild(el("div", { class: "dif-fija bg-white border-t border-zinc-200 px-3 py-3 flex items-center gap-3" }, [
+    el("p", { class: "flex-1 text-sm text-brand-textSec tabular-nums" }, [hechos + " de " + all.length + " controlados"]),
+    el("button", { class: "shrink-0 px-7 h-13 py-3 rounded-xl bg-brand-primary text-white font-bold text-base", onclick: function () { pantallaCompartir(); } }, ["Enviar"])
+  ]));
+}
+
+/* Cada producto: todo grande y a la vista, sin entrar a ninguna pantalla aparte. */
+function filaProducto(it) {
+  var dif = it.c - it.s;
+  var caja = el("div", { class: "bg-white border-y border-zinc-200 mb-3 " + (isDone(it) ? "opacity-70" : "") });
+
+  caja.appendChild(el("div", { class: "px-4 pt-4" }, [
+    el("p", { class: "text-xl font-bold text-brand-text leading-snug" }, [it.nm]),
+    el("div", { class: "flex items-center gap-3 mt-1.5 flex-wrap" }, [
+      el("span", { class: "text-base text-brand-textSec tabular-nums" }, [it.cb]),
+      el("span", { class: "px-3 py-1 rounded-full text-sm font-bold " + (dif < 0 ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700") },
+        [dif < 0 ? "Faltan " + Math.abs(dif) : "Sobran " + dif])
+    ])
+  ]));
+
+  caja.appendChild(el("div", { class: "grid grid-cols-3 mx-4 my-3 rounded-2xl border border-zinc-200 overflow-hidden" }, [
+    ["Sistema", String(it.s), ""], ["Se contó", String(it.c), ""],
+    ["Diferencia", (dif > 0 ? "+" : "") + dif, dif < 0 ? "text-red-600" : "text-blue-600"]
+  ].map(function (t, i) {
+    return el("div", { class: "py-2.5 text-center " + (i < 2 ? "border-r border-zinc-200" : "") }, [
+      el("p", { class: "text-[11px] uppercase tracking-wide text-brand-textSec" }, [t[0]]),
+      el("p", { class: "text-2xl font-bold tabular-nums " + (t[2] || "text-brand-text") }, [t[1]])
+    ]);
+  })));
+
+  var zona = el("div", { class: "px-4 pb-4 space-y-3" });
+  var chkWrap = el("div", { class: "px-4 pb-4" });
+
+  function refrescarPie() {
+    chkWrap.innerHTML = "";
+    var chk = el("input", { class: "w-6 h-6 accent-[#2B3990]", type: "checkbox" });
+    chk.checked = isDone(it);
+    chk.addEventListener("change", function () {
+      marcarHecho(it, chk.checked);
+      if (filtro === "pend" && chk.checked) setTimeout(pintarLista, 220);
+      else { caja.classList.toggle("opacity-70", chk.checked); refrescarPie(); actualizarPie(); }
+    });
+    chkWrap.appendChild(el("label", { class: "flex items-center justify-center gap-3 h-14 rounded-2xl border text-base font-bold cursor-pointer select-none " +
+      (isDone(it) ? "bg-brand-primary/10 border-brand-primary/40 text-brand-primary" : "border-zinc-200 text-brand-text") },
+      [chk, document.createTextNode(isDone(it) ? "Controlado" : "Marcar como controlado")]));
+  }
+  function actualizarPie() {
+    var all = CTRL.items, hechos = all.filter(isDone).length;
+    var p = document.querySelector("#difControlador .dif-fija p.flex-1");
+    if (p) p.textContent = hechos + " de " + all.length + " controlados";
+  }
+
+  zona.appendChild(bloqueConteo(it, function () { refrescarPie(); }));
+  caja.appendChild(zona);
+  refrescarPie();
+  caja.appendChild(chkWrap);
+
+  caja.appendChild(el("details", { class: "border-t border-zinc-200 bg-zinc-50" }, [
+    el("summary", { class: "px-4 py-3 text-sm font-semibold text-brand-textSec cursor-pointer" }, ["¿Cuál es este producto?"]),
+    el("div", { class: "px-4 pb-4 flex flex-wrap gap-2" }, buscadores(it).map(function (b) {
+      return el("a", { class: "px-4 h-12 inline-flex items-center rounded-xl border border-zinc-200 bg-white text-brand-text text-sm font-medium",
+        href: b.u, target: "_blank", rel: "noopener" }, [b.t]);
+    }))
+  ]));
+  return caja;
 }
 
 /* Formato del colector: IDProducto;Codebar;Cantidad;0 */
@@ -10749,7 +10730,11 @@ function initDif() {
 window.addEventListener("hashchange", function () {
   var m = (location.hash || "").match(/^#dif=(.+)$/);
   if (m) abrirControlador(m[1]);
-  else { document.body.classList.remove("dif-solo"); $("difControlador").classList.add("hidden"); CTRL = null; }
+  else {
+    document.body.classList.remove("dif-solo");
+    document.documentElement.style.fontSize = "";
+    $("difControlador").classList.add("hidden"); CTRL = null;
+  }
 });
 
 window.difCargarArchivo = function (ev) { cargarArchivo(ev.target.files[0]); ev.target.value = ""; };
