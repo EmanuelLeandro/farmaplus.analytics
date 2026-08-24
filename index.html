@@ -7500,7 +7500,13 @@
   /* Cuando alguien abre su listado desde el QR, se muestra solo eso */
   body.dif-solo > *:not(#difControlador):not(#difToast) { display: none !important; }
   #difControlador details > summary::-webkit-details-marker { display: none; }
-  @media print { #viewDif .break-inside-avoid { break-inside: avoid; page-break-inside: avoid; } }
+  @media print {
+    #viewDif .break-inside-avoid, #viewDif .hoja-persona { break-inside: avoid; page-break-inside: avoid; }
+    /* Una hoja por persona */
+    #viewDif .hoja-persona { break-after: page; page-break-after: always; border: 0 !important; }
+    #viewDif .hoja-persona:last-child { break-after: auto; page-break-after: auto; }
+    #viewDif .grid { display: block !important; }
+  }
 </style>
 <div id="difControlador" class="hidden"></div>
 <div id="difToast" class="fixed left-1/2 -translate-x-1/2 bottom-24 z-[100] bg-zinc-900 text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity"></div>
@@ -9888,11 +9894,10 @@ function armarPayloadDe(items, titulo) {
   var labs = [], li = {};
   items.forEach(function (x) { if (!(x.lab in li)) { li[x.lab] = labs.length; labs.push(x.lab); } });
   var cab = [limpio(DIF.farmacia), limpio(DIF.fecha), limpio(titulo)].join("|");
-  /* Solo lo que el celular necesita ver y contar. El IDProducto y el costo se
-     quedan acá: el archivo final para PLEX lo arma el encargado al consolidar,
-     que sí tiene el Excel completo. Sacarlos hace entrar 15 productos más por QR. */
+  /* El IDProducto viaja porque el TXT que se exporta desde el celular tiene que
+     salir completo: IDProducto;Codebar;Cantidad;0 */
   var lineas = items.map(function (x) {
-    return [x.cb, limpio(x.nm + " " + (x.pr || "")), li[x.lab], x.c, x.s].join("|");
+    return [x.id, x.cb, limpio(x.nm + " " + (x.pr || "")), li[x.lab], x.c, x.s].join("|");
   });
   var txt = cab + "\n" + labs.map(limpio).join("\n") + "\u0001" + lineas.join("\n");
   return deflate(txt).then(function (r) { return (r.z ? "1" : "0") + b64url(r.b); });
@@ -9915,30 +9920,57 @@ function leerPayload(str) {
     var labs = cabYlabs;
     var items = txt.slice(i + 1).split("\n").filter(Boolean).map(function (l, n) {
       var p = l.split("|");
-      return { i: n, id: "", cb: p[0], nm: p[1], pr: "", lab: labs[+p[2]] || "", c: +p[3], s: +p[4], co: 0 };
+      return { i: n, id: p[0], cb: p[1], nm: p[2], pr: "", lab: labs[+p[3]] || "", c: +p[4], s: +p[5], co: 0 };
     });
     return { farmacia: cab[0], fecha: cab[1], quien: cab[2], items: items };
   });
 }
 function baseURL() { return location.origin + location.pathname; }
+/* El QR lleva la dirección de esta misma página. Si la página está abierta como
+   archivo local o en localhost, ningún celular puede entrar ahí. */
+function alcanzableDesdeElCelular() {
+  if (location.protocol !== "http:" && location.protocol !== "https:") return false;
+  var h = location.hostname;
+  if (h === "localhost" || h === "127.0.0.1" || h === "" || h === "::1") return false;
+  return true;
+}
 
 var LIMITE_QR = 2800, MAX_PERSONAS = 20;
-/* Medido con datos reales: sin troquel entran unos 88 productos por QR. */
-/* Cuántos productos entran en un QR, medido con datos reales: unos 70.
-   Sirve para avisar cuántas personas hacen falta antes de repartir. */
-var TOPE_APROX = 88;
+/* Cuántos productos entran en un QR, medido con datos reales: unos 72
+   llevando IDProducto, código de barras y descripción. */
+var TOPE_APROX = 72;
 function topeAprox() { return TOPE_APROX; }
 
 function minimoDePersonas() { return Math.max(1, Math.ceil(DIF.items.length / topeAprox())); }
 
-function armarPestanas() {
-  return Promise.all(DIF.personas.map(function (nombre, idx) {
-    var mios = DIF.items.filter(function (x) { return x.p === idx; })
-      .sort(function (a, b) { return a.lab < b.lab ? -1 : a.lab > b.lab ? 1 : (a.nm < b.nm ? -1 : 1); });
-    return armarPayloadDe(mios, nombre).then(function (pl) {
-      return { nombre: nombre, items: mios, payload: pl, largo: pl.length + baseURL().length + 6 };
+/* Cada persona recibe UNA hoja. Si su lista no entra en un solo QR, la hoja
+   lleva 2 o 3 QR numerados: escanea el primero, controla, y sigue con el
+   siguiente. El celular va acumulando todo lo de esa persona. */
+function partirPersona(idx) {
+  var mios = DIF.items.filter(function (x) { return x.p === idx; })
+    .sort(function (a, b) { return a.lab < b.lab ? -1 : a.lab > b.lab ? 1 : (a.nm < b.nm ? -1 : 1); });
+  var nombre = DIF.personas[idx], fijo = baseURL().length + 6;
+
+  function intentar(partes) {
+    var trozos = [], por = Math.ceil(mios.length / partes);
+    for (var k = 0; k < partes; k++) trozos.push(mios.slice(k * por, (k + 1) * por));
+    trozos = trozos.filter(function (t) { return t.length; });
+    return Promise.all(trozos.map(function (t, k) {
+      var titulo = trozos.length > 1 ? nombre + " \u00b7 parte " + (k + 1) + " de " + trozos.length : nombre;
+      return armarPayloadDe(t, titulo).then(function (pl) {
+        return { persona: idx, nombre: nombre, titulo: titulo, parte: k + 1, total: trozos.length,
+                 items: t, payload: pl, largo: pl.length + fijo };
+      });
+    })).then(function (res) {
+      var entran = res.every(function (r) { return r.largo <= LIMITE_QR; });
+      if (entran || partes >= 12) return res;
+      return intentar(partes + 1);
     });
-  }));
+  }
+  return intentar(1);
+}
+function armarPestanas() {
+  return Promise.all(DIF.personas.map(function (_, idx) { return partirPersona(idx); }));
 }
 
 /* ------------------------------------------------------------- lectura */
@@ -9985,11 +10017,11 @@ function repartir(items, personas, modo) {
 
 /* ============================================================== PANEL ==== */
 var C = {
-  card: "bg-brand-card border border-brand-border rounded-2xl shadow-card",
+  card: "bg-white border border-zinc-200 rounded-2xl shadow-card",
   btn: "px-4 py-2.5 bg-brand-primary text-white font-semibold rounded-xl text-sm hover:bg-brand-primaryHover smooth-transition shadow-soft",
-  btnG: "px-4 py-2.5 bg-brand-card border border-brand-border text-brand-text font-medium rounded-xl text-sm hover:bg-zinc-50 smooth-transition",
-  btnS: "px-3 py-1.5 bg-brand-card border border-brand-border text-brand-textSec font-medium rounded-lg text-xs hover:text-brand-text smooth-transition",
-  inp: "w-full px-3 py-2.5 bg-brand-card border border-brand-border rounded-xl text-sm text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/30",
+  btnG: "px-4 py-2.5 bg-white border border-zinc-200 text-brand-text font-medium rounded-xl text-sm hover:bg-zinc-50 smooth-transition",
+  btnS: "px-3 py-1.5 bg-white border border-zinc-200 text-brand-textSec font-medium rounded-lg text-xs hover:text-brand-text smooth-transition",
+  inp: "w-full px-3 py-2.5 bg-white border border-zinc-200 rounded-xl text-sm text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/30",
   lbl: "block text-xs font-medium text-brand-textSec mb-1.5",
   h2: "text-base font-semibold text-brand-text"
 };
@@ -10004,7 +10036,7 @@ function pintarPanel() {
 
 function pantallaCarga() {
   var box = el("div", { class: "max-w-3xl mx-auto" });
-  var drop = el("div", { class: "border-2 border-dashed border-brand-border rounded-2xl p-10 text-center bg-brand-card" }, [
+  var drop = el("div", { class: "border-2 border-dashed border-zinc-200 rounded-2xl p-10 text-center bg-white" }, [
     el("svg", { class: "w-10 h-10 mx-auto text-brand-primary mb-3", fill: "none", stroke: "currentColor", "stroke-width": "1.5", viewBox: "0 0 24 24",
       html: '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>' }),
     el("h3", { class: "text-lg font-semibold text-brand-text" }, ["Cargá el inventario que exportó PLEX"]),
@@ -10141,8 +10173,8 @@ function pantallaPersonas() {
   box.appendChild(el("div", { class: C.card + " p-5 space-y-4" }, [
     el("h3", { class: C.h2 }, ["¿Cuántas personas van a controlar?"]),
     el("p", { class: "text-sm text-brand-textSec" }, [
-      "Cada persona se lleva un QR con su lista adentro. Un QR guarda hasta unos " + topeAprox() +
-      " productos, así que con " + DIF.items.length + " diferencias hacen falta al menos " + minimoDePersonas() + " personas."
+      "Cada persona recibe una hoja con su QR. Si le tocan más de " + topeAprox() +
+      " productos, su hoja lleva 2 o 3 QR numerados y el celular va sumando todo lo suyo."
     ]),
     el("div", { class: "flex flex-wrap items-center gap-2" }, [
       el("div", { class: "w-24" }, [cantInput])
@@ -10168,48 +10200,66 @@ function pantallaResultado() {
   ]));
   box.appendChild(kpis(DIF.items));
 
+  if (!alcanzableDesdeElCelular()) {
+    box.appendChild(el("div", { class: "bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl p-5 space-y-2" }, [
+      el("p", { class: "font-semibold text-base" }, ["Estos QR no se van a poder escanear todavía"]),
+      el("p", { class: "text-sm" }, ["El QR lleva la dirección de esta página, y ahora mismo esta página es " +
+        (location.protocol === "file:" ? "un archivo de tu computadora" : "una dirección local") + ":"]),
+      el("p", { class: "text-xs font-mono break-all bg-white/60 rounded-lg px-3 py-2" }, [decodeURI(baseURL())]),
+      el("p", { class: "text-sm" }, ["Ningún celular puede entrar ahí. Subí este index.html a la web de FarmaPlus, abrí la página desde su dirección de internet y generá los QR de nuevo: ahí van a apuntar a la web y se escanean sin problema."]),
+      el("p", { class: "text-sm" }, ["Mientras tanto, el botón WhatsApp de cada persona sí funciona: manda el link completo con la lista adentro."])
+    ]));
+  }
+
   var aviso20 = el("div", {});
   var grid = el("div", { class: "grid sm:grid-cols-2 lg:grid-cols-3 gap-4" }, [
     el("p", { class: "text-sm text-brand-textSec" }, ["Armando las pestañas…"])
   ]);
 
-  armarPestanas().then(function (pestanas) {
+  armarPestanas().then(function (grupos) {
     grid.innerHTML = "";
-    var grandes = pestanas.filter(function (t) { return t.largo > LIMITE_QR; });
-    if (grandes.length) {
-      aviso20.appendChild(el("div", { class: "bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-sm space-y-1" }, [
-        el("p", { class: "font-semibold" }, ["A " + grandes.length + " persona(s) les tocan más productos de los que entran en un QR."]),
-        el("p", {}, ["Un QR guarda unos " + topeAprox() + " productos como máximo. Con " + DIF.items.length +
-          " diferencias hacen falta al menos " + minimoDePersonas() + " personas para que cada una tenga su QR."]),
-        el("p", {}, ["Mientras tanto, esas personas pueden abrir su lista con el botón de WhatsApp, que manda el link completo."])
+    var totalQR = grupos.reduce(function (a, g) { return a + g.length; }, 0);
+    var conPartes = grupos.filter(function (g) { return g.length > 1; }).length;
+    if (conPartes) {
+      aviso20.appendChild(el("div", { class: "bg-white border border-zinc-200 rounded-2xl p-5 space-y-2" }, [
+        el("p", { class: "font-semibold text-base text-brand-text" }, ["Cada persona recibe una hoja con sus QR"]),
+        el("p", { class: "text-sm text-brand-textSec" }, ["Con " + DIF.items.length + " productos entre " + DIF.personas.length +
+          " personas, a cada una le tocan más de los que entran en un solo QR. Su hoja lleva " +
+          "los QR numerados: escanea el primero, controla y envía, y sigue con el siguiente. El celular va sumando todo lo suyo."]),
+        el("p", { class: "text-sm text-brand-textSec" }, ["Son " + totalQR + " QR en total, repartidos en " + DIF.personas.length + " hojas."])
       ]));
     }
-    pestanas.forEach(function (t) {
-      var link = baseURL() + "#dif=" + t.payload;
-      var r = resumenNums(t.items);
-      var qbox = el("div", { class: "rounded-xl p-3 flex items-center justify-center min-h-[200px]", style: "background:#ffffff" });
-      var cabe = t.largo <= LIMITE_QR;
-      if (cabe) {
-        try {
-          var qr = qrcode(0, "L"); qr.addData(link); qr.make();
-          qbox.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
-        } catch (e) { cabe = false; }
-      }
-      if (!cabe) qbox.appendChild(el("p", { class: "text-xs text-center px-3", style: "color:#b45309" }, [
-        "Sus " + t.items.length + " productos no entran en un QR (entran hasta " + topeAprox() + "). Mandale el link por WhatsApp o repartí entre más gente."
-      ]));
-
-      grid.appendChild(el("div", { class: C.card + " p-4 space-y-3 break-inside-avoid" }, [
-        el("p", { class: "font-semibold text-brand-text text-lg leading-tight" }, [t.nombre]),
-        qbox,
-        el("p", { class: "text-xs text-brand-textSec tabular-nums" }, [t.items.length + " productos · " + r.falta + " faltantes · " + r.sobra + " sobrantes"]),
-        el("div", { class: "flex flex-wrap gap-2 no-print" }, [
-          el("button", { class: C.btnS, onclick: function () { location.hash = "dif=" + t.payload; } }, ["Ver el listado"]),
-          el("button", { class: C.btnS, onclick: function () { copiar(link); } }, ["Copiar link"]),
-          el("a", { class: C.btnS + " inline-flex items-center", target: "_blank", rel: "noopener",
-            href: "https://wa.me/?text=" + encodeURIComponent("Control de diferencias — " + t.nombre + "\n" + (DIF.farmacia || "") + "\nAbrí este link con el celular:\n" + link) }, ["WhatsApp"])
+    grupos.forEach(function (g) {
+      var r = resumenNums(g.reduce(function (a, t) { return a.concat(t.items); }, []));
+      var hoja = el("div", { class: "bg-white border border-zinc-200 rounded-2xl p-4 space-y-3 hoja-persona" }, [
+        el("div", {}, [
+          el("p", { class: "font-semibold text-brand-text text-lg leading-tight" }, [g[0].nombre]),
+          el("p", { class: "text-xs text-brand-textSec tabular-nums" }, [
+            g[0].items.length * 0 + g.reduce(function (a, t) { return a + t.items.length; }, 0) +
+            " productos · " + r.falta + " faltantes · " + r.sobra + " sobrantes" +
+            (g.length > 1 ? " · " + g.length + " QR" : "")])
         ])
-      ]));
+      ]);
+      g.forEach(function (t) {
+        var link = baseURL() + "#dif=" + t.payload;
+        var qbox = el("div", { class: "rounded-xl p-3 flex items-center justify-center min-h-[190px] cursor-pointer", style: "background:#ffffff",
+          title: "Tocá para agrandarlo", onclick: function () { if (qbox.querySelector("svg")) ampliarQR(t.titulo, qbox.innerHTML); } });
+        var cabe = t.largo <= LIMITE_QR;
+        if (cabe) {
+          try { var qr = qrcode(0, "L"); qr.addData(link); qr.make(); qbox.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true }); }
+          catch (e) { cabe = false; }
+        }
+        if (!cabe) qbox.appendChild(el("p", { class: "text-xs text-center px-3", style: "color:#b45309" }, ["Esta parte no entra en un QR."]));
+        hoja.appendChild(el("div", { class: "space-y-1" }, [
+          g.length > 1 ? el("p", { class: "text-xs font-semibold text-brand-primary" }, ["Parte " + t.parte + " de " + t.total + " · " + t.items.length + " productos"]) : null,
+          qbox,
+          el("div", { class: "flex flex-wrap gap-2 no-print" }, [
+            el("button", { class: C.btnS, onclick: function () { location.hash = "dif=" + t.payload; } }, ["Ver"]),
+            el("button", { class: C.btnS, onclick: function () { copiar(link); } }, ["Copiar link"])
+          ])
+        ]));
+      });
+      grid.appendChild(hoja);
     });
   }).catch(function () {
     grid.innerHTML = '<p class="text-sm text-red-600">No pude armar los listados.</p>';
@@ -10224,6 +10274,17 @@ function pantallaResultado() {
 
 
 
+
+/* El QR de 70 productos es denso: a pantalla completa se escanea sin problema. */
+function ampliarQR(nombre, svg) {
+  var ov = el("div", { class: "fixed inset-0 z-[90] flex flex-col items-center justify-center p-6 gap-4", style: "background:rgba(0,0,0,.85)",
+    onclick: function () { document.body.removeChild(ov); } }, [
+    el("p", { class: "text-white text-xl font-semibold" }, [nombre]),
+    el("div", { class: "rounded-2xl p-4", style: "background:#ffffff;width:min(90vw,90vh)", html: svg }),
+    el("p", { class: "text-white/70 text-sm" }, ["Tocá en cualquier lado para cerrar"])
+  ]);
+  document.body.appendChild(ov);
+}
 
 /* ---------------------------------------------------------- consolidar */
 function cardConsolidar() {
@@ -10299,12 +10360,12 @@ function cardListado() {
   var box = el("div", { class: C.card + " p-5 space-y-3" });
   box.appendChild(el("h3", { class: C.h2 }, ["Listado completo"]));
   var t = el("table", { class: "w-full text-sm" });
-  t.appendChild(el("thead", {}, [el("tr", { class: "text-left text-[11px] uppercase tracking-wide text-brand-textSec border-b border-brand-border" },
+  t.appendChild(el("thead", {}, [el("tr", { class: "text-left text-[11px] uppercase tracking-wide text-brand-textSec border-b border-zinc-200" },
     ["Codebar", "Producto", "Laboratorio", "Cont.", "Stock", "Dif.", "$ Dif.", "Controla"].map(function (h) { return el("th", { class: "py-2 pr-3 font-medium whitespace-nowrap" }, [h]); }))]));
   var tb = el("tbody");
   DIF.items.slice().sort(function (a, b) { return a.p - b.p || (a.lab < b.lab ? -1 : 1); }).forEach(function (it) {
     var d = it.c - it.s;
-    tb.appendChild(el("tr", { class: "border-b border-brand-border/60" }, [
+    tb.appendChild(el("tr", { class: "border-b border-zinc-200/60" }, [
       el("td", { class: "py-2 pr-3 tabular-nums whitespace-nowrap" }, [it.cb]),
       el("td", { class: "py-2 pr-3" }, [it.full || it.nm]),
       el("td", { class: "py-2 pr-3 whitespace-nowrap" }, [it.lab]),
@@ -10321,12 +10382,52 @@ function cardListado() {
 }
 
 /* ================================================== VISTA DEL CELULAR ==== */
-var local = { done: {}, qty: {} }, filtro = "pend", busca = "";
-function LSKEY() { return "fp_dif_ctrl:" + (CTRL ? (CTRL.farmacia + "|" + CTRL.fecha + "|" + CTRL.quien) : "x"); }
-function loadLocal() { try { var r = localStorage.getItem(LSKEY()); if (r) { var o = JSON.parse(r); local.done = o.done || {}; local.qty = o.qty || {}; } } catch (e) {} }
+var local = { prod: {} }, filtro = "pend", busca = "";
+
+/* El conteo se guarda por producto (código de barras), no por posición en la
+   lista. Así, si a la persona le tocan 2 o 3 QR, todo lo que va contando queda
+   junto y al final manda un solo archivo con todo lo suyo. */
+function personaBase() {
+  return String(CTRL && CTRL.quien || "").replace(/\s*\u00b7\s*parte .*$/i, "").trim();
+}
+function LSKEY() { return "fp_dif_ctrl:" + (CTRL ? (CTRL.farmacia + "|" + CTRL.fecha + "|" + personaBase()) : "x"); }
+function loadLocal() {
+  local = { prod: {} };
+  try { var r = localStorage.getItem(LSKEY()); if (r) { var o = JSON.parse(r); local.prod = o.prod || {}; } } catch (e) {}
+}
 function saveLocal() { try { localStorage.setItem(LSKEY(), JSON.stringify(local)); } catch (e) {} }
-function qtyOf(it) { var v = local.qty[it.i]; return v === undefined ? it.c : v; }
-function isDone(it) { return !!local.done[it.i]; }
+
+function claveDe(it) { return it.cb || it.id; }
+function reg(it, crear) {
+  var k = claveDe(it), r = local.prod[k];
+  if (!r && crear) r = local.prod[k] = { id: it.id || "", nm: it.nm || "", sumas: [], done: 0 };
+  if (r && crear) { if (!r.id && it.id) r.id = it.id; if (!r.nm && it.nm) r.nm = it.nm; }
+  return r;
+}
+function sumasDe(it) { var r = reg(it); return (r && r.sumas) || []; }
+function totalDe(it) { return sumasDe(it).reduce(function (a, b) { return a + b; }, 0); }
+function tocado(it) { return sumasDe(it).length > 0; }
+function sumar(it, n) {
+  n = Math.round(Number(n) || 0);
+  var r = reg(it, true);
+  if (n) r.sumas.push(n);
+  saveLocal();
+}
+function deshacer(it) { var r = reg(it); if (r && r.sumas.length) { r.sumas.pop(); saveLocal(); } }
+function borrarConteo(it) { delete local.prod[claveDe(it)]; saveLocal(); }
+function isDone(it) { var r = reg(it); return !!(r && r.done); }
+function marcarHecho(it, v) { var r = reg(it, true); r.done = v ? 1 : 0; if (v && !r.sumas.length) r.sumas = []; saveLocal(); }
+
+/* Todo lo contado por esta persona, de todas las partes que haya escaneado. */
+function paraExportar() {
+  var out = [];
+  for (var k in local.prod) {
+    var r = local.prod[k];
+    if (!r.sumas.length && !r.done) continue;
+    out.push({ id: r.id || "", cb: k, nm: r.nm || "", total: r.sumas.reduce(function (a, b) { return a + b; }, 0) });
+  }
+  return out;
+}
 
 function abrirControlador(payload) {
   leerPayload(payload).then(function (data) {
@@ -10339,11 +10440,12 @@ function abrirControlador(payload) {
     var cont = $("difControlador");
     cont.classList.remove("hidden");
     document.body.classList.add("dif-solo");
-    cont.innerHTML = '<div class="max-w-md mx-auto p-6 text-center"><p class="text-sm text-red-600">No pude abrir el listado. Pedí que te manden el link de nuevo.</p></div>';
+    cont.innerHTML = '<div class="max-w-md mx-auto p-6 text-center"><p class="text-base text-red-600">No pude abrir el listado. Pedí que te manden el link de nuevo.</p></div>';
   });
 }
 
-function pintarControlador() {
+function pintarControlador(mantenerScroll) {
+  var y = mantenerScroll ? window.scrollY : null;
   var cont = $("difControlador"); cont.innerHTML = "";
   var all = CTRL.items;
   var hechos = all.filter(isDone).length;
@@ -10357,154 +10459,209 @@ function pintarControlador() {
     return true;
   }).sort(function (a, b) { return a.lab < b.lab ? -1 : a.lab > b.lab ? 1 : (a.nm < b.nm ? -1 : 1); });
 
-  var head = el("div", { class: "sticky top-0 z-30 bg-brand-card border-b border-brand-border px-4 py-3 space-y-3" }, [
-    el("div", {}, [
-      el("p", { class: "text-[11px] uppercase tracking-wide text-brand-textSec" }, [CTRL.farmacia + (CTRL.fecha ? " · " + CTRL.fecha : "")]),
-      el("p", { class: "text-lg font-semibold text-brand-text leading-tight" }, [CTRL.quien]),
-      el("p", { class: "text-xs text-brand-textSec" }, [all.length + " productos para controlar"])
-    ]),
-    el("input", { class: C.inp, type: "search", value: busca, placeholder: "Buscar producto, laboratorio o código…",
-      oninput: function (e) { busca = e.target.value; pintarControlador(); var i = document.querySelector("#difControlador input[type=search]"); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } } }),
-    el("div", { class: "flex gap-2 overflow-x-auto pb-1" }, [["pend", "Pendientes"], ["todos", "Todos"], ["hechos", "Controlados"], ["falta", "Faltantes"], ["sobra", "Sobrantes"]].map(function (f) {
-      return el("button", { class: (filtro === f[0] ? "bg-brand-primary text-white" : "bg-brand-card border border-brand-border text-brand-textSec") + " px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap",
-        onclick: function () { filtro = f[0]; pintarControlador(); } }, [f[1]]);
-    }))
-  ]);
-  cont.appendChild(head);
+  cont.appendChild(el("div", { class: "sticky top-0 z-30 bg-white border-b border-zinc-200" }, [
+    el("div", { class: "max-w-xl mx-auto px-4 py-3 space-y-3" }, [
+      el("div", { class: "flex items-start justify-between gap-3" }, [
+        el("div", { class: "min-w-0" }, [
+          el("p", { class: "text-[11px] uppercase tracking-wide text-brand-textSec truncate" }, [CTRL.farmacia + (CTRL.fecha ? " · " + CTRL.fecha : "")]),
+          el("p", { class: "text-xl font-semibold text-brand-text leading-tight truncate" }, [personaBase()]),
+          (/parte/i.test(CTRL.quien) ? el("p", { class: "text-xs font-semibold text-brand-primary" },
+            [CTRL.quien.replace(/^.*\u00b7\s*/, "").replace(/^p/, "P")]) : null)
+        ]),
+        el("span", { class: "shrink-0 text-sm font-semibold text-brand-primary tabular-nums" }, [hechos + "/" + all.length])
+      ]),
+      el("input", { class: "w-full px-4 h-12 text-base bg-white border border-zinc-200 rounded-xl text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/30",
+        type: "search", value: busca, placeholder: "Buscar producto o código…",
+        oninput: function (e) {
+          busca = e.target.value; pintarControlador();
+          var i = document.querySelector("#difControlador input[type=search]");
+          if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
+        } }),
+      el("div", { class: "flex gap-2 overflow-x-auto -mx-1 px-1 pb-1" },
+        [["pend", "Pendientes"], ["todos", "Todos"], ["hechos", "Controlados"], ["falta", "Faltantes"], ["sobra", "Sobrantes"]].map(function (f) {
+          return el("button", { class: (filtro === f[0] ? "bg-brand-primary text-white" : "bg-white border border-zinc-200 text-brand-textSec") + " px-4 h-10 rounded-full text-sm font-medium whitespace-nowrap shrink-0",
+            onclick: function () { filtro = f[0]; busca = busca; pintarControlador(); } }, [f[1]]);
+        }))
+    ])
+  ]));
 
-  var body = el("div", { class: "px-3 py-3 space-y-3 pb-28 max-w-xl mx-auto" });
+  var body = el("div", { class: "px-3 py-3 space-y-3 pb-32 max-w-xl mx-auto" });
   if (!lista.length) {
-    body.appendChild(el("p", { class: "text-center text-sm text-brand-textSec py-10" }, [
-      hechos === all.length ? "¡Listo! Controlaste todo. Tocá Compartir para enviarlo." : "No hay productos con ese filtro."
+    body.appendChild(el("p", { class: "text-center text-base text-brand-textSec py-12 px-6" }, [
+      hechos === all.length && all.length ? "Listo, controlaste todo. Tocá Enviar abajo." : "No hay productos con este filtro."
     ]));
   } else {
     var lastLab = null;
     lista.forEach(function (it) {
-      if (it.lab !== lastLab) { lastLab = it.lab; body.appendChild(el("p", { class: "text-[11px] uppercase tracking-wide text-brand-textSec pt-3 pb-1" }, [it.lab])); }
+      if (it.lab !== lastLab) {
+        lastLab = it.lab;
+        body.appendChild(el("p", { class: "text-xs uppercase tracking-wide font-semibold text-brand-textSec pt-4 pb-1 px-1" }, [it.lab]));
+      }
       body.appendChild(fichaProducto(it));
     });
   }
   cont.appendChild(body);
 
   var pct = all.length ? Math.round(hechos / all.length * 100) : 0;
-  cont.appendChild(el("div", { class: "fixed bottom-0 left-0 right-0 z-40 bg-brand-card border-t border-brand-border px-4 py-3" }, [
-    el("div", { class: "max-w-xl mx-auto flex items-center gap-3" }, [
-      el("div", { class: "flex-1" }, [
-        el("p", { class: "text-[11px] text-brand-textSec mb-1" }, [hechos + " de " + all.length + " controlados"]),
-        el("div", { class: "h-1.5 bg-zinc-200 rounded-full overflow-hidden" }, [el("div", { class: "h-full bg-brand-primary rounded-full", style: "width:" + pct + "%" })])
+  cont.appendChild(el("div", { class: "fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-zinc-200" }, [
+    el("div", { class: "max-w-xl mx-auto px-4 py-3 flex items-center gap-3" }, [
+      el("div", { class: "flex-1 min-w-0" }, [
+        el("p", { class: "text-xs text-brand-textSec mb-1.5 tabular-nums" }, [hechos + " de " + all.length + " controlados"]),
+        el("div", { class: "h-2 bg-zinc-100 rounded-full overflow-hidden" }, [el("div", { class: "h-full bg-brand-primary rounded-full", style: "width:" + pct + "%" })])
       ]),
-      el("button", { class: C.btn, onclick: function () { pantallaCompartir(); } }, ["Compartir"])
+      el("button", { class: "shrink-0 px-6 h-12 bg-brand-primary text-white font-semibold rounded-xl text-base", onclick: function () { pantallaCompartir(); } }, ["Enviar"])
     ])
   ]));
+
+  if (y !== null) window.scrollTo(0, y);
 }
 
 function fichaProducto(it) {
-  var dif = it.c - it.s;
-  var card = el("div", { class: C.card + " overflow-hidden " + (isDone(it) ? "opacity-60" : "") });
+  var difOriginal = it.c - it.s;
+  var card = el("div", { class: C.card + " overflow-hidden " + (isDone(it) ? "opacity-70" : "") });
 
-  /* identidad */
-  card.appendChild(el("div", { class: "px-4 pt-3 pb-2" }, [
-    el("p", { class: "font-semibold text-brand-text leading-tight text-[17px]" }, [it.nm]),
-    el("span", { class: "inline-block mt-2 px-2 py-0.5 rounded-full text-[11px] font-semibold " + (dif < 0 ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700") },
-      [dif < 0 ? "Faltan " + Math.abs(dif) : "Sobran " + dif])
+  /* qué producto es */
+  card.appendChild(el("div", { class: "px-4 pt-4 pb-3" }, [
+    el("p", { class: "text-[17px] font-semibold text-brand-text leading-snug" }, [it.nm]),
+    el("div", { class: "flex flex-wrap items-center gap-2 mt-2" }, [
+      el("span", { class: "px-2.5 py-1 rounded-full text-xs font-semibold " + (difOriginal < 0 ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700") },
+        [difOriginal < 0 ? "Faltan " + Math.abs(difOriginal) : "Sobran " + difOriginal]),
+      el("span", { class: "text-xs text-brand-textSec" }, [it.lab])
+    ]),
+    el("p", { class: "text-sm text-brand-textSec tabular-nums mt-2" }, [it.cb])
   ]));
 
-  /* datos */
-  function fila(k, v) {
-    return el("div", { class: "flex justify-between gap-3 px-4 py-2 border-t border-brand-border" }, [
-      el("span", { class: "text-xs text-brand-textSec" }, [k]),
-      el("span", { class: "text-sm font-semibold text-brand-text text-right tabular-nums" }, [v || "—"])
-    ]);
-  }
-  card.appendChild(fila("Código de barras", it.cb));
-  card.appendChild(fila("Laboratorio", it.lab));
-
-  /* números */
-  card.appendChild(el("div", { class: "grid grid-cols-3 border-t border-brand-border" }, [
-    ["Se contó", String(it.c), ""], ["Sistema", String(it.s), ""], ["Diferencia", (dif > 0 ? "+" : "") + dif, dif < 0 ? "text-red-600" : "text-blue-600"]
+  /* los números del sistema */
+  card.appendChild(el("div", { class: "grid grid-cols-3 border-y border-zinc-200" }, [
+    ["Sistema", String(it.s), ""], ["Se contó", String(it.c), ""],
+    ["Diferencia", (difOriginal > 0 ? "+" : "") + difOriginal, difOriginal < 0 ? "text-red-600" : "text-blue-600"]
   ].map(function (t, i) {
-    return el("div", { class: "py-2 text-center " + (i < 2 ? "border-r border-brand-border" : "") }, [
+    return el("div", { class: "py-2.5 text-center " + (i < 2 ? "border-r border-zinc-200" : "") }, [
       el("p", { class: "text-[10px] uppercase tracking-wide text-brand-textSec" }, [t[0]]),
-      el("p", { class: "text-lg font-semibold tabular-nums " + (t[2] || "text-brand-text") }, [t[1]])
+      el("p", { class: "text-xl font-semibold tabular-nums " + (t[2] || "text-brand-text") }, [t[1]])
     ]);
   })));
 
-  /* recuento */
-  var input, chip = el("span", { class: "text-[11px] font-semibold" }, [""]);
-  function setQty(v) {
-    v = Math.max(0, Math.round(Number(v) || 0));
-    local.qty[it.i] = v; input.value = v; saveLocal();
-    var nd = v - it.s;
-    chip.textContent = nd === 0 ? "Queda en cero" : (nd < 0 ? "Faltan " + Math.abs(nd) : "Sobran " + nd);
-    chip.className = "text-[11px] font-semibold " + (nd === 0 ? "text-emerald-600" : (nd < 0 ? "text-red-600" : "text-blue-600"));
-  }
-  input = el("input", { class: "w-16 h-11 text-center border-x border-brand-border text-lg font-semibold tabular-nums bg-brand-card text-brand-text focus:outline-none",
-    type: "number", inputmode: "numeric", min: "0", value: String(qtyOf(it)), onchange: function (e) { setQty(e.target.value); } });
-
-  var chkInput = el("input", { class: "w-5 h-5 accent-[#2B3990]", type: "checkbox" });
-  chkInput.checked = isDone(it);
-  var chk = el("label", { class: "flex items-center justify-center gap-2 px-4 h-11 rounded-xl border border-brand-border text-sm font-semibold cursor-pointer select-none " + (isDone(it) ? "bg-brand-primary/10 text-brand-primary" : "text-brand-text") });
-  chkInput.addEventListener("change", function () {
-    if (chkInput.checked) local.done[it.i] = 1; else delete local.done[it.i];
-    if (local.qty[it.i] === undefined) local.qty[it.i] = Number(input.value) || 0;
-    saveLocal();
-    setTimeout(pintarControlador, 220);
+  /* el recuento, que se va sumando */
+  var zona = el("div", { class: "px-4 py-4 space-y-3" });
+  var campo = el("input", {
+    class: "flex-1 min-w-0 h-14 px-4 text-lg font-semibold tabular-nums text-center bg-white border border-zinc-200 rounded-xl text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/30",
+    type: "number", inputmode: "numeric", pattern: "[0-9]*", placeholder: "0",
+    onkeydown: function (e) { if (e.key === "Enter") { e.preventDefault(); agregar(); } }
   });
-  chk.appendChild(chkInput); chk.appendChild(document.createTextNode("Controlado"));
 
-  card.appendChild(el("div", { class: "p-4 border-t border-brand-border flex flex-wrap items-center gap-3" }, [
-    el("div", { class: "flex items-center border border-brand-border rounded-xl overflow-hidden" }, [
-      el("button", { class: "w-11 h-11 bg-zinc-100 text-xl font-semibold text-brand-text", type: "button", onclick: function () { setQty(Number(input.value) - 1); } }, ["−"]),
-      input,
-      el("button", { class: "w-11 h-11 bg-zinc-100 text-xl font-semibold text-brand-text", type: "button", onclick: function () { setQty(Number(input.value) + 1); } }, ["+"])
-    ]),
-    el("div", {}, [el("p", { class: "text-[10px] uppercase tracking-wide text-brand-textSec" }, ["Cantidad real"]), chip]),
-    el("div", { class: "flex-1 min-w-[140px]" }, [chk])
-  ]));
+  function agregar() {
+    var n = Math.round(Number(campo.value) || 0);
+    if (!n) { campo.focus(); return; }
+    sumar(it, n); campo.value = ""; pintar();
+  }
+  function pintar() {
+    zona.innerHTML = "";
+    var total = totalDe(it), sumas = sumasDe(it);
+    var nuevaDif = total - it.s;
 
-  /* buscadores: para ver de qué producto se trata */
-  card.appendChild(el("div", { class: "border-t border-brand-border bg-zinc-50 px-4 py-3" }, [
-    el("p", { class: "text-[11px] uppercase tracking-wide text-brand-textSec mb-2" }, ["Ver el producto"]),
+    zona.appendChild(el("div", { class: "flex items-end justify-between gap-3" }, [
+      el("div", {}, [
+        el("p", { class: "text-[10px] uppercase tracking-wide text-brand-textSec" }, ["Contado ahora"]),
+        el("p", { class: "text-4xl font-bold tabular-nums leading-none text-brand-text" }, [String(total)])
+      ]),
+      tocado(it) ? el("span", { class: "px-2.5 py-1 rounded-full text-xs font-semibold " +
+        (nuevaDif === 0 ? "bg-emerald-50 text-emerald-700" : (nuevaDif < 0 ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700")) },
+        [nuevaDif === 0 ? "Queda en cero" : (nuevaDif < 0 ? "Faltan " + Math.abs(nuevaDif) : "Sobran " + nuevaDif)]) : null
+    ]));
+
+    if (sumas.length > 1) {
+      zona.appendChild(el("p", { class: "text-xs text-brand-textSec tabular-nums" }, ["Sumaste: " + sumas.join(" + ") + " = " + total]));
+    }
+
+    zona.appendChild(el("div", { class: "flex gap-2" }, [1, 5, 10].map(function (n) {
+      return el("button", { class: "flex-1 h-12 rounded-xl border border-zinc-200 bg-white text-brand-text font-semibold text-base",
+        onclick: function () { sumar(it, n); pintar(); } }, ["+" + n]);
+    })));
+
+    zona.appendChild(el("div", { class: "flex gap-2" }, [
+      campo,
+      el("button", { class: "shrink-0 px-5 h-14 rounded-xl bg-brand-primary text-white font-semibold text-base", onclick: agregar }, ["Sumar"])
+    ]));
+
+    if (tocado(it)) {
+      zona.appendChild(el("div", { class: "flex gap-2" }, [
+        el("button", { class: "flex-1 h-11 rounded-xl border border-zinc-200 bg-white text-brand-textSec text-sm font-medium",
+          onclick: function () { deshacer(it); pintar(); } }, ["Deshacer" + (sumas.length ? " (−" + sumas[sumas.length - 1] + ")" : "")]),
+        el("button", { class: "flex-1 h-11 rounded-xl border border-zinc-200 bg-white text-brand-textSec text-sm font-medium",
+          onclick: function () { if (confirm("¿Borrar el conteo de este producto?")) { borrarConteo(it); pintarControlador(true); } } }, ["Empezar de nuevo"])
+      ]));
+    }
+
+    var chk = el("input", { class: "w-6 h-6 accent-[#2B3990]", type: "checkbox" });
+    chk.checked = isDone(it);
+    chk.addEventListener("change", function () {
+      marcarHecho(it, chk.checked);
+      setTimeout(function () { pintarControlador(filtro !== "pend"); }, 200);
+    });
+    zona.appendChild(el("label", { class: "flex items-center justify-center gap-3 h-14 rounded-xl border text-base font-semibold cursor-pointer select-none " +
+      (isDone(it) ? "bg-brand-primary/10 border-brand-primary/30 text-brand-primary" : "border-zinc-200 text-brand-text") },
+      [chk, document.createTextNode(isDone(it) ? "Controlado" : "Marcar como controlado")]));
+  }
+  pintar();
+  card.appendChild(zona);
+
+  /* para ver de qué producto se trata */
+  card.appendChild(el("div", { class: "border-t border-zinc-200 bg-zinc-50 px-4 py-3" }, [
+    el("p", { class: "text-[10px] uppercase tracking-wide text-brand-textSec mb-2" }, ["Ver el producto"]),
     el("div", { class: "flex flex-wrap gap-2" }, buscadores(it).map(function (b) {
-      return el("a", { class: C.btnS, href: b.u, target: "_blank", rel: "noopener" }, [b.t]);
+      return el("a", { class: "px-3 h-10 inline-flex items-center rounded-lg border border-zinc-200 bg-white text-brand-textSec text-sm font-medium",
+        href: b.u, target: "_blank", rel: "noopener" }, [b.t]);
     }))
   ]));
 
-  setQty(qtyOf(it));
   return card;
 }
 
-function txtColector(items) {
-  return items.map(function (it) { return [it.id || it.tq || "", it.cb || "", qtyOf(it), 0].join(";"); }).join("\r\n") + "\r\n";
+/* Formato del colector: IDProducto;Codebar;Cantidad;0 */
+function txtColector(regs) {
+  return regs.map(function (r) { return [r.id || "", r.cb || "", r.total, 0].join(";"); }).join("\r\n") + "\r\n";
 }
+
 function pantallaCompartir() {
   var cont = $("difControlador"); cont.innerHTML = "";
-  var all = CTRL.items, hechos = all.filter(isDone);
-  var envio = hechos.length ? hechos : all;
+  var all = CTRL.items, envio = paraExportar();
   var txt = txtColector(envio);
-  var nombre = "ColectorDatos_" + (CTRL.farmacia || "inventario").replace(/[^\w]+/g, "_") + "_" + (CTRL.quien || "").replace(/[^\w]+/g, "_") + ".txt";
+  var nombre = "ColectorDatos_" + (CTRL.farmacia || "inventario").replace(/[^\w]+/g, "_") + "_" + personaBase().replace(/[^\w]+/g, "_") + ".txt";
+  var deEstaParte = all.filter(function (it) { return tocado(it) || isDone(it); }).length;
 
-  cont.appendChild(el("div", { class: "max-w-xl mx-auto p-4 space-y-4" }, [
-    el("button", { class: C.btnS, onclick: function () { pintarControlador(); } }, ["‹ Volver a la lista"]),
-    el("h2", { class: "text-xl font-semibold text-brand-text" }, ["Enviar lo controlado"]),
-    el("p", { class: "text-sm text-brand-textSec" }, [hechos.length + " de " + all.length + " marcados como controlados." +
-      (hechos.length < all.length ? " Los que faltan van con la cantidad que figura ahora." : "")]),
-    el("div", { class: C.card + " p-4 space-y-3" }, [
-      el("h3", { class: C.h2 }, ["Archivo para PLEX"]),
-      el("p", { class: "text-xs text-brand-textSec" }, ["Mismo formato que el colector: IDProducto;Codebar;Cantidad;Unidades"]),
-      el("div", { class: "flex flex-wrap gap-2" }, [
-        el("button", { class: C.btn, onclick: function () { compartirArchivo(nombre, txt); } }, ["Compartir archivo"]),
-        el("button", { class: C.btnG, onclick: function () { copiar(txt); } }, ["Copiar"]),
-        el("button", { class: C.btnG, onclick: function () { bajar(nombre, txt); } }, ["Descargar"]),
-        el("a", { class: C.btnG, target: "_blank", rel: "noopener", href: "https://wa.me/?text=" + encodeURIComponent(txt.slice(0, 3500)) }, ["WhatsApp"])
+  cont.appendChild(el("div", { class: "sticky top-0 z-30 bg-white border-b border-zinc-200" }, [
+    el("div", { class: "max-w-xl mx-auto px-4 py-3" }, [
+      el("button", { class: "h-11 px-4 -ml-2 rounded-xl text-base font-semibold text-brand-primary",
+        onclick: function () { pintarControlador(); } }, ["\u2039  Volver a la lista"])
+    ])
+  ]));
+
+  cont.appendChild(el("div", { class: "max-w-xl mx-auto px-4 py-4 space-y-4 pb-16" }, [
+    el("h2", { class: "text-2xl font-semibold text-brand-text" }, ["Enviar lo controlado"]),
+    el("p", { class: "text-base text-brand-textSec" }, [
+      envio.length + " productos contados en total" +
+      (envio.length > deEstaParte ? " (incluye lo de los QR anteriores)." : ".") +
+      " Lo que no contaste no va en el archivo."
+    ]),
+    envio.length ? el("div", { class: C.card + " p-4 space-y-3" }, [
+      el("p", { class: "text-sm text-brand-textSec" }, ["Formato del colector: IDProducto;Codebar;Cantidad;0"]),
+      el("div", { class: "grid grid-cols-2 gap-2" }, [
+        el("button", { class: "h-14 rounded-xl bg-brand-primary text-white font-semibold text-base col-span-2", onclick: function () { compartirArchivo(nombre, txt); } }, ["Compartir archivo"]),
+        el("a", { class: "h-12 inline-flex items-center justify-center rounded-xl border border-zinc-200 text-brand-text font-medium", target: "_blank", rel: "noopener",
+          href: "https://wa.me/?text=" + encodeURIComponent(txt.slice(0, 3500)) }, ["WhatsApp"]),
+        el("button", { class: "h-12 rounded-xl border border-zinc-200 text-brand-text font-medium", onclick: function () { copiar(txt); } }, ["Copiar"]),
+        el("button", { class: "h-12 rounded-xl border border-zinc-200 text-brand-text font-medium col-span-2", onclick: function () { bajar(nombre, txt); } }, ["Descargar el .txt"])
       ]),
-      el("textarea", { class: C.inp + " font-mono text-[11px] h-40", readonly: "readonly", onclick: function (e) { e.target.select(); } }, [txt])
+      el("textarea", { class: "w-full h-40 p-3 font-mono text-xs bg-white border border-zinc-200 rounded-xl text-brand-text", readonly: "readonly",
+        onclick: function (e) { e.target.select(); } }, [txt])
+    ]) : el("div", { class: C.card + " p-5" }, [
+      el("p", { class: "text-base text-brand-textSec" }, ["Todavía no contaste ningún producto. Volvé a la lista y andá sumando lo que encuentres."])
     ])
   ]));
   window.scrollTo(0, 0);
 }
 
-/* ------------------------------------------------------------ utilidades */
 function copiar(t) {
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(t).then(function () { aviso("Copiado"); }, function () { aviso("No pude copiar: seleccioná el texto."); });
