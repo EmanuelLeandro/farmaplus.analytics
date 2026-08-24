@@ -7503,7 +7503,7 @@
 <style>
   /* Cuando alguien abre su listado desde el QR, la app ocupa toda la pantalla */
   #difControlador .h-13 { height: 3.25rem; }
-  body.dif-solo > *:not(#difControlador):not(#difToast) { display: none !important; }
+  body.dif-solo > *:not(#difControlador):not(#difToast):not(#difEscaner) { display: none !important; }
   body.dif-solo { overflow: hidden; overscroll-behavior: none; }
   body.dif-solo #difControlador {
     position: fixed; inset: 0; display: flex; flex-direction: column;
@@ -10433,7 +10433,8 @@ function escanearSiguiente() {
     } }, ["Abrir ese link"]));
   }
 
-  document.body.appendChild(ov);
+  ov.id = "difEscaner";
+  ($("difControlador") || document.body).appendChild(ov);
 
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     fallar("Este navegador no deja usar la cámara desde la página.");
@@ -10845,7 +10846,8 @@ function bloqueConteo(it, alCambiar) {
           onclick: function () { deshacer(it); pintar(); alCambiar && alCambiar(); } },
           ["Deshacer (\u2212" + sumas[sumas.length - 1] + ")"]),
         el("button", { class: "flex-1 h-11 rounded-xl border border-zinc-200 text-brand-textSec text-sm font-medium",
-          onclick: function () { borrarConteo(it); pintar(); alCambiar && alCambiar(); } }, ["Volver a " + it.c])
+          onclick: function () { borrarConteo(it); pintar(); alCambiar && alCambiar(); } },
+          [total === it.c ? "Descartar el recuento" : "Volver a " + it.c])
       ]));
     }
   }
