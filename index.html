@@ -9963,10 +9963,10 @@ function alcanzableDesdeElCelular() {
 
 var LIMITE_QR = 2800, MAX_PERSONAS = 20;
 var PESTANAS = null;   /* [[{nombre, titulo, parte, total, items, payload}]] por persona */
-/* Cuántos productos entran en un QR, medido con datos reales: unos 72
-   llevando IDProducto, código de barras y descripción. */
-var TOPE_APROX = 72;
-function topeAprox() { return TOPE_APROX; }
+/* Cada QR lleva 48 productos: es lo que entraba en una hoja de las que se
+   repartían antes. En un QR entran hasta ~72, así que 48 siempre da cómodo. */
+var POR_QR = 48;
+function topeAprox() { return POR_QR; }
 
 function minimoDePersonas() { return Math.max(1, Math.ceil(DIF.items.length / topeAprox())); }
 
@@ -9978,10 +9978,13 @@ function partirPersona(idx) {
     .sort(function (a, b) { return a.lab < b.lab ? -1 : a.lab > b.lab ? 1 : (a.nm < b.nm ? -1 : 1); });
   var nombre = DIF.personas[idx], fijo = baseURL().length + 6;
 
-  function intentar(partes) {
-    var trozos = [], por = Math.ceil(mios.length / partes);
-    for (var k = 0; k < partes; k++) trozos.push(mios.slice(k * por, (k + 1) * por));
-    trozos = trozos.filter(function (t) { return t.length; });
+  /* Bloques de 48 en fila: el primero lleva 48, el segundo los 48 siguientes, y el
+     último lo que sobre. Si por descripciones muy largas alguno no entrara en el QR,
+     se achica el bloque hasta que entre. */
+  function intentar(por) {
+    var trozos = [];
+    for (var k = 0; k < mios.length; k += por) trozos.push(mios.slice(k, k + por));
+    if (!trozos.length) trozos = [[]];
     return Promise.all(trozos.map(function (t, k) {
       var titulo = trozos.length > 1 ? nombre + " " + (k + 1) + " de " + trozos.length : nombre;
       return armarPayloadDe(t, titulo).then(function (pl) {
@@ -9990,12 +9993,13 @@ function partirPersona(idx) {
       });
     })).then(function (res) {
       var entran = res.every(function (r) { return r.largo <= LIMITE_QR; });
-      if (entran || partes >= 12) return res;
-      return intentar(partes + 1);
+      if (entran || por <= 8) return res;
+      return intentar(por - 6);
     });
   }
-  return intentar(1);
+  return intentar(POR_QR);
 }
+
 function armarPestanas() {
   return Promise.all(DIF.personas.map(function (_, idx) { return partirPersona(idx); }));
 }
@@ -10200,8 +10204,8 @@ function pantallaPersonas() {
   box.appendChild(el("div", { class: C.card + " p-5 space-y-4" }, [
     el("h3", { class: C.h2 }, ["¿Cuántas personas van a controlar?"]),
     el("p", { class: "text-sm text-brand-textSec" }, [
-      "Cada persona recibe una hoja con su QR. Si le tocan más de " + topeAprox() +
-      " productos, su hoja lleva 2 o 3 QR numerados y el celular va sumando todo lo suyo."
+      "Cada QR lleva " + POR_QR + " productos, lo mismo que traía una hoja. Si a la persona le tocan más, " +
+      "su hoja sale con varios QR numerados y el celular va sumando todo lo suyo."
     ]),
     el("div", { class: "flex flex-wrap items-center gap-2" }, [
       el("div", { class: "w-24" }, [cantInput])
@@ -10251,9 +10255,9 @@ function pantallaResultado() {
     if (conPartes) {
       aviso20.appendChild(el("div", { class: "bg-white border border-zinc-200 rounded-2xl p-5 space-y-2" }, [
         el("p", { class: "font-semibold text-base text-brand-text" }, ["Cada persona recibe una hoja con sus QR"]),
-        el("p", { class: "text-sm text-brand-textSec" }, ["Con " + DIF.items.length + " productos entre " + DIF.personas.length +
-          " personas, a cada una le tocan más de los que entran en un solo QR. Su hoja lleva " +
-          "los QR numerados: escanea el primero, controla y envía, y sigue con el siguiente. El celular va sumando todo lo suyo."]),
+        el("p", { class: "text-sm text-brand-textSec" }, ["Cada QR lleva " + POR_QR + " productos, igual que una hoja de las de antes. " +
+          "Con " + DIF.items.length + " productos entre " + DIF.personas.length + " personas, a cada una le toca más de un QR: " +
+          "escanea el primero, lo controla, y sigue con el siguiente desde la misma app. El celular va sumando todo lo suyo."]),
         el("p", { class: "text-sm text-brand-textSec" }, ["Son " + totalQR + " QR en total, repartidos en " + DIF.personas.length + " hojas."])
       ]));
     }
@@ -10365,6 +10369,105 @@ function imprimirQR() {
   setTimeout(function () { window.print(); setTimeout(limpiar, 1500); }, 120);
 }
 
+
+
+/* ---------------------------------------------------------------------------
+   Escanear el siguiente QR sin salir de la app.
+   Chrome en Android trae BarcodeDetector, así que no hace falta ninguna
+   librería. Donde no está (iPhone), se explica cómo hacerlo con la cámara y se
+   aclara que lo ya controlado no se pierde.
+   --------------------------------------------------------------------------- */
+function hayEscaner() {
+  return typeof window.BarcodeDetector !== "undefined" &&
+         navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+}
+
+function escanearSiguiente() {
+  if (!hayEscaner()) return explicarEscaneo();
+  var stream = null, timer = null, cerrado = false;
+
+  var video = el("video", { autoplay: "", playsinline: "", muted: "",
+    class: "w-full h-full object-cover", style: "background:#000" });
+  var msg = el("p", { class: "text-white text-base text-center px-6" }, ["Apuntá al QR de tu hoja"]);
+  var ov = el("div", { class: "fixed inset-0 z-[95] flex flex-col", style: "background:#000" }, [
+    el("div", { class: "relative flex-1 overflow-hidden" }, [
+      video,
+      el("div", { class: "absolute inset-0 pointer-events-none flex items-center justify-center" }, [
+        el("div", { style: "width:72vw;height:72vw;max-width:340px;max-height:340px;border:3px solid #fff;border-radius:24px;opacity:.85" })
+      ])
+    ]),
+    el("div", { class: "shrink-0 px-4 py-4 space-y-3", style: "background:#000" }, [
+      msg,
+      el("button", { class: "w-full h-14 rounded-xl bg-white text-black font-bold text-base", onclick: function () { cerrar(); } }, ["Cancelar"])
+    ])
+  ]);
+
+  function cerrar() {
+    if (cerrado) return;
+    cerrado = true;
+    if (timer) clearInterval(timer);
+    if (stream) stream.getTracks().forEach(function (t) { t.stop(); });
+    if (ov.parentNode) ov.parentNode.removeChild(ov);
+  }
+
+  document.body.appendChild(ov);
+
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } } })
+    .then(function (st) {
+      stream = st; video.srcObject = st;
+      var det = new window.BarcodeDetector({ formats: ["qr_code"] });
+      var mirando = false;
+      timer = setInterval(function () {
+        if (mirando || cerrado || video.readyState < 2) return;
+        mirando = true;
+        det.detect(video).then(function (codes) {
+          mirando = false;
+          if (!codes || !codes.length) return;
+          for (var i = 0; i < codes.length; i++) {
+            var m = String(codes[i].rawValue || "").match(/#dif=(.+)$/);
+            if (!m) continue;
+            revisarYAbrir(m[1], msg, cerrar);
+            return;
+          }
+        }).catch(function () { mirando = false; });
+      }, 350);
+    })
+    .catch(function () { cerrar(); explicarEscaneo("No pude usar la cámara. Fijate que le hayas dado permiso al navegador."); });
+}
+
+/* Antes de abrirlo, chequea que el QR sea de esta misma persona y otra parte. */
+function revisarYAbrir(payload, msg, cerrar) {
+  leerPayload(payload).then(function (data) {
+    var p = partesDelTitulo(data.quien);
+    if (normaliza(p.nombre) !== normaliza(personaBase())) {
+      msg.textContent = "Ese QR es de " + p.nombre + ", no tuyo. Buscá el de tu hoja.";
+      return;
+    }
+    if (local.partes[p.parte]) {
+      msg.textContent = "Ese es el QR " + p.parte + " y ya lo escaneaste. Buscá el " + (partesQueFaltan()[0] || "que falta") + ".";
+      return;
+    }
+    cerrar();
+    aviso("QR " + p.parte + " de " + p.total + " cargado. Lo anterior quedó guardado.");
+    location.hash = "dif=" + payload;
+  }).catch(function () {
+    msg.textContent = "Ese QR no es de este inventario.";
+  });
+}
+
+function explicarEscaneo(extra) {
+  var f = partesQueFaltan();
+  var ov = el("div", { class: "fixed inset-0 z-[95] flex items-center justify-center p-5", style: "background:rgba(0,0,0,.75)" });
+  ov.appendChild(el("div", { class: "w-full max-w-sm rounded-2xl bg-white p-5 space-y-3" }, [
+    el("p", { class: "text-xl font-bold text-brand-text" }, ["Escaneá el QR " + (f[0] || "") + " de tu hoja"]),
+    extra ? el("p", { class: "text-sm text-red-700" }, [extra]) : null,
+    el("p", { class: "text-base text-brand-textSec" }, ["Abrí la cámara del celular, apuntá al siguiente QR y tocá el link que aparece."]),
+    el("p", { class: "text-base font-semibold text-emerald-700" }, ["Lo que ya controlaste queda guardado en este celular: al abrir el otro QR vas a seguir con lo tuyo y al final mandás un solo archivo."]),
+    el("button", { class: "w-full h-13 rounded-xl bg-brand-primary text-white font-bold text-base",
+      onclick: function () { document.body.removeChild(ov); } }, ["Entendido"])
+  ]));
+  document.body.appendChild(ov);
+}
 
 /* ---------------------------------------------------------- consolidar */
 function cardConsolidar() {
@@ -10730,6 +10833,12 @@ function pintarLista() {
           var i = document.querySelector("#difControlador input[type=search]");
           if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
         } }),
+      (function () {
+        var f = partesQueFaltan();
+        if (!f.length) return null;
+        return el("button", { class: "w-full h-11 rounded-xl border border-brand-primary/40 bg-brand-primary/10 text-brand-primary font-bold text-sm",
+          onclick: function () { escanearSiguiente(); } }, ["Escanear el QR " + f[0] + " de " + (local.totalPartes || 1)]);
+      })(),
       el("div", { class: "flex gap-2 overflow-x-auto -mx-1 px-1 pb-1" },
         [["pend", "Pendientes"], ["todos", "Todos"], ["hechos", "Controlados"], ["falta", "Faltantes"], ["sobra", "Sobrantes"]]
           .concat(filtro === "revisar" ? [["revisar", "A revisar"]] : []).map(function (f) {
@@ -10753,7 +10862,10 @@ function pintarLista() {
           ? "Llevás " + (p0.total - faltan0.length) + " de " + p0.total + ". Ahora escaneá de tu hoja el QR " + faltan0[0] + " de " + p0.total + "."
           : "Escaneaste los " + p0.total + " QR y está todo tildado."]) : null,
       el("p", { class: "text-sm " + (faltan0.length ? "text-amber-800" : "text-emerald-700") },
-        [faltan0.length ? "Recién cuando termines todos vas a poder enviar." : "Ya podés enviar."])
+        [faltan0.length ? "Lo que ya controlaste queda guardado. Recién cuando termines todos vas a poder enviar."
+                        : "Ya podés enviar."]),
+      faltan0.length ? el("button", { class: "w-full h-14 rounded-xl bg-brand-primary text-white font-bold text-base mt-1",
+        onclick: function () { escanearSiguiente(); } }, ["Escanear el QR " + faltan0[0] + " de " + p0.total]) : null
     ]));
   }
 
