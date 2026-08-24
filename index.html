@@ -7512,12 +7512,26 @@
   #difControlador .dif-scroll { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
   #difControlador .dif-fija { flex: 0 0 auto; }
   #difControlador details > summary::-webkit-details-marker { display: none; }
+  /* Hoja de reparto: solo el nombre y los QR, una página por persona */
+  #difPrint { display: none; }
   @media print {
-    #viewDif .break-inside-avoid, #viewDif .hoja-persona { break-inside: avoid; page-break-inside: avoid; }
-    /* Una hoja por persona */
-    #viewDif .hoja-persona { break-after: page; page-break-after: always; border: 0 !important; }
-    #viewDif .hoja-persona:last-child { break-after: auto; page-break-after: auto; }
-    #viewDif .grid { display: block !important; }
+    body.dif-imprimiendo > *:not(#difPrint) { display: none !important; }
+    body.dif-imprimiendo { background: #fff !important; }
+    #difPrint { display: block !important; background: #fff !important; color: #000 !important; }
+    #difPrint .qr-hoja {
+      break-after: page; page-break-after: always; break-inside: avoid; page-break-inside: avoid;
+      text-align: center; padding: 1.2cm 1cm; font-family: Inter, system-ui, sans-serif;
+    }
+    #difPrint .qr-hoja:last-child { break-after: auto; page-break-after: auto; }
+    #difPrint .qr-suc { font-size: 11pt; color: #444 !important; margin: 0 0 2mm; }
+    #difPrint .qr-nombre { font-size: 34pt; font-weight: 800; margin: 0 0 2mm; letter-spacing: -0.02em; color: #000 !important; }
+    #difPrint .qr-datos { font-size: 12pt; color: #333 !important; margin: 0 0 6mm; }
+    #difPrint .qr-parte { font-size: 12pt; font-weight: 700; margin: 0 0 2mm; color: #000 !important; }
+    #difPrint .qr-bloque { margin: 0 0 6mm; }
+    #difPrint .qr-img { margin: 0 auto; background: #fff !important; }
+    #difPrint .qr-img svg { width: 100%; height: 100%; display: block; }
+    #difPrint .qr-pie { font-size: 10pt; color: #444 !important; margin-top: 4mm; }
+    @page { margin: 8mm; }
   }
 </style>
 <div id="difControlador" class="hidden"></div>
@@ -9948,6 +9962,7 @@ function alcanzableDesdeElCelular() {
 }
 
 var LIMITE_QR = 2800, MAX_PERSONAS = 20;
+var PESTANAS = null;   /* [[{nombre, titulo, parte, total, items, payload}]] por persona */
 /* Cuántos productos entran en un QR, medido con datos reales: unos 72
    llevando IDProducto, código de barras y descripción. */
 var TOPE_APROX = 72;
@@ -9968,7 +9983,7 @@ function partirPersona(idx) {
     for (var k = 0; k < partes; k++) trozos.push(mios.slice(k * por, (k + 1) * por));
     trozos = trozos.filter(function (t) { return t.length; });
     return Promise.all(trozos.map(function (t, k) {
-      var titulo = trozos.length > 1 ? nombre + " \u00b7 parte " + (k + 1) + " de " + trozos.length : nombre;
+      var titulo = trozos.length > 1 ? nombre + " " + (k + 1) + " de " + trozos.length : nombre;
       return armarPayloadDe(t, titulo).then(function (pl) {
         return { persona: idx, nombre: nombre, titulo: titulo, parte: k + 1, total: trozos.length,
                  items: t, payload: pl, largo: pl.length + fijo };
@@ -10206,7 +10221,7 @@ function pantallaResultado() {
       el("p", { class: "text-sm text-brand-textSec" }, [(DIF.fecha ? DIF.fecha + " · " : "") + DIF.items.length + " productos con diferencia entre " + DIF.personas.length + " personas"])
     ]),
     el("div", { class: "flex gap-2 no-print" }, [
-      el("button", { class: C.btnG, onclick: function () { window.print(); } }, ["Imprimir QR"]),
+      el("button", { class: C.btnG, onclick: function () { imprimirQR(); } }, ["Imprimir QR"]),
       el("button", { class: C.btnG, onclick: function () { DIF.personas = []; DIF.cuantas = 0; pintarPanel(); } }, ["Cambiar reparto"])
     ])
   ]));
@@ -10229,6 +10244,7 @@ function pantallaResultado() {
   ]);
 
   armarPestanas().then(function (grupos) {
+    PESTANAS = grupos;
     grid.innerHTML = "";
     var totalQR = grupos.reduce(function (a, g) { return a + g.length; }, 0);
     var conPartes = grupos.filter(function (g) { return g.length > 1; }).length;
@@ -10263,7 +10279,7 @@ function pantallaResultado() {
         }
         if (!cabe) qbox.appendChild(el("p", { class: "text-xs text-center px-3", style: "color:#b45309" }, ["Esta parte no entra en un QR."]));
         hoja.appendChild(el("div", { class: "space-y-1" }, [
-          g.length > 1 ? el("p", { class: "text-xs font-semibold text-brand-primary" }, ["Parte " + t.parte + " de " + t.total + " · " + t.items.length + " productos"]) : null,
+          g.length > 1 ? el("p", { class: "text-xs font-semibold text-brand-primary" }, [t.nombre + " " + t.parte + " de " + t.total + " · " + t.items.length + " productos"]) : null,
           qbox,
           el("div", { class: "flex flex-wrap gap-2 no-print" }, [
             el("button", { class: C.btnS, onclick: function () { location.hash = "dif=" + t.payload; } }, ["Ver"]),
@@ -10297,6 +10313,58 @@ function ampliarQR(nombre, svg) {
   ]);
   document.body.appendChild(ov);
 }
+
+
+/* ---------------------------------------------------------------------------
+   Impresión: una hoja por persona, con su nombre grande y sus QR. Nada más:
+   ni tablas, ni tarjetas, ni el resto del panel. Es lo que se recorta y se
+   entrega, igual que las hojas de antes.
+   --------------------------------------------------------------------------- */
+function imprimirQR() {
+  if (!PESTANAS) { aviso("Esperá que terminen de generarse los QR"); return; }
+  var viejo = $("difPrint");
+  if (viejo) viejo.parentNode.removeChild(viejo);
+
+  var caja = el("div", { id: "difPrint" });
+  PESTANAS.forEach(function (g) {
+    var totalProd = g.reduce(function (a, t) { return a + t.items.length; }, 0);
+    var r = resumenNums(g.reduce(function (a, t) { return a.concat(t.items); }, []));
+    var ancho = g.length === 1 ? "13cm" : (g.length === 2 ? "9cm" : "7cm");
+
+    var hoja = el("div", { class: "qr-hoja" }, [
+      el("p", { class: "qr-suc" }, [DIF.farmacia + (DIF.fecha ? " · " + DIF.fecha : "")]),
+      el("p", { class: "qr-nombre" }, [g[0].nombre]),
+      el("p", { class: "qr-datos" }, [totalProd + " productos para controlar · " + r.falta + " faltantes · " + r.sobra + " sobrantes"])
+    ]);
+
+    g.forEach(function (t) {
+      var svg = "";
+      try { var qr = qrcode(0, "L"); qr.addData(baseURL() + "#dif=" + t.payload); qr.make(); svg = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true }); }
+      catch (e) { svg = ""; }
+      hoja.appendChild(el("div", { class: "qr-bloque" }, [
+        g.length > 1 ? el("p", { class: "qr-parte" }, [t.nombre + " " + t.parte + " de " + t.total + " · " + t.items.length + " productos"]) : null,
+        el("div", { class: "qr-img", style: "width:" + ancho + ";height:" + ancho, html: svg })
+      ]));
+    });
+
+    hoja.appendChild(el("p", { class: "qr-pie" }, [
+      "Escaneá el QR con la cámara del celular." +
+      (g.length > 1 ? " Cuando termines el primero, seguí con el siguiente." : "")
+    ]));
+    caja.appendChild(hoja);
+  });
+
+  document.body.appendChild(caja);
+  document.body.classList.add("dif-imprimiendo");
+  var limpiar = function () {
+    document.body.classList.remove("dif-imprimiendo");
+    var c = $("difPrint"); if (c) c.parentNode.removeChild(c);
+    window.removeEventListener("afterprint", limpiar);
+  };
+  window.addEventListener("afterprint", limpiar);
+  setTimeout(function () { window.print(); setTimeout(limpiar, 1500); }, 120);
+}
+
 
 /* ---------------------------------------------------------- consolidar */
 function cardConsolidar() {
@@ -10399,13 +10467,36 @@ var local = { prod: {} }, filtro = "pend", busca = "";
 /* El conteo se guarda por producto (código de barras), no por posición en la
    lista. Así, si a la persona le tocan 2 o 3 QR, todo lo que va contando queda
    junto y al final manda un solo archivo con todo lo suyo. */
-function personaBase() {
-  return String(CTRL && CTRL.quien || "").replace(/\s*\u00b7\s*parte .*$/i, "").trim();
+function partesDelTitulo(t) {
+  var m = String(t || "").match(/^(.*?)\s+(\d+)\s+de\s+(\d+)\s*$/i);
+  if (m) return { nombre: m[1].trim(), parte: +m[2], total: +m[3] };
+  /* compatibilidad con los QR viejos */
+  var v = String(t || "").match(/^(.*?)\s*\u00b7\s*parte\s+(\d+)\s+de\s+(\d+)\s*$/i);
+  if (v) return { nombre: v[1].trim(), parte: +v[2], total: +v[3] };
+  return { nombre: String(t || "").trim(), parte: 1, total: 1 };
 }
+function personaBase() { return partesDelTitulo(CTRL && CTRL.quien).nombre; }
+function miParte() { return partesDelTitulo(CTRL && CTRL.quien); }
 function LSKEY() { return "fp_dif_ctrl:" + (CTRL ? (CTRL.farmacia + "|" + CTRL.fecha + "|" + personaBase()) : "x"); }
 function loadLocal() {
-  local = { prod: {} };
-  try { var r = localStorage.getItem(LSKEY()); if (r) { var o = JSON.parse(r); local.prod = o.prod || {}; } } catch (e) {}
+  local = { prod: {}, partes: {}, totalPartes: 1 };
+  try {
+    var r = localStorage.getItem(LSKEY());
+    if (r) { var o = JSON.parse(r); local.prod = o.prod || {}; local.partes = o.partes || {}; local.totalPartes = o.totalPartes || 1; }
+  } catch (e) {}
+  /* deja anotado que esta persona ya abrió esta parte */
+  var p = miParte();
+  local.totalPartes = Math.max(local.totalPartes || 1, p.total);
+  local.partes[p.parte] = 1;
+  saveLocal();
+}
+function partesEscaneadas() {
+  return Object.keys(local.partes || {}).map(Number).sort(function (a, b) { return a - b; });
+}
+function partesQueFaltan() {
+  var f = [];
+  for (var i = 1; i <= (local.totalPartes || 1); i++) if (!local.partes[i]) f.push(i);
+  return f;
 }
 function saveLocal() { try { localStorage.setItem(LSKEY(), JSON.stringify(local)); } catch (e) {} }
 
@@ -10494,9 +10585,20 @@ function cabecera(extra) {
     el("div", { class: "px-4 pt-3 pb-2 flex items-center gap-3" }, [
       el("div", { class: "min-w-0 flex-1" }, [
         el("p", { class: "text-lg font-semibold text-brand-text leading-tight truncate" }, [personaBase()]),
-        el("p", { class: "text-[11px] text-brand-textSec truncate" }, [
-          (/parte/i.test(CTRL.quien) ? CTRL.quien.replace(/^.*\u00b7\s*/, "").replace(/^p/, "P") + " · " : "") + CTRL.farmacia
-        ])
+        (function () {
+          var p = miParte();
+          var txt = p.total > 1 ? ("Parte " + p.parte + " de " + p.total + " · " + CTRL.farmacia) : CTRL.farmacia;
+          return el("p", { class: "text-[11px] text-brand-textSec truncate" }, [txt]);
+        })(),
+        (function () {
+          var p = miParte();
+          if (p.total < 2) return null;
+          var esc = partesEscaneadas(), falta = partesQueFaltan();
+          return el("p", { class: "text-[11px] " + (falta.length ? "text-brand-textSec" : "text-emerald-600 font-semibold") }, [
+            falta.length ? ("Escaneaste " + esc.join(", ") + " de " + p.total + " · falta " + falta.join(", "))
+                         : ("Escaneaste las " + p.total + " partes")
+          ]);
+        })()
       ]),
       el("span", { class: "shrink-0 text-base font-bold text-brand-primary tabular-nums" }, [hechos + "/" + all.length])
     ]),
@@ -10684,7 +10786,13 @@ function pantallaCompartir() {
   var cont = $("difControlador"); cont.innerHTML = "";
   var all = CTRL.items, envio = paraExportar();
   var txt = txtColector(envio);
-  var nombre = "ColectorDatos_" + (CTRL.farmacia || "inventario").replace(/[^\w]+/g, "_") + "_" + personaBase().replace(/[^\w]+/g, "_") + ".txt";
+  var p = miParte(), esc = partesEscaneadas(), falta = partesQueFaltan();
+  var completo = p.total < 2 || falta.length === 0;
+  var nombre = "ColectorDatos_" +
+    (CTRL.farmacia || "inventario").replace(/[^\w]+/g, "_") + "_" +
+    personaBase().replace(/[^\w]+/g, "_") +
+    (p.total > 1 ? "_" + esc.length + "de" + p.total : "") +
+    (completo ? "_COMPLETO" : "_PARCIAL") + ".txt";
   var deEstaParte = all.filter(function (it) { return tocado(it) || isDone(it); }).length;
 
   cont.appendChild(el("div", { class: "dif-fija bg-white border-b border-zinc-200 px-3 py-3" }, [
@@ -10699,12 +10807,24 @@ function pantallaCompartir() {
       (envio.length > deEstaParte ? " (incluye lo de los QR anteriores)." : ".") +
       " Lo que no contaste no va en el archivo."
     ]),
+    (p.total > 1 ? el("div", { class: "rounded-2xl px-4 py-3 text-sm " +
+      (completo ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-900") }, [
+      el("p", { class: "font-bold" }, [completo
+        ? "Escaneaste las " + p.total + " partes: este archivo está completo."
+        : "Te falta escanear " + (falta.length === 1 ? "la parte " : "las partes ") + falta.join(", ") + " de " + p.total + "."]),
+      el("p", {}, [completo
+        ? "Mandale este solo archivo al encargado."
+        : "Podés mandarlo igual, pero conviene terminar todas las partes y mandar un archivo solo al final. El archivo siempre trae todo lo que contaste hasta ahora."])
+    ]) : null),
     envio.length ? el("div", { class: "rounded-2xl border border-zinc-200 bg-white p-4 space-y-3" }, [
       el("p", { class: "text-sm text-brand-textSec" }, ["Formato del colector: IDProducto;Codebar;Cantidad;0"]),
       el("div", { class: "grid grid-cols-2 gap-2" }, [
         el("button", { class: "h-14 rounded-xl bg-brand-primary text-white font-semibold text-base col-span-2", onclick: function () { compartirArchivo(nombre, txt); } }, ["Compartir archivo"]),
         el("a", { class: "h-12 inline-flex items-center justify-center rounded-xl border border-zinc-200 text-brand-text font-medium", target: "_blank", rel: "noopener",
-          href: "https://wa.me/?text=" + encodeURIComponent(txt.slice(0, 3500)) }, ["WhatsApp"]),
+          href: "https://wa.me/?text=" + encodeURIComponent(
+            personaBase() + (p.total > 1 ? " — " + esc.length + " de " + p.total + " partes" : "") +
+            (completo ? " — COMPLETO" : " — PARCIAL") + "\n" +
+            envio.length + " productos\n\n" + txt.slice(0, 3200)) }, ["WhatsApp"]),
         el("button", { class: "h-12 rounded-xl border border-zinc-200 text-brand-text font-medium", onclick: function () { copiar(txt); } }, ["Copiar"]),
         el("button", { class: "h-12 rounded-xl border border-zinc-200 text-brand-text font-medium col-span-2", onclick: function () { bajar(nombre, txt); } }, ["Descargar el .txt"])
       ]),
