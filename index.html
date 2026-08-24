@@ -9975,8 +9975,7 @@ function minimoDePersonas() { return Math.max(1, Math.ceil(DIF.items.length / to
    lleva 2 o 3 QR numerados: escanea el primero, controla, y sigue con el
    siguiente. El celular va acumulando todo lo de esa persona. */
 function partirPersona(idx) {
-  var mios = DIF.items.filter(function (x) { return x.p === idx; })
-    .sort(function (a, b) { return a.lab < b.lab ? -1 : a.lab > b.lab ? 1 : (a.nm < b.nm ? -1 : 1); });
+  var mios = DIF.items.filter(function (x) { return x.p === idx; }).sort(ordenAZ);
   var nombre = DIF.personas[idx], fijo = baseURL().length + 6;
 
   /* Bloques de 48 en fila: el primero lleva 48, el segundo los 48 siguientes, y el
@@ -10029,8 +10028,27 @@ function leerExcel(buf) {
   else if (f) fecha = String(f).slice(0, 10);
   return { items: items, fecha: fecha };
 }
+function ordenAZ(a, b) {
+  if (a.lab !== b.lab) return a.lab < b.lab ? -1 : 1;
+  return a.nm < b.nm ? -1 : a.nm > b.nm ? 1 : 0;
+}
 function repartir(items, personas, modo) {
   var n = personas.length; if (!n) return;
+
+  /* De la A a la Z: el mismo orden que se ve en el Excel filtrado por
+     laboratorio. Se corta en tramos seguidos, así el QR 1 son los primeros 48
+     del listado, el QR 2 los 48 siguientes, y así. */
+  if (modo === "az") {
+    var orden = items.slice().sort(ordenAZ);
+    var porPersona = Math.ceil(orden.length / n);
+    /* Si redondeando a múltiplos de 48 siguen entrando todas las personas, se
+       redondea: así los QR salen de 48 justos y solo el último lleva el resto. */
+    var redondeado = Math.ceil(porPersona / POR_QR) * POR_QR;
+    if (Math.ceil(orden.length / redondeado) === n) porPersona = redondeado;
+    orden.forEach(function (it, k) { it.p = Math.min(n - 1, Math.floor(k / porPersona)); });
+    return;
+  }
+
   if (modo === "simple") {
     items.slice().sort(function (a, b) { return a.lab < b.lab ? -1 : a.lab > b.lab ? 1 : (a.nm < b.nm ? -1 : 1); })
       .forEach(function (it, k) { it.p = k % n; });
@@ -10178,12 +10196,14 @@ function pantallaPersonas() {
     ]));
     nombres.appendChild(el("div", { class: C.card + " p-5 space-y-4" }, [
       el("h3", { class: C.h2 }, ["Cómo reparto"]),
-      el("div", { class: "flex gap-2" }, [
+      el("div", { class: "flex flex-wrap gap-2" }, [
         el("button", { class: DIF.modo === "lab" ? C.btn : C.btnG, onclick: function () { DIF.modo = "lab"; dibujarNombres(); } }, ["Por laboratorio"]),
+        el("button", { class: DIF.modo === "az" ? C.btn : C.btnG, onclick: function () { DIF.modo = "az"; dibujarNombres(); } }, ["De la A a la Z"]),
         el("button", { class: DIF.modo === "simple" ? C.btn : C.btnG, onclick: function () { DIF.modo = "simple"; dibujarNombres(); } }, ["Partes iguales"])
       ]),
-      el("p", { class: "text-xs text-brand-textSec" }, [DIF.modo === "lab"
-        ? "Cada persona se lleva laboratorios completos: recorre la estantería una sola vez y las cargas quedan parejas."
+      el("p", { class: "text-xs text-brand-textSec" }, [
+        DIF.modo === "lab" ? "Cada persona se lleva laboratorios completos: recorre la estantería una sola vez y las cargas quedan parejas."
+        : DIF.modo === "az" ? "Mismo orden que el Excel filtrado por laboratorio: el primer QR son los primeros " + POR_QR + " del listado, el segundo los " + POR_QR + " siguientes. Sirve para ir en paralelo con quien mira el Excel."
         : "Se divide en partes iguales, sin importar el laboratorio."]),
       el("button", {
         class: C.btn + " w-full sm:w-auto", onclick: function () {
