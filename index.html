@@ -10479,20 +10479,64 @@ function personaBase() { return partesDelTitulo(CTRL && CTRL.quien).nombre; }
 function miParte() { return partesDelTitulo(CTRL && CTRL.quien); }
 function LSKEY() { return "fp_dif_ctrl:" + (CTRL ? (CTRL.farmacia + "|" + CTRL.fecha + "|" + personaBase()) : "x"); }
 function loadLocal() {
-  local = { prod: {}, partes: {}, totalPartes: 1 };
+  local = { prod: {}, partes: {}, claves: {}, totalPartes: 1 };
   try {
     var r = localStorage.getItem(LSKEY());
-    if (r) { var o = JSON.parse(r); local.prod = o.prod || {}; local.partes = o.partes || {}; local.totalPartes = o.totalPartes || 1; }
+    if (r) {
+      var o = JSON.parse(r);
+      local.prod = o.prod || {}; local.partes = o.partes || {};
+      local.claves = o.claves || {}; local.totalPartes = o.totalPartes || 1;
+    }
   } catch (e) {}
-  /* deja anotado que esta persona ya abrió esta parte */
+  /* deja anotado que esta persona ya abrió esta parte, y qué productos trae */
   var p = miParte();
   local.totalPartes = Math.max(local.totalPartes || 1, p.total);
   local.partes[p.parte] = 1;
+  local.claves[p.parte] = CTRL.items.map(function (it) { return claveDe(it); });
   saveLocal();
 }
 function partesEscaneadas() {
   return Object.keys(local.partes || {}).map(Number).sort(function (a, b) { return a - b; });
 }
+/* Cuántos productos quedan sin tildar, contando todas las partes ya escaneadas. */
+function pendientesEnTodo() {
+  var n = 0;
+  for (var pa in local.claves) {
+    (local.claves[pa] || []).forEach(function (k) {
+      var r = local.prod[k];
+      if (!r || !r.done) n++;
+    });
+  }
+  return n;
+}
+function pendientesDeEstaParte() {
+  return CTRL.items.filter(function (it) { return !isDone(it); }).length;
+}
+function listoParaEnviar() { return pendientesEnTodo() === 0 && partesQueFaltan().length === 0; }
+
+/* Resumen de cómo quedó el control, mirando todas las partes juntas. */
+function resumenControl() {
+  var recontados = 0, aceptados = 0, aceptadosConDif = 0, enCero = 0, conDif = 0, tot = 0;
+  for (var pa in local.claves) {
+    (local.claves[pa] || []).forEach(function (k) {
+      var r = local.prod[k];
+      if (!r || !r.done) return;
+      tot++;
+      var recontado = r.sumas.length > 0;
+      var total = recontado ? r.sumas.reduce(function (a, b) { return a + b; }, 0) : (r.c || 0);
+      var dif = total - (r.s || 0);
+      if (recontado) recontados++; else { aceptados++; if (dif !== 0) aceptadosConDif++; }
+      if (dif === 0) enCero++; else conDif++;
+    });
+  }
+  return { total: tot, recontados: recontados, aceptados: aceptados,
+           aceptadosConDif: aceptadosConDif, enCero: enCero, conDif: conDif };
+}
+/* Los que tildó sin volver a contar y siguen sin coincidir con el sistema. */
+function sospechosos(items) {
+  return items.filter(function (it) { return isDone(it) && !tocado(it) && (it.c - it.s) !== 0; });
+}
+
 function partesQueFaltan() {
   var f = [];
   for (var i = 1; i <= (local.totalPartes || 1); i++) if (!local.partes[i]) f.push(i);
@@ -10503,8 +10547,13 @@ function saveLocal() { try { localStorage.setItem(LSKEY(), JSON.stringify(local)
 function claveDe(it) { return it.cb || it.id; }
 function reg(it, crear) {
   var k = claveDe(it), r = local.prod[k];
-  if (!r && crear) r = local.prod[k] = { id: it.id || "", nm: it.nm || "", c: it.c, sumas: [], done: 0 };
-  if (r && crear) { if (!r.id && it.id) r.id = it.id; if (!r.nm && it.nm) r.nm = it.nm; if (r.c === undefined) r.c = it.c; }
+  if (!r && crear) r = local.prod[k] = { id: it.id || "", nm: it.nm || "", c: it.c, s: it.s, sumas: [], done: 0 };
+  if (r && crear) {
+    if (!r.id && it.id) r.id = it.id;
+    if (!r.nm && it.nm) r.nm = it.nm;
+    if (r.c === undefined) r.c = it.c;
+    if (r.s === undefined) r.s = it.s;
+  }
   return r;
 }
 function sumasDe(it) { var r = reg(it); return (r && r.sumas) || []; }
@@ -10546,7 +10595,7 @@ function abrirControlador(payload) {
     document.body.classList.add("dif-solo");
     /* Tailwind mide en rem: subir la raíz agranda TODO de una (letras, botones,
        alturas y espacios) sin tocar cada clase. */
-    document.documentElement.style.fontSize = "19px";
+    document.documentElement.style.fontSize = "17px";
     var cont = $("difControlador");
     cont.classList.remove("hidden");
     pintarControlador();
@@ -10567,6 +10616,7 @@ function visibles() {
     if (filtro === "hechos" && !isDone(it)) return false;
     if (filtro === "falta" && !(it.c - it.s < 0)) return false;
     if (filtro === "sobra" && !(it.c - it.s > 0)) return false;
+    if (filtro === "revisar" && !(isDone(it) && !tocado(it) && (it.c - it.s) !== 0)) return false;
     if (q && (it.nm + " " + it.lab + " " + it.cb).toLowerCase().indexOf(q) < 0) return false;
     return true;
   });
@@ -10609,9 +10659,9 @@ function cabecera(extra) {
 
 /* ---------- el bloque de conteo ---------- */
 function bloqueConteo(it, alCambiar) {
-  var caja = el("div", { class: "rounded-2xl border border-zinc-200 bg-white p-3 space-y-2.5" });
+  var caja = el("div", { class: "rounded-xl border border-zinc-200 bg-white p-3 space-y-2" });
   var campo = el("input", {
-    class: "flex-1 min-w-0 h-14 px-4 text-xl font-bold tabular-nums text-center bg-white border border-zinc-200 rounded-xl text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/30",
+    class: "flex-1 min-w-0 h-12 px-4 text-lg font-bold tabular-nums text-center bg-white border border-zinc-200 rounded-xl text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/30",
     type: "number", inputmode: "numeric", pattern: "[0-9]*", placeholder: "0",
     onkeydown: function (e) { if (e.key === "Enter") { e.preventDefault(); cargar(); } }
   });
@@ -10628,36 +10678,36 @@ function bloqueConteo(it, alCambiar) {
       el("div", {}, [
         el("p", { class: "text-[11px] uppercase tracking-wide " + (modificado ? "text-brand-primary font-bold" : "text-brand-textSec") },
           [modificado ? "Recuento" : "Cantidad contada"]),
-        el("p", { class: "text-4xl font-bold tabular-nums leading-none " + (modificado ? "text-brand-primary" : "text-brand-text") }, [String(total)])
+        el("p", { class: "text-3xl font-bold tabular-nums leading-none " + (modificado ? "text-brand-primary" : "text-brand-text") }, [String(total)])
       ]),
       modificado ? el("span", { class: "px-3 py-1.5 rounded-full text-sm font-bold " +
         (nueva === 0 ? "bg-emerald-50 text-emerald-700" : (nueva < 0 ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700")) },
         [nueva === 0 ? "Queda en cero" : (nueva < 0 ? "Faltan " + Math.abs(nueva) : "Sobran " + nueva)]) : null
     ]));
 
-    caja.appendChild(el("p", { class: "text-xs text-brand-textSec" }, [
-      modificado
-        ? (sumas.length > 1 ? "Cargaste: " + sumas.join(" + ") + " = " + total : "Cargaste " + total + " en vez de " + it.c)
-        : "Si está bien, marcalo como controlado. Si no, cargá la cantidad real."
-    ]));
+    if (modificado) {
+      caja.appendChild(el("p", { class: "text-xs text-brand-textSec truncate" }, [
+        sumas.length > 1 ? "Cargaste: " + sumas.join(" + ") + " = " + total : "Cargaste " + total + " en vez de " + it.c
+      ]));
+    }
 
     caja.appendChild(el("div", { class: "flex gap-2" }, [1, 5, 10].map(function (n) {
-      return el("button", { class: "flex-1 h-14 rounded-xl border border-zinc-200 bg-white text-brand-text font-bold text-lg",
+      return el("button", { class: "flex-1 h-11 rounded-xl border border-zinc-200 bg-white text-brand-text font-bold text-base",
         onclick: function () { sumar(it, n); pintar(); alCambiar && alCambiar(); } }, ["+" + n]);
     })));
 
     caja.appendChild(el("div", { class: "flex gap-2" }, [
       campo,
-      el("button", { class: "shrink-0 px-5 h-14 rounded-xl bg-brand-primary text-white font-bold text-base", onclick: cargar },
+      el("button", { class: "shrink-0 px-5 h-12 rounded-xl bg-brand-primary text-white font-bold text-base", onclick: cargar },
         [modificado ? "Agregar" : "Modificar"])
     ]));
 
     if (modificado) {
       caja.appendChild(el("div", { class: "flex gap-2" }, [
-        el("button", { class: "flex-1 h-12 rounded-xl border border-zinc-200 text-brand-textSec text-sm font-medium",
+        el("button", { class: "flex-1 h-11 rounded-xl border border-red-300 bg-red-50 text-red-700 text-sm font-bold",
           onclick: function () { deshacer(it); pintar(); alCambiar && alCambiar(); } },
           ["Deshacer (\u2212" + sumas[sumas.length - 1] + ")"]),
-        el("button", { class: "flex-1 h-12 rounded-xl border border-zinc-200 text-brand-textSec text-sm font-medium",
+        el("button", { class: "flex-1 h-11 rounded-xl border border-zinc-200 text-brand-textSec text-sm font-medium",
           onclick: function () { borrarConteo(it); pintar(); alCambiar && alCambiar(); } }, ["Volver a " + it.c])
       ]));
     }
@@ -10681,7 +10731,8 @@ function pintarLista() {
           if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
         } }),
       el("div", { class: "flex gap-2 overflow-x-auto -mx-1 px-1 pb-1" },
-        [["pend", "Pendientes"], ["todos", "Todos"], ["hechos", "Controlados"], ["falta", "Faltantes"], ["sobra", "Sobrantes"]].map(function (f) {
+        [["pend", "Pendientes"], ["todos", "Todos"], ["hechos", "Controlados"], ["falta", "Faltantes"], ["sobra", "Sobrantes"]]
+          .concat(filtro === "revisar" ? [["revisar", "A revisar"]] : []).map(function (f) {
           return el("button", { class: (filtro === f[0] ? "bg-brand-primary text-white" : "bg-white border border-zinc-200 text-brand-textSec") + " px-4 h-11 rounded-full text-sm font-semibold whitespace-nowrap shrink-0",
             onclick: function () { filtro = f[0]; pintarLista(); } }, [f[1]]);
         }))
@@ -10689,6 +10740,23 @@ function pintarLista() {
   ));
 
   var scroll = el("div", { class: "dif-scroll" });
+
+  var p0 = miParte();
+  if (pendientesDeEstaParte() === 0) {
+    var faltan0 = partesQueFaltan();
+    scroll.appendChild(el("div", { class: "m-3 rounded-2xl p-4 space-y-2 " +
+      (faltan0.length ? "bg-amber-50 border border-amber-200" : "bg-emerald-50 border border-emerald-200") }, [
+      el("p", { class: "text-lg font-bold " + (faltan0.length ? "text-amber-900" : "text-emerald-800") },
+        [p0.total > 1 ? "Terminaste el QR " + p0.parte + " de " + p0.total : "Terminaste tu lista"]),
+      p0.total > 1 ? el("p", { class: "text-base " + (faltan0.length ? "text-amber-900" : "text-emerald-800") },
+        [faltan0.length
+          ? "Llevás " + (p0.total - faltan0.length) + " de " + p0.total + ". Ahora escaneá de tu hoja el QR " + faltan0[0] + " de " + p0.total + "."
+          : "Escaneaste los " + p0.total + " QR y está todo tildado."]) : null,
+      el("p", { class: "text-sm " + (faltan0.length ? "text-amber-800" : "text-emerald-700") },
+        [faltan0.length ? "Recién cuando termines todos vas a poder enviar." : "Ya podés enviar."])
+    ]));
+  }
+
   if (!lista.length) {
     var all = CTRL.items, hechos = all.filter(isDone).length;
     scroll.appendChild(el("div", { class: "px-6 py-16 text-center space-y-4" }, [
@@ -10709,10 +10777,91 @@ function pintarLista() {
   }
   cont.appendChild(scroll);
 
-  var all = CTRL.items, hechos = all.filter(isDone).length;
-  cont.appendChild(el("div", { class: "dif-fija bg-white border-t border-zinc-200 px-3 py-3 flex items-center gap-3" }, [
-    el("p", { class: "flex-1 text-sm text-brand-textSec tabular-nums" }, [hechos + " de " + all.length + " controlados"]),
-    el("button", { class: "shrink-0 px-7 h-13 py-3 rounded-xl bg-brand-primary text-white font-bold text-base", onclick: function () { pantallaCompartir(); } }, ["Enviar"])
+  cont.appendChild(pieBarra());
+}
+
+/* La barra de abajo: dice qué falta y habilita Enviar solo cuando está todo. */
+function pieBarra() {
+  var pend = pendientesEnTodo(), faltanP = partesQueFaltan(), listo = listoParaEnviar();
+  return el("div", { id: "difPie", class: "dif-fija bg-white border-t border-zinc-200 px-3 py-3 flex items-center gap-3" }, [
+    el("p", { class: "flex-1 text-sm tabular-nums leading-tight " + (listo ? "text-emerald-600 font-semibold" : "text-brand-textSec") }, [
+      listo ? "Está todo controlado"
+            : (pend > 0 ? "Faltan tildar " + pend + " producto" + (pend === 1 ? "" : "s")
+                        : "Falta escanear " + (faltanP.length === 1 ? "el QR " : "los QR ") + faltanP.join(", "))
+    ]),
+    el("button", {
+      class: "shrink-0 px-7 h-13 py-3 rounded-xl font-bold text-base " +
+        (listo ? "bg-brand-primary text-white" : "bg-zinc-200 text-zinc-500"),
+      onclick: function () {
+        if (!listoParaEnviar()) {
+          var f = partesQueFaltan(), n = pendientesEnTodo();
+          aviso(n > 0 ? "Tenés que tildar los " + n + " que faltan antes de enviar"
+                      : "Te falta escanear " + (f.length === 1 ? "el QR " : "los QR ") + f.join(", "));
+          return;
+        }
+        pantallaConfirmar();
+      }
+    }, ["Enviar"])
+  ]);
+}
+
+/* ---------------------------------------------------------------------------
+   Antes de enviar: un repaso de cómo quedó, para que nadie mande a ciegas los
+   que tildó sin volver a contar.
+   --------------------------------------------------------------------------- */
+function pantallaConfirmar() {
+  var r = resumenControl();
+  var sosp = sospechosos(CTRL.items);
+  if (!r.aceptadosConDif) return pantallaCompartir();
+
+  var cont = $("difControlador"); cont.innerHTML = "";
+  cont.appendChild(el("div", { class: "dif-fija bg-white border-b border-zinc-200 px-3 py-3" }, [
+    el("button", { class: "h-12 px-4 rounded-xl text-base font-semibold text-brand-primary",
+      onclick: function () { pintarControlador(); } }, ["\u2039  Volver a la lista"])
+  ]));
+
+  function linea(n, txt, cls) {
+    return el("div", { class: "flex items-baseline gap-3 py-2 border-b border-zinc-200" }, [
+      el("p", { class: "w-14 shrink-0 text-2xl font-bold tabular-nums text-right " + (cls || "text-brand-text") }, [String(n)]),
+      el("p", { class: "text-base text-brand-textSec leading-snug" }, [txt])
+    ]);
+  }
+
+  cont.appendChild(el("div", { class: "dif-scroll px-4 py-4 space-y-4" }, [
+    el("h2", { class: "text-2xl font-bold text-brand-text" }, ["Antes de enviar"]),
+    el("div", { class: "rounded-2xl border border-zinc-200 bg-white px-4 py-2" }, [
+      linea(r.total, "productos controlados"),
+      linea(r.recontados, "los volviste a contar", "text-brand-primary"),
+      linea(r.aceptados, "los diste por buenos sin cambiar la cantidad"),
+      linea(r.enCero, "quedaron iguales al sistema", "text-emerald-600"),
+      linea(r.conDif, "siguen con diferencia", "text-red-600")
+    ]),
+    el("div", { class: "rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3 space-y-1" }, [
+      el("p", { class: "text-base font-bold text-amber-900" }, [
+        r.aceptadosConDif + " producto" + (r.aceptadosConDif === 1 ? "" : "s") + " los tildaste sin volver a contar y siguen con diferencia"
+      ]),
+      el("p", { class: "text-sm text-amber-900" }, [
+        "Si los contaste de verdad y la diferencia es real, está perfecto: mandalos así. Si se te fue el dedo, revisalos antes."
+      ])
+    ]),
+    sosp.length ? el("div", { class: "rounded-2xl border border-zinc-200 bg-white divide-y divide-zinc-200" },
+      sosp.slice(0, 8).map(function (it) {
+        var d = it.c - it.s;
+        return el("div", { class: "px-4 py-2.5 flex items-center gap-3" }, [
+          el("div", { class: "min-w-0 flex-1" }, [
+            el("p", { class: "text-base font-semibold text-brand-text leading-snug" }, [it.nm]),
+            el("p", { class: "text-xs text-brand-textSec tabular-nums" }, ["sistema " + it.s + " · contó " + it.c])
+          ]),
+          el("p", { class: "shrink-0 text-base font-bold tabular-nums " + (d < 0 ? "text-red-600" : "text-blue-600") }, [(d > 0 ? "+" : "") + d])
+        ]);
+      }).concat(sosp.length > 8 ? [el("p", { class: "px-4 py-2 text-sm text-brand-textSec" }, ["y " + (sosp.length - 8) + " más en esta parte"])] : [])
+    ) : null,
+    el("div", { class: "grid grid-cols-1 gap-2 pb-4" }, [
+      sosp.length ? el("button", { class: "h-14 rounded-xl border border-zinc-200 text-brand-text font-bold text-base",
+        onclick: function () { filtro = "revisar"; busca = ""; pintarControlador(); } }, ["Revisar esos " + sosp.length]) : null,
+      el("button", { class: "h-14 rounded-xl bg-brand-primary text-white font-bold text-base",
+        onclick: function () { pantallaCompartir(); } }, ["Está bien, enviar"])
+    ])
   ]));
 }
 
@@ -10721,27 +10870,27 @@ function filaProducto(it) {
   var dif = it.c - it.s;
   var caja = el("div", { class: "bg-white border-y border-zinc-200 mb-3 " + (isDone(it) ? "opacity-70" : "") });
 
-  caja.appendChild(el("div", { class: "px-4 pt-4" }, [
-    el("p", { class: "text-xl font-bold text-brand-text leading-snug" }, [it.nm]),
-    el("div", { class: "flex items-center gap-3 mt-1.5 flex-wrap" }, [
-      el("span", { class: "text-base text-brand-textSec tabular-nums" }, [it.cb]),
-      el("span", { class: "px-3 py-1 rounded-full text-sm font-bold " + (dif < 0 ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700") },
+  caja.appendChild(el("div", { class: "px-4 pt-3" }, [
+    el("p", { class: "text-lg font-bold text-brand-text leading-snug" }, [it.nm]),
+    el("div", { class: "flex items-center gap-2 mt-1 flex-wrap" }, [
+      el("span", { class: "text-sm text-brand-textSec tabular-nums" }, [it.cb]),
+      el("span", { class: "px-2.5 py-0.5 rounded-full text-sm font-bold " + (dif < 0 ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700") },
         [dif < 0 ? "Faltan " + Math.abs(dif) : "Sobran " + dif])
     ])
   ]));
 
-  caja.appendChild(el("div", { class: "grid grid-cols-3 mx-4 my-3 rounded-2xl border border-zinc-200 overflow-hidden" }, [
+  caja.appendChild(el("div", { class: "grid grid-cols-3 mx-4 my-2 rounded-xl border border-zinc-200 overflow-hidden" }, [
     ["Sistema", String(it.s), ""], ["Se contó", String(it.c), ""],
     ["Diferencia", (dif > 0 ? "+" : "") + dif, dif < 0 ? "text-red-600" : "text-blue-600"]
   ].map(function (t, i) {
-    return el("div", { class: "py-2.5 text-center " + (i < 2 ? "border-r border-zinc-200" : "") }, [
-      el("p", { class: "text-[11px] uppercase tracking-wide text-brand-textSec" }, [t[0]]),
-      el("p", { class: "text-2xl font-bold tabular-nums " + (t[2] || "text-brand-text") }, [t[1]])
+    return el("div", { class: "py-2 text-center " + (i < 2 ? "border-r border-zinc-200" : "") }, [
+      el("p", { class: "text-[10px] uppercase tracking-wide text-brand-textSec" }, [t[0]]),
+      el("p", { class: "text-xl font-bold tabular-nums " + (t[2] || "text-brand-text") }, [t[1]])
     ]);
   })));
 
-  var zona = el("div", { class: "px-4 pb-4 space-y-3" });
-  var chkWrap = el("div", { class: "px-4 pb-4" });
+  var zona = el("div", { class: "px-4 pb-3 space-y-2" });
+  var chkWrap = el("div", { class: "px-4 pb-3" });
 
   function refrescarPie() {
     chkWrap.innerHTML = "";
@@ -10749,17 +10898,18 @@ function filaProducto(it) {
     chk.checked = isDone(it);
     chk.addEventListener("change", function () {
       marcarHecho(it, chk.checked);
-      if (filtro === "pend" && chk.checked) setTimeout(pintarLista, 220);
-      else { caja.classList.toggle("opacity-70", chk.checked); refrescarPie(); actualizarPie(); }
+      /* Si con este tilde terminó la parte, redibujo para mostrar el aviso de arriba. */
+      if (pendientesDeEstaParte() === 0) { setTimeout(pintarLista, 220); return; }
+      if (filtro === "pend" && chk.checked) { setTimeout(pintarLista, 220); return; }
+      caja.classList.toggle("opacity-70", chk.checked); refrescarPie(); actualizarPie();
     });
-    chkWrap.appendChild(el("label", { class: "flex items-center justify-center gap-3 h-14 rounded-2xl border text-base font-bold cursor-pointer select-none " +
+    chkWrap.appendChild(el("label", { class: "flex items-center justify-center gap-3 h-13 rounded-xl border text-base font-bold cursor-pointer select-none " +
       (isDone(it) ? "bg-brand-primary/10 border-brand-primary/40 text-brand-primary" : "border-zinc-200 text-brand-text") },
       [chk, document.createTextNode(isDone(it) ? "Controlado" : "Marcar como controlado")]));
   }
   function actualizarPie() {
-    var all = CTRL.items, hechos = all.filter(isDone).length;
-    var p = document.querySelector("#difControlador .dif-fija p.flex-1");
-    if (p) p.textContent = hechos + " de " + all.length + " controlados";
+    var viejo = $("difPie");
+    if (viejo && viejo.parentNode) viejo.parentNode.replaceChild(pieBarra(), viejo);
   }
 
   zona.appendChild(bloqueConteo(it, function () { refrescarPie(); }));
@@ -10768,7 +10918,7 @@ function filaProducto(it) {
   caja.appendChild(chkWrap);
 
   caja.appendChild(el("details", { class: "border-t border-zinc-200 bg-zinc-50" }, [
-    el("summary", { class: "px-4 py-3 text-sm font-semibold text-brand-textSec cursor-pointer" }, ["¿Cuál es este producto?"]),
+    el("summary", { class: "px-4 py-2.5 text-sm font-semibold text-brand-textSec cursor-pointer" }, ["¿Cuál es este producto?"]),
     el("div", { class: "px-4 pb-4 flex flex-wrap gap-2" }, buscadores(it).map(function (b) {
       return el("a", { class: "px-4 h-12 inline-flex items-center rounded-xl border border-zinc-200 bg-white text-brand-text text-sm font-medium",
         href: b.u, target: "_blank", rel: "noopener" }, [b.t]);
