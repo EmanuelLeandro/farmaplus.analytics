@@ -10735,15 +10735,24 @@ function borrarConteo(it) { var r = reg(it); if (r) { r.sumas = []; saveLocal();
 function isDone(it) { var r = reg(it); return !!(r && r.done); }
 function marcarHecho(it, v) { var r = reg(it, true); r.done = v ? 1 : 0; if (v && !r.sumas.length) r.sumas = []; saveLocal(); }
 
-/* Todo lo contado por esta persona, de todas las partes que haya escaneado. */
+/* Todo lo contado por esta persona, de todas las partes que haya escaneado,
+   respetando el orden en que se ven los productos: parte 1, parte 2, y dentro de
+   cada una el mismo orden del listado (el que se eligió al repartir).
+   Se recorre `local.claves`, que guarda ese orden; nunca el objeto `local.prod`,
+   porque el navegador devuelve sus claves ordenadas por número de código. */
 function paraExportar() {
-  var out = [];
-  for (var k in local.prod) {
-    var r = local.prod[k];
-    if (!r.sumas.length && !r.done) continue;
-    var t = r.sumas.length ? r.sumas.reduce(function (a, b) { return a + b; }, 0) : (r.c || 0);
-    out.push({ id: r.id || "", cb: k, nm: r.nm || "", total: t });
-  }
+  var out = [], vistos = {};
+  var partes = Object.keys(local.claves || {}).map(Number).sort(function (a, b) { return a - b; });
+  partes.forEach(function (pa) {
+    (local.claves[pa] || []).forEach(function (k) {
+      if (vistos[k]) return;
+      var r = local.prod[k];
+      if (!r || (!r.sumas.length && !r.done)) return;
+      vistos[k] = 1;
+      var t = r.sumas.length ? r.sumas.reduce(function (a, b) { return a + b; }, 0) : (r.c || 0);
+      out.push({ id: r.id || "", cb: k, nm: r.nm || "", total: t });
+    });
+  });
   return out;
 }
 
@@ -10878,7 +10887,9 @@ function bloqueConteo(it, alCambiar) {
 /* ---------- la lista completa: todos los productos, grandes ---------- */
 function pintarLista() {
   var cont = $("difControlador"); cont.innerHTML = "";
-  var lista = visibles().sort(function (a, b) { return a.lab < b.lab ? -1 : a.lab > b.lab ? 1 : (a.nm < b.nm ? -1 : 1); });
+  /* Sin reordenar: la lista ya viene en el orden que se eligió al repartir, y ese
+     mismo orden es el que sale en el TXT. */
+  var lista = visibles();
 
   cont.appendChild(cabecera(
     el("div", { class: "px-3 pb-2 space-y-2 border-t border-zinc-100" }, [
